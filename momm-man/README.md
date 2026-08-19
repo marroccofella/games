@@ -2,7 +2,7 @@
 
 An original terminal-flavored maze-chomper from the 42.uk Library — you are a green ◆ eating evidence dots while momm's four failure statuses hunt you: **Timeout** (hunts you), **Err503** (ambushes where you're heading), **AuthFail** (runs a pincer), and **Tier** (loses its nerve up close).
 
-**Play:** [/games/momm-man/](https://marroccofella.github.io/games/momm-man/)
+**Play:** [/games/momm-man/](https://marroccofella.github.io/games/momm-man/) — landing page with a Play button (game at play.html)
 
 ## Controls
 Arrows / WASD or swipe · **P** pause · **M** mute · **T** slow mode (accessibility) · **R** restart after game over / level clear.
