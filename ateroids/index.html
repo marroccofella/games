@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asteroids Game</title>
+    <!-- Favicon -->
+    <link rel="icon" href="https://fav.farm/🚀" />
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <a href="#game-container" class="skip-link">Skip to main content</a>
+    <div id="game-container">
+        <div id="hud">
+            <div id="score-display" class="hud-block"></div>
+            <div id="lives-display" class="hud-block"></div>
+            <div id="high-score-display" class="hud-block"></div>
+        </div>
+        <div id="word-ui-bar">
+            <div id="letter-rack"></div>
+            <div id="words-display"></div>
+            <div id="word-score-display">Word Score: 0</div>
+        </div>
+        <canvas id="gameCanvas"></canvas>
+        <div id="start-screen" class="screen">
+            <h1>ASTEROIDS</h1>
+            <p>Use Arrow Keys to Move, Space to Shoot, 'B' for Smart Bomb</p>
+            <button id="start-button">START GAME</button>
+        </div>
+        <div id="game-over" class="screen hidden">
+            <h1>GAME OVER</h1>
+            <p>Your Score: <span id="final-score">0</span></p>
+            <button id="restart-button">PLAY AGAIN</button>
+        </div>
+        <!-- Pause Overlay -->
+        <div id="pause-overlay" class="screen hidden">
+            <h1>PAUSED</h1>
+            <button id="resume-button">RESUME</button>
+        </div>
+        <!-- Mute Button -->
+        <button id="mute-button" class="hud-button">🔊</button>
+        <!-- Touch Controls (visible on touch devices) -->
+        <div id="touch-controls" class="hidden">
+            <button data-key="ArrowLeft" class="touch-btn">⬅️</button>
+            <button data-key="ArrowUp" class="touch-btn">⬆️</button>
+            <button data-key="ArrowRight" class="touch-btn">➡️</button>
+            <button data-key=" " class="touch-btn">🔫</button>
+            <button data-key="b" class="touch-btn">💣</button>
+        </div>
+    </div>
+    <script src="game.js"></script>
+</body>
+</html>
