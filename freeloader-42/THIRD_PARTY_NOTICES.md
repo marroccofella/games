@@ -1,6 +1,6 @@
 # Third-party notices
 
-FREEL\*ADER 42 distributes compiled code from the packages below. Their authors retain copyright and their licence terms continue to apply. Versions are taken from the release lockfile.
+FREEL\*ADER 42 distributes compiled code from the packages below. Their authors retain copyright and their licence terms continue to apply. Versions were recorded from the source release lockfile at build time; this static distribution intentionally contains the compiled browser release rather than the private development tree or its lockfile.
 
 | Package | Version | Licence | Copyright / attribution |
 |---|---:|---|---|

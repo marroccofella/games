@@ -10,6 +10,6 @@ Games from the [42.uk](https://42.uk) Library. Each game lives in its own self-c
 
 Each game folder carries its own README with controls, features, and provenance. Third-party libraries retain their own licences.
 
-Run `node verify.mjs` to verify local page references and the FREEL\*ADER 42 cabinet's shipped controls, media, and lazy 3D split before publishing.
+Run `node --test verify.test.mjs`, then `node verify.mjs`, to pin the verifier's fail-closed consent and input checks before validating local references and the FREEL\*ADER 42 cabinet's shipped controls, media, and lazy 3D split. The same checks run automatically on pushes and pull requests.
 
 Part of the [42.uk](https://42.uk) universe. RELAX. IT'S ALREADY OVER.

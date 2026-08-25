@@ -63,6 +63,16 @@ Rising median clear time and deaths by district; no difficulty drop greater
 than 10%; at most three consecutive high-intensity rooms; a finale
 demonstrably harder than every ordinary property.
 
+## Release boundary
+
+The current v1 release is not blocked on the nine-item redesign backlog above.
+Its v1 blockers were deterministic reachability, the Property 42 prerequisite
+gate, consent-safe audio packaging, accessible pause/reset behavior, and a
+complete 42-property autopilot proof; those gates are shipped and tested.
+Items 1–9 are the ordered v1.1 campaign-expansion contract. None should be
+presented as shipped until its level data, solver trace, and human playtest
+criteria land in the same change.
+
 ## Standing constraints
 
 - Every room ships machine-verified reachable (tests/game-rules.test.mjs).
