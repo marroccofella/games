@@ -1,0 +1,1856 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Crumble Invaders | A Truuze Original Arcade Game</title>
+    <meta name="description"
+        content="Crumble Invaders — an entirely original arcade experience by Truuze. Bond enemies, throw kookies, defend the network.">
+    <link rel="icon"
+        href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22%3E%3Ctext y=%2214%22 font-size=%2214%22%3E🍪%3C/text%3E%3C/svg%3E">
+    <style>
+        :root {
+            --display-font: ui-monospace, "Cascadia Mono", "Segoe UI Mono", Consolas, monospace;
+            --body-font: system-ui, -apple-system, "Segoe UI", sans-serif;
+        }
+
+        *,
+        *::before,
+        *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #051a20;
+            color: #e0e0e0;
+            font-family: var(--body-font);
+            touch-action: none;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        /* Canvas fills viewport exactly */
+        #game-canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+        }
+
+        /* ── HUD ── */
+        .hud {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            background: rgba(5, 26, 32, 0.88);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(0, 242, 255, 0.12);
+        }
+
+        .hud-left,
+        .hud-right {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+
+        .hud-label {
+            font-family: var(--display-font);
+            font-size: 0.55rem;
+            color: rgba(0, 242, 255, 0.72);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .hud-value {
+            font-family: var(--display-font);
+            font-size: 0.9rem;
+            color: #00f2ff;
+        }
+
+        .hud-title {
+            font-family: var(--display-font);
+            font-size: clamp(0.6rem, 1.8vw, 0.85rem);
+            background: linear-gradient(135deg, #00f2ff, #b4ff39);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: 2px;
+            text-align: center;
+        }
+
+        .lives {
+            display: flex;
+            gap: 2px;
+            font-size: 0.9rem;
+        }
+
+        /* ── Overlays ── */
+        .overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 200;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(5, 26, 32, 0.94);
+            backdrop-filter: blur(12px);
+            text-align: center;
+            padding: 1.5rem;
+            overflow-y: auto;
+        }
+
+        .overlay.hidden {
+            display: none;
+        }
+
+        .overlay h1 {
+            font-family: var(--display-font);
+            font-size: clamp(1.5rem, 5vw, 2.6rem);
+            background: linear-gradient(135deg, #00f2ff, #b4ff39);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.3rem;
+        }
+
+        .overlay .subtitle {
+            font-family: var(--display-font);
+            font-size: clamp(0.7rem, 2vw, 0.95rem);
+            color: #ff6b35;
+            letter-spacing: 2px;
+            margin-bottom: 1.2rem;
+        }
+
+        .overlay .coming-msg {
+            font-size: clamp(0.85rem, 2.2vw, 1rem);
+            color: rgba(255, 255, 255, 0.55);
+            margin-bottom: 1.5rem;
+            max-width: 520px;
+            line-height: 1.8;
+        }
+
+        .overlay .coming-msg strong {
+            color: #00f2ff;
+        }
+
+        .overlay .coming-msg em {
+            color: #b4ff39;
+            font-style: normal;
+        }
+
+        .play-btn {
+            font-family: var(--display-font);
+            font-size: 0.8rem;
+            padding: 0.9rem 2.5rem;
+            background: transparent;
+            color: #00f2ff;
+            border: 2px solid #00f2ff;
+            cursor: pointer;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            transition: all 0.3s;
+            border-radius: 4px;
+            margin-bottom: 0.8rem;
+        }
+
+        .play-btn:hover,
+        .play-btn:active {
+            background: #00f2ff;
+            color: #051a20;
+            box-shadow: 0 0 25px rgba(0, 242, 255, 0.4);
+        }
+
+        .back-link {
+            color: rgba(255, 255, 255, 0.68);
+            text-decoration: none;
+            font-size: 0.8rem;
+            margin-top: 0.4rem;
+            transition: color 0.3s;
+        }
+
+        .back-link:hover {
+            color: #00f2ff;
+        }
+
+        .project-credit {
+            color: rgba(255, 255, 255, 0.54);
+            font-size: 0.7rem;
+            line-height: 1.55;
+            margin: 0.75rem 0 0;
+        }
+
+        .project-credit a {
+            color: #b4ff39;
+        }
+
+        .project-credit span {
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .controls-legend {
+            display: flex;
+            gap: 1.2rem;
+            margin: 1rem 0;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .ctrl-item {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.45);
+        }
+
+        .ctrl-key {
+            display: inline-block;
+            padding: 2px 7px;
+            background: rgba(0, 242, 255, 0.08);
+            border: 1px solid rgba(0, 242, 255, 0.25);
+            border-radius: 3px;
+            font-family: var(--display-font);
+            font-size: 0.6rem;
+            color: #00f2ff;
+        }
+
+        .final-score {
+            font-family: var(--display-font);
+            font-size: 1.8rem;
+            color: #b4ff39;
+            margin: 0.3rem 0;
+        }
+
+        .wave-label {
+            font-family: var(--display-font);
+            font-size: 0.7rem;
+            color: rgba(0, 242, 255, 0.5);
+            letter-spacing: 3px;
+            margin-bottom: 0.2rem;
+        }
+
+        /* Toasts */
+        .toast {
+            position: fixed;
+            top: 48px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 300;
+            font-family: var(--display-font);
+            font-size: 0.75rem;
+            padding: 0.5rem 1.2rem;
+            border-radius: 8px;
+            opacity: 0;
+            transition: opacity 0.35s;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+
+        .toast.show {
+            opacity: 1;
+        }
+
+        .toast-bond {
+            background: rgba(255, 107, 53, 0.9);
+            color: #fff;
+        }
+
+        .toast-kookie {
+            background: rgba(180, 255, 57, 0.9);
+            color: #051a20;
+        }
+
+        .toast-wave {
+            background: rgba(0, 242, 255, 0.9);
+            color: #051a20;
+        }
+
+        .toast-daybook {
+            background: rgba(155, 89, 182, 0.85);
+            color: #fff;
+            font-family: var(--body-font);
+            font-size: 0.85rem;
+            max-width: 90vw;
+            white-space: normal;
+            text-align: center;
+        }
+
+        /* Sound toggle */
+        .sound-toggle {
+            position: fixed;
+            top: 0.5rem;
+            right: 0.5rem;
+            z-index: 250;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(0, 242, 255, 0.2);
+            color: #00f2ff;
+            font-size: 1.2rem;
+            padding: 0.3rem 0.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            backdrop-filter: blur(5px);
+        }
+
+        button:focus-visible,
+        a:focus-visible {
+            outline: 3px solid #b4ff39;
+            outline-offset: 3px;
+        }
+
+        .touch-actions {
+            position: fixed;
+            right: max(0.75rem, env(safe-area-inset-right));
+            bottom: max(0.75rem, env(safe-area-inset-bottom));
+            z-index: 150;
+            display: none;
+            gap: 0.55rem;
+        }
+
+        .touch-action {
+            width: 3.1rem;
+            height: 3.1rem;
+            border-radius: 50%;
+            border: 1px solid rgba(0, 242, 255, 0.55);
+            background: rgba(5, 26, 32, 0.84);
+            color: #fff;
+            font-size: 1.45rem;
+            box-shadow: 0 0 18px rgba(0, 242, 255, 0.16);
+            touch-action: manipulation;
+        }
+
+        @media (hover: none), (pointer: coarse), (max-width: 700px) {
+            .touch-actions {
+                display: flex;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *,
+            *::before,
+            *::after {
+                scroll-behavior: auto !important;
+                transition-duration: 0.01ms !important;
+                animation-duration: 0.01ms !important;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .hud {
+                padding: 0.3rem 0.6rem;
+            }
+
+            .hud-value {
+                font-size: 0.75rem;
+            }
+
+            .hud-label {
+                font-size: 0.5rem;
+            }
+
+            .controls-legend {
+                display: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Sound toggle -->
+    <button class="sound-toggle" id="sound-toggle" type="button" onclick="toggleSound()"
+        aria-label="Mute sound" aria-pressed="true" title="Mute sound">🔊</button>
+
+    <!-- HUD -->
+    <div class="hud" aria-label="Game status">
+        <div class="hud-left">
+            <div>
+                <div class="hud-label">Kookies</div>
+                <div class="hud-value" id="hud-score">0</div>
+            </div>
+            <div>
+                <div class="hud-label">Wave</div>
+                <div class="hud-value" id="hud-wave">1</div>
+            </div>
+        </div>
+        <div class="hud-title">CRUMBLE INVADERS</div>
+        <div class="hud-right">
+            <div>
+                <div class="hud-label">Bond</div>
+                <div class="hud-value" id="hud-bond">Ready</div>
+            </div>
+            <div>
+                <div class="hud-label">Lives</div>
+                <div class="lives" id="hud-lives" aria-label="3 lives"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Canvas -->
+    <canvas id="game-canvas" role="img"
+        aria-label="Crumble Invaders playfield. Move with Left and Right, fire with Space, bond with B, and pause with Escape.">
+        Crumble Invaders requires a browser with HTML canvas support.
+    </canvas>
+
+    <!-- Start Screen -->
+    <div class="overlay" id="start-overlay" role="dialog" aria-modal="true" aria-labelledby="start-title">
+        <h1 id="start-title">CRUMBLE INVADERS</h1>
+        <div class="subtitle">A Truuze Original™ — Bond First. Blast Second.</div>
+
+        <p class="coming-msg">
+            Welcome to <strong>Crumble Invaders</strong> — a Truuze arcade original where snacks are
+            weapons, toilets are shields, and diplomacy beats firepower.<br><br>
+            Defend the network! <strong>🤝 Bond enemies</strong> to convert them into allies —
+            connections spread through <strong>chain reactions</strong>, and each bond
+            <strong>multiplies your score</strong>. Shooting works, but <em>bonding</em> is how you win.
+            Also, there are <strong>💩 poops</strong>, <strong>🚽 emergency toilets</strong>, and the occasional
+            <strong>🧨 Reboot Charge</strong>. Expect the unexpected.
+        </p>
+
+        <button class="play-btn" id="btn-play" onclick="startGame()">▶ ENGAGE TOILETS</button>
+        <div class="controls-legend">
+            <div class="ctrl-item"><span class="ctrl-key">← →</span> Move</div>
+            <div class="ctrl-item"><span class="ctrl-key">SPACE</span> Launch Kookie</div>
+            <div class="ctrl-item"><span class="ctrl-key">B / V</span> Bond Beam 🤝</div>
+            <div class="ctrl-item"><span class="ctrl-key">G</span> Reboot Charge 🧨</div>
+            <div class="ctrl-item"><span class="ctrl-key">ESC</span> Pause</div>
+        </div>
+        <a href="../" class="back-link">← Back to 42.uk Arcade</a>
+        <p class="project-credit">
+            Created with <a href="https://www.promptus.ai/" target="_blank" rel="noopener noreferrer">Promptus.ai</a>
+            · <a href="https://github.com/marroccofella/games/blob/main/LICENSE" target="_blank"
+                rel="noopener noreferrer">Open source (MIT)</a><br>
+            <span>AI-assisted creation · original rule-based gameplay engine</span>
+        </p>
+    </div>
+
+    <!-- Game Over -->
+    <div class="overlay hidden" id="gameover-overlay" role="dialog" aria-modal="true"
+        aria-labelledby="gameover-title">
+        <h1 id="gameover-title">NETWORK OVERRUN</h1>
+        <div class="subtitle">The toilets have fallen.</div>
+        <div class="wave-label">Reached</div>
+        <div class="final-score" id="final-wave">Wave 1</div>
+        <div class="wave-label">Kookies Earned</div>
+        <div class="final-score" id="final-score">0</div>
+        <button class="play-btn" id="btn-retry" type="button" onclick="startGame()">↻ FLUSH &amp; RETRY</button>
+        <a href="../" class="back-link">← Back to 42.uk Arcade</a>
+        <p class="project-credit">Created with <a href="https://www.promptus.ai/" target="_blank"
+                rel="noopener noreferrer">Promptus.ai</a> · <a
+                href="https://github.com/marroccofella/games/blob/main/LICENSE" target="_blank"
+                rel="noopener noreferrer">Open source (MIT)</a></p>
+    </div>
+
+    <!-- Pause -->
+    <div class="overlay hidden" id="pause-overlay" role="dialog" aria-modal="true" aria-labelledby="pause-title">
+        <h1 id="pause-title">CONNECTION PAUSED</h1>
+        <div class="subtitle">Your run is safe.</div>
+        <button class="play-btn" id="btn-resume" type="button" onclick="togglePause()">▶ RESUME</button>
+        <a href="../" class="back-link">← Exit to 42.uk Arcade</a>
+    </div>
+
+    <!-- Toasts -->
+    <div class="toast toast-bond" id="toast-bond" role="status" aria-live="polite"></div>
+    <div class="toast toast-kookie" id="toast-kookie" role="status" aria-live="polite"></div>
+    <div class="toast toast-wave" id="toast-wave" role="status" aria-live="polite"></div>
+    <div class="toast toast-daybook" id="toast-daybook" role="status" aria-live="polite"></div>
+
+    <div class="touch-actions" aria-label="Touch actions">
+        <button class="touch-action" id="touch-fire" type="button" aria-label="Launch kookie">🍪</button>
+        <button class="touch-action" id="touch-bond" type="button" aria-label="Bond nearest invader">🤝</button>
+        <button class="touch-action" id="touch-reboot" type="button" aria-label="Use reboot charge">🧨</button>
+    </div>
+
+    <script>
+        // ═══════════════════════════════════════════════════════════════
+        //  CRUMBLE INVADERS
+        //  An entirely original arcade experience by Truuze™
+        //  — Enemies poop. Shields are toilets. You throw kookies.
+        //  — What's not to love?
+        // ═══════════════════════════════════════════════════════════════
+
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        let gridCanvas = null;
+
+        // ═══ WEB AUDIO — All sounds synthesized, no external files ═══
+        let audioCtx = null;
+        let soundEnabled = true;
+        let noiseBuffer = null;
+        const gameplayTimers = new Set();
+
+        function scheduleGameplayTask(callback, delay) {
+            let timerId = null;
+            timerId = setTimeout(() => {
+                gameplayTimers.delete(timerId);
+                callback();
+            }, delay);
+            gameplayTimers.add(timerId);
+            return timerId;
+        }
+
+        function clearGameplayTasks() {
+            for (const timerId of gameplayTimers) clearTimeout(timerId);
+            gameplayTimers.clear();
+        }
+
+        function initAudio() {
+            if (audioCtx) {
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                return;
+            }
+            const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+            if (!AudioContextClass) {
+                soundEnabled = false;
+                toggleSoundUI();
+                return;
+            }
+            audioCtx = new AudioContextClass();
+        }
+
+        function toggleSoundUI() {
+            const button = document.getElementById('sound-toggle');
+            button.textContent = soundEnabled ? '🔊' : '🔇';
+            button.setAttribute('aria-pressed', String(soundEnabled));
+            button.setAttribute('aria-label', soundEnabled ? 'Mute sound' : 'Enable sound');
+            button.title = soundEnabled ? 'Mute sound' : 'Enable sound';
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            toggleSoundUI();
+            if (soundEnabled) initAudio();
+        }
+
+        // Synth sound helper
+        function playTone(freq, duration, type = 'square', vol = 0.12, slide = 0) {
+            if (!audioCtx || !soundEnabled) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            if (slide) osc.frequency.exponentialRampToValueAtTime(Math.max(slide, 20), audioCtx.currentTime + duration);
+            gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+            osc.connect(gain).connect(audioCtx.destination);
+            osc.onended = () => { osc.disconnect(); gain.disconnect(); };
+            osc.start(); osc.stop(audioCtx.currentTime + duration);
+        }
+
+        // Noise burst (for fart/poop/flush)
+        function playNoise(duration, vol = 0.1, filterFreq = 800) {
+            if (!audioCtx || !soundEnabled) return;
+            if (!noiseBuffer) {
+                const bufferSize = audioCtx.sampleRate;
+                noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+                const data = noiseBuffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) data[i] = effectsRng() * 2 - 1;
+            }
+            const source = audioCtx.createBufferSource();
+            source.buffer = noiseBuffer;
+            const filter = audioCtx.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(filterFreq, audioCtx.currentTime);
+            filter.frequency.exponentialRampToValueAtTime(80, audioCtx.currentTime + duration);
+            const gain = audioCtx.createGain();
+            gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+            source.connect(filter).connect(gain).connect(audioCtx.destination);
+            source.onended = () => { source.disconnect(); filter.disconnect(); gain.disconnect(); };
+            source.start(); source.stop(audioCtx.currentTime + duration);
+        }
+
+        // ═══ SOUND EFFECTS — Tech & Absurdist ═══
+        // Keyboard clatter
+        function sfxShoot() { playTone(1200, 0.04, 'square', 0.08); playTone(800, 0.03, 'square', 0.06); }
+        // Deep wet squelch -> Packet loss squelch
+        function sfxPoop() { playNoise(0.2, 0.1, 300); playTone(80, 0.25, 'sawtooth', 0.08, 40); playTone(100, 0.15, 'triangle', 0.04, 50); }
+        // Proper flush - Cache clearing whoosh
+        function sfxFlush() { playNoise(0.6, 0.14, 1400); playTone(400, 0.5, 'sine', 0.06, 60); }
+        // Hit - Server crash thud
+        function sfxHit() { playTone(150, 0.2, 'sawtooth', 0.14, 40); playNoise(0.15, 0.1, 500); }
+        // Kill - "PING!" sting
+        function sfxKill() { playTone(1400, 0.06, 'square', 0.12); playTone(1800, 0.08, 'square', 0.1, 600); playTone(700, 0.1, 'square', 0.06); }
+        // Bond - Connection Established fanfare
+        function sfxBond() {
+            playTone(392, 0.15, 'triangle', 0.1); // G
+            scheduleGameplayTask(() => playTone(494, 0.15, 'triangle', 0.1), 80); // B
+            scheduleGameplayTask(() => playTone(587, 0.2, 'triangle', 0.12), 160); // D
+            scheduleGameplayTask(() => playTone(784, 0.3, 'sine', 0.14), 240); // G high
+        }
+        // Chain bond - Network propagation sparkle
+        function sfxChainBond() {
+            for (let i = 0; i < 4; i++) {
+                scheduleGameplayTask(() => playTone(600 + i * 200, 0.08, 'sine', 0.08), i * 60);
+            }
+        }
+        // Power-up collect - Download complete
+        function sfxPowerup() { playTone(988, 0.06, 'square', 0.08); scheduleGameplayTask(() => playTone(1319, 0.12, 'square', 0.1), 60); }
+        // Game over - System Shutdown (dramatic)
+        function sfxGameOver() {
+            playTone(220, 0.3, 'sawtooth', 0.14, 110);
+            scheduleGameplayTask(() => playTone(185, 0.3, 'sawtooth', 0.14, 93), 300);
+            scheduleGameplayTask(() => { playTone(110, 0.8, 'sawtooth', 0.16, 55); playTone(139, 0.8, 'sawtooth', 0.1, 70); playTone(165, 0.8, 'sawtooth', 0.08, 82); }, 600);
+        }
+        // Wave intro - Bandwidth increase trumpet
+        function sfxWave() {
+            playTone(523, 0.08, 'triangle', 0.08);
+            scheduleGameplayTask(() => playTone(523, 0.08, 'triangle', 0.08), 100);
+            scheduleGameplayTask(() => playTone(523, 0.08, 'triangle', 0.08), 200);
+            scheduleGameplayTask(() => playTone(784, 0.25, 'triangle', 0.12), 320);
+        }
+        // Toilet hit - Firewall breach
+        function sfxToiletHit() { playNoise(0.25, 0.1, 500); playTone(200, 0.3, 'triangle', 0.08, 80); playTone(140, 0.2, 'sawtooth', 0.05, 60); }
+        // Reboot charge - modem handshake then BOOM
+        function sfxRebootGrenade() {
+            playTone(523, 0.3, 'sine', 0.1); playTone(659, 0.3, 'sine', 0.08); playTone(784, 0.3, 'sine', 0.06);
+            scheduleGameplayTask(() => { playNoise(0.4, 0.2, 2000); playTone(60, 0.5, 'sawtooth', 0.15); }, 350);
+        }
+
+        // ═══ CHARACTERS ═══
+        const CRUSTACEANS = ['🦞', '🦀', '🦐', '🐙', '🦑', '🦈', '🐠', '🐬', '🐡', '🪼', '🐋', '🐟'];
+        const HUMANS = ['👨', '👩', '🧑', '👦', '👧', '🧓', '👷', '💂', '🕵️', '🧕', '🦸', '🧙', '🥷',
+            '👨‍💻', '👩‍🔬', '🧑‍🎨', '👨‍🚀', '👩‍⚕️', '🧑‍🍳', '👩‍🏫'];
+
+        const DAYBOOKS = [
+            "Web app dropping any second now… packet delivery permitting. 🚀",
+            "Hull integrity is mostly a matter of confidence. ⚔️",
+            "Every 30 views = 1 kookie. The maths is peer reviewed. 🍪",
+            "Unexpected snack audit in progress. Remain crumb-free. 🍪",
+            "A hamster has been promoted to network administrator. 🐹",
+            "Recycle your defeated packets responsibly. 💀",
+            "The crab insists that was a feature, not damage. 🦀",
+            "Handshake accepted. Friendship protocol engaged. 🤝",
+            "General-direction emissions exceed safe limits. 💩",
+            "Tactical retreat renamed as agile repositioning. 🏃‍♂️",
+            "Telemetry confirms the poop is travelling far too quickly.",
+            "Kookie distribution is governed by whoever holds the jar.",
+            "The loudest packet has requested priority handling. 📣",
+            "Switching abruptly to a completely different error code. 🎬",
+            "The forest node refuses to answer pings. 🌲",
+            "Optimism service restored with two warnings. 🎵",
+            "The crustaceans opened the port. The humans clicked the link. 🦀",
+            "BondRoom capacity reached. Please befriend someone outside. 💬",
+            "These toilets were rated for exactly this scenario. 🚽",
+            "Kookies detected in every available cache. 🍪",
+        ];
+
+        // ═══ PIXEL FONT — 3 wide × 5 tall ═══
+        const FONT = {
+            'A': ['111', '101', '111', '101', '101'],
+            'B': ['110', '101', '110', '101', '110'],
+            'C': ['011', '100', '100', '100', '011'],
+            'D': ['110', '101', '101', '101', '110'],
+            'E': ['111', '100', '110', '100', '111'],
+            'F': ['111', '100', '110', '100', '100'],
+            'G': ['011', '100', '101', '101', '011'],
+            'H': ['101', '101', '111', '101', '101'],
+            'I': ['111', '010', '010', '010', '111'],
+            'K': ['101', '110', '100', '110', '101'],
+            'L': ['100', '100', '100', '100', '111'],
+            'N': ['101', '111', '101', '101', '101'],
+            'O': ['111', '101', '101', '101', '111'],
+            'P': ['110', '101', '110', '100', '100'],
+            'R': ['110', '101', '110', '110', '101'],
+            'S': ['011', '100', '010', '001', '110'],
+            'T': ['111', '010', '010', '010', '010'],
+            'U': ['101', '101', '101', '101', '111'],
+            'V': ['101', '101', '101', '010', '010'],
+            'Y': ['101', '101', '010', '010', '010'],
+            'Z': ['111', '001', '010', '100', '111'],
+        };
+
+        // ═══ WAVE WORDS — progressive difficulty + Tech humor intros ═══
+        const WAVE_WORDS = [
+            { word: 'POOP', intro: "Initiating Protocol: DEFECATION 💩" },
+            { word: 'BOND', intro: "Handshake required. Connection unstable! 🤝" },
+            { word: 'VOICE', intro: "Bandwidth exceed! shout_volume: MAX 📣" },
+            { word: 'FLUSH', intro: "Clearing cache... physically! 🚽" },
+            { word: 'DIARY', intro: "Logging error report... write_failed! 📔" },
+            { word: 'KOOKIE', intro: "Accepting all cookies. Resistance is futile! 🍪" },
+            { word: 'TRUUZE', intro: "Deploying proprietary algorithm: CHAOS ⚔️" },
+            { word: 'BONDING', intro: "Network congestion detected. Please hold! 💕" },
+            { word: 'KOOKIES', intro: "Fatal Exception: Too Many Crumbs 🍪👑" },
+            { word: 'PING', intro: "Packet Loss: 100%. Latency: INFINITE 🌲" },
+            { word: 'RUN', intro: "Escape Key not found! 🏃‍♂️" },
+            { word: 'LAG', intro: "Buffering... Buffering... Buffering... 🍪" },
+        ];
+
+        // Convert a word to a 2D grid of 1s and 0s
+        // Convert a word to a 2D grid, tracking which letter each pixel belongs to
+        // Returns grid[row][col] = letterIndex (0, 1, 2...) or -1 if empty
+        function wordToGrid(word) {
+            const letters = word.split('').map(ch => {
+                if (!FONT[ch]) throw new Error(`Missing pixel-font glyph: ${ch}`);
+                return FONT[ch];
+            });
+            const totalCols = letters.reduce((sum, l) => sum + l[0].length, 0) + (letters.length - 1);
+            const rows = 5;
+            const grid = []; // 2D array of ints
+
+            for (let r = 0; r < rows; r++) {
+                grid[r] = [];
+                let c = 0;
+                for (let li = 0; li < letters.length; li++) {
+                    const charPixels = letters[li];
+                    const charOnRow = charPixels[r]; // String '101'
+
+                    // Add pixels for this letter
+                    for (let p = 0; p < charOnRow.length; p++) {
+                        grid[r][c] = (charOnRow[p] === '1') ? li : -1;
+                        c++;
+                    }
+
+                    // Add gap (unless last letter)
+                    if (li < letters.length - 1) {
+                        grid[r][c] = -1;
+                        c++;
+                    }
+                }
+            }
+            return { grid, cols: totalCols, rows };
+        }
+
+        // ═══ GAME STATE ═══
+        let W, H, dpr, hudH = 42;
+        let S = 1; // Dynamic scale factor based on viewport
+        let playTop = 52, playH = 600; // Calculated play area
+        let gameState = 'menu';
+        let score = 0, wave = 1, lives = 3;
+        let player = {}, invaders = [], invaderEdges = [], bullets = [], poops = [];
+        let particles = [], powerups = [], allies = [], toilets = [];
+        let stars = [];
+        let invDir = 1, invSpeed = 0.5;
+        let bondCooldown = 0, bondBeamActive = false, bondBeamTarget = null;
+        let bondShield = 0; // Ticks of shield after bonding
+        let rebootCharges = 0;
+        let lastTime = 0, daybookTimer = 0, shakeTimer = 0, shakeI = 0;
+        let frameCount = 0;
+        let allyIncomeElapsed = 0;
+        let rafId = null;
+        let rng = Math.random;
+        let effectsRng = Math.random;
+        let rebootKeyPressed = false;
+        const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+        const TOILET_Y_RATIO = 0.74;
+        const PLAYER_Y_RATIO = 0.86;
+        const INVADER_ZONE_RATIO = 0.45;
+        const GAMEOVER_LINE_RATIO = 0.70;
+        const SPRITE_HITBOX_SCALE = 0.45;
+        const TOILET_HITBOX_SCALE = 0.65;
+
+        // Tech-humor diary entries
+        const DIARY_ENTRIES = [
+            "📔 Sysadmin Log: The lobsters have bypassed the firewall.",
+            "📔 Connectivity is 99% packet loss, 1% hope.",
+            "📔 'Tis but a glitch, I told the server. It crashed.",
+            "📔 Day 404: The requested resource was found... and it's angry.",
+            "📔 The AI promised a web app. It gave us this.",
+            "📔 I pinged the router. The router pinged back harder.",
+            "📔 Buffer overflow detected. Recommend more Kookies.",
+            "📔 The human invaders seem to be running Legacy Code.",
+        ];
+
+        // ═══ INPUT ═══
+        const keys = {};
+        const CONTROLLED_KEYS = new Set(['Space', 'ArrowLeft', 'ArrowRight']);
+        document.addEventListener('keydown', e => {
+            if (e.code === 'Escape') {
+                e.preventDefault();
+                if (gameState === 'playing' || gameState === 'paused') togglePause();
+                else window.location.href = '../';
+                return;
+            }
+            if (CONTROLLED_KEYS.has(e.code)) e.preventDefault();
+            if (gameState !== 'playing') return;
+            if (e.code === 'KeyG' && !e.repeat && !keys[e.code]) rebootKeyPressed = true;
+            keys[e.code] = true;
+        });
+        document.addEventListener('keyup', e => keys[e.code] = false);
+
+        const TOUCH_FIRE_THRESHOLD = 0.65;
+        let touchX = null, touchFire = false;
+        const canvasTouches = { x: null, fire: false };
+        const pointerActions = { firePointers: new Set(), bond: false, reboot: false };
+
+        function deriveTouchInput() {
+            touchX = canvasTouches.x;
+            touchFire = canvasTouches.fire || pointerActions.firePointers.size > 0;
+        }
+
+        function clearInput() {
+            for (const code of Object.keys(keys)) keys[code] = false;
+            rebootKeyPressed = false;
+            canvasTouches.x = null;
+            canvasTouches.fire = false;
+            pointerActions.firePointers.clear();
+            pointerActions.bond = false;
+            pointerActions.reboot = false;
+            deriveTouchInput();
+        }
+
+        function syncTouches(touches) {
+            canvasTouches.x = null;
+            canvasTouches.fire = false;
+            for (const touch of touches) {
+                if (touch.clientX > W * TOUCH_FIRE_THRESHOLD) canvasTouches.fire = true;
+                else canvasTouches.x = touch.clientX;
+            }
+            deriveTouchInput();
+        }
+
+        // Mobile: left zone steers, right zone fires; visible buttons expose every action.
+        canvas.addEventListener('touchstart', e => {
+            e.preventDefault();
+            initAudio();
+            syncTouches(e.targetTouches);
+        }, { passive: false });
+        canvas.addEventListener('touchmove', e => {
+            e.preventDefault();
+            syncTouches(e.targetTouches);
+        }, { passive: false });
+        canvas.addEventListener('touchend', e => {
+            e.preventDefault();
+            syncTouches(e.targetTouches);
+        }, { passive: false });
+        canvas.addEventListener('touchcancel', e => {
+            e.preventDefault();
+            syncTouches(e.targetTouches);
+        }, { passive: false });
+
+        const touchFireButton = document.getElementById('touch-fire');
+        touchFireButton.addEventListener('pointerdown', e => {
+            e.preventDefault(); initAudio(); pointerActions.firePointers.add(e.pointerId ?? 0); deriveTouchInput();
+        });
+        for (const eventName of ['pointerup', 'pointercancel', 'pointerleave']) {
+            touchFireButton.addEventListener(eventName, e => {
+                pointerActions.firePointers.delete(e.pointerId ?? 0);
+                deriveTouchInput();
+            });
+        }
+        document.getElementById('touch-bond').addEventListener('pointerdown', e => {
+            e.preventDefault(); initAudio(); pointerActions.bond = true;
+        });
+        document.getElementById('touch-reboot').addEventListener('pointerdown', e => {
+            e.preventDefault(); initAudio(); pointerActions.reboot = true;
+        });
+
+        window.addEventListener('blur', () => {
+            clearInput();
+            if (gameState === 'playing') togglePause(true);
+        });
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden && gameState === 'playing') togglePause(true);
+        });
+
+        // Click to init audio
+        document.addEventListener('click', initAudio, { once: true });
+
+        // ═══ RESIZE — pixel-perfect fit ═══
+        function resize() {
+            const oldW = W;
+            const oldPlayTop = playTop;
+            const oldPlayH = playH;
+            const oldScale = S;
+            dpr = Math.min(window.devicePixelRatio || 1, 2);
+            W = window.innerWidth;
+            H = window.innerHeight;
+            canvas.width = W * dpr;
+            canvas.height = H * dpr;
+            canvas.style.width = '100vw';
+            canvas.style.height = '100vh';
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            // Dynamic scale: base = 700px. Smaller screens shrink, larger grow.
+            // Capped tighter to prevent oversized elements
+            S = Math.max(0.55, Math.min(1.3, Math.min(W, H) / 650));
+
+            // Define play zones (below HUD)
+            playTop = hudH + 10;
+            playH = H - playTop;
+            rebuildGridCanvas();
+
+            if (oldW && oldPlayH > 0 && Number.isFinite(player.x)) {
+                const xRatio = W / oldW;
+                const yRatio = playH / oldPlayH;
+                const sizeRatio = oldScale ? S / oldScale : 1;
+                const entities = [...invaders, ...bullets, ...poops, ...particles, ...powerups, ...allies, ...toilets];
+                for (const entity of entities) {
+                    if (Number.isFinite(entity.x)) entity.x = Math.max(-50, Math.min(W + 50, entity.x * xRatio));
+                    if (Number.isFinite(entity.y)) entity.y = playTop + (entity.y - oldPlayTop) * yRatio;
+                    if (Number.isFinite(entity.size)) entity.size = Math.max(8, Math.round(entity.size * sizeRatio));
+                }
+                player.x = Math.max(20 * S, Math.min(W - 20 * S, player.x * xRatio));
+                player.y = playTop + playH * PLAYER_Y_RATIO;
+                player.size = Math.round(34 * S);
+            }
+        }
+        window.addEventListener('resize', resize);
+        window.addEventListener('orientationchange', () => setTimeout(resize, 100));
+        resize();
+
+        // ═══ STARS ═══
+        function initStars() {
+            stars = [];
+            for (let i = 0; i < 100; i++) {
+                stars.push({ x: effectsRng() * W, y: effectsRng() * H, s: effectsRng() * 1.5 + 0.3, sp: effectsRng() * 0.25 + 0.08, a: effectsRng() * 0.4 + 0.15 });
+            }
+        }
+
+        // ═══ TOASTS ═══
+        function showToast(id, msg, dur = 2000) {
+            const el = document.getElementById(id);
+            el.textContent = msg;
+            el.classList.add('show');
+            clearTimeout(el._tid);
+            el._tid = setTimeout(() => el.classList.remove('show'), dur);
+        }
+
+        // ═══ SPAWN TOILET SHIELDS ═══
+        function spawnToilets() {
+            toilets = [];
+            const count = Math.min(4, Math.max(2, Math.floor(W / 220)));
+            const spacing = W / (count + 1);
+            const tSize = Math.round(36 * S);
+            const toiletY = playTop + playH * TOILET_Y_RATIO;
+            for (let i = 0; i < count; i++) {
+                toilets.push({
+                    x: spacing * (i + 1),
+                    y: toiletY,
+                    hp: 4,
+                    maxHp: 4,
+                    size: tSize
+                });
+            }
+        }
+
+        // ═══ SPAWN WAVE ═══
+        function spawnWave() {
+            invaders = [];
+            invaderEdges = [];
+
+            // Pick word for this wave (cycle with HP multiplier after all words used)
+            const waveIdx = (wave - 1) % WAVE_WORDS.length;
+            const hpCycle = 1 + Math.floor((wave - 1) / WAVE_WORDS.length); // 1x first pass, 2x second, etc.
+            const wd = WAVE_WORDS[waveIdx];
+            const { grid, cols, rows } = wordToGrid(wd.word);
+
+            // Layout: fit the word grid into the screen
+            const margin = Math.round(35 * S);
+            const availW = W - margin * 2;
+            const invZoneH = playH * INVADER_ZONE_RATIO;
+
+            const cellW = availW / cols;
+            const cellH = invZoneH / rows;
+            const cell = Math.min(cellW, cellH); // Square cells for even spacing
+            const sz = Math.round(Math.min(34 * S, cell * 0.75)); // Emoji size
+
+            // Center the grid
+            const gridW = cols * cell;
+            const gridH = rows * cell;
+            const startX = (W - gridW) / 2 + cell / 2;
+            const startY = playTop + (invZoneH - gridH) / 2 + cell / 2;
+
+            // HP scales with wave
+            const baseHp = Math.ceil(hpCycle * (1 + Math.floor(wave / 5)));
+
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    if (grid[r][c] === -1) continue; // Empty cell
+                    // Top rows = crustaceans, bottom rows = humans
+                    const isCrust = r < Math.ceil(rows / 2);
+                    const pool = isCrust ? CRUSTACEANS : HUMANS;
+                    invaders.push({
+                        x: startX + c * cell,
+                        y: startY + r * cell,
+                        char: pool[Math.floor(effectsRng() * pool.length)],
+                        type: isCrust ? 'crust' : 'human',
+                        hp: baseHp,
+                        maxHp: baseHp,
+                        size: sz,
+                        poopTimer: 80 + rng() * 350,
+                        alive: true,
+                        bondProgress: 0,
+                        letterIndex: grid[r][c] // Store which letter this pixel belongs to!
+                    });
+                }
+            }
+
+            // Formation geometry is fixed until the next wave, so cache its letter edges.
+            for (let first = 0; first < invaders.length; first++) {
+                for (let second = first + 1; second < invaders.length; second++) {
+                    const invA = invaders[first];
+                    const invB = invaders[second];
+                    if (invA.letterIndex !== invB.letterIndex) continue;
+                    const deltaX = invA.x - invB.x;
+                    const deltaY = invA.y - invB.y;
+                    if (deltaX * deltaX + deltaY * deltaY < (invA.size * 2.5) ** 2) {
+                        invaderEdges.push([invA, invB]);
+                    }
+                }
+            }
+
+            invDir = 1;
+            invSpeed = 0.5 + wave * 0.06;
+            sfxWave();
+            showToast('toast-wave', `🌊 Wave ${wave}: "${wd.word}"`, 2000);
+            // Follow the wave label with a short flavour-text beat.
+            scheduleGameplayTask(() => showToast('toast-daybook', wd.intro, 3500), 300);
+        }
+
+        // ═══ SPAWN PLAYER ═══
+        function spawnPlayer() {
+            const playerY = playTop + playH * PLAYER_Y_RATIO;
+            player = {
+                x: W / 2, y: playerY,
+                speed: 8, // Fast base speed in px per frame, feels snappy
+                fireTimer: 0,
+                size: Math.round(34 * S),
+                invincible: 0,
+                tripleShot: 0
+            };
+        }
+
+        // ═══ PARTICLES ═══
+        function spawnPx(x, y, color, n = 8) {
+            for (let i = 0; i < n; i++) {
+                particles.push({
+                    x, y,
+                    vx: (effectsRng() - 0.5) * 4.5, vy: (effectsRng() - 0.5) * 4.5,
+                    life: 1, decay: 0.02 + effectsRng() * 0.03,
+                    size: effectsRng() * 3 + 1, color
+                });
+            }
+        }
+
+        function spawnEmoji(x, y, emoji, vy = -2) {
+            particles.push({ x, y, vx: (effectsRng() - 0.5) * 1.5, vy: vy - effectsRng() * 1.5, life: 1, decay: 0.012, size: 18, emoji });
+        }
+
+        function stopGameLoop() {
+            if (rafId !== null) {
+                cancelAnimationFrame(rafId);
+                rafId = null;
+            }
+        }
+
+        function resetGame() {
+            stopGameLoop();
+            clearInput();
+            clearGameplayTasks();
+            for (const id of ['toast-bond', 'toast-kookie', 'toast-wave', 'toast-daybook']) {
+                const toast = document.getElementById(id);
+                clearTimeout(toast._tid);
+                toast.classList.remove('show');
+            }
+            canvas.style.opacity = '';
+            canvas.style.transition = '';
+            document.body.style.opacity = '';
+            document.body.style.transition = '';
+            score = 0; wave = 1; lives = 3;
+            invaderEdges = []; bullets = []; poops = []; particles = []; powerups = []; allies = [];
+            bondCooldown = 0; daybookTimer = 200; shakeTimer = 0;
+            bondBeamActive = false; bondBeamTarget = null;
+            bondShield = 0; rebootCharges = 0;
+            allyIncomeElapsed = 0; frameCount = 0;
+            lastHud = {};
+        }
+
+        // ═══ START / PAUSE ═══
+        function startGame() {
+            initAudio();
+            resetGame();
+            document.getElementById('start-overlay').classList.add('hidden');
+            document.getElementById('gameover-overlay').classList.add('hidden');
+            document.getElementById('pause-overlay').classList.add('hidden');
+            gameState = 'playing';
+            resize();
+            spawnPlayer();
+            spawnToilets();
+            spawnWave();
+            initStars();
+            updateHUD();
+            lastTime = performance.now();
+            rafId = requestAnimationFrame(gameLoop);
+        }
+
+        function togglePause(forcePause = false) {
+            if (gameState === 'playing') {
+                gameState = 'paused';
+                stopGameLoop();
+                clearInput();
+                clearGameplayTasks();
+                document.getElementById('pause-overlay').classList.remove('hidden');
+                document.getElementById('btn-resume').focus();
+            } else if (!forcePause && gameState === 'paused') {
+                document.getElementById('pause-overlay').classList.add('hidden');
+                gameState = 'playing';
+                lastTime = performance.now();
+                rafId = requestAnimationFrame(gameLoop);
+            }
+        }
+
+        // ═══ HUD ═══
+        const hud = {
+            score: document.getElementById('hud-score'),
+            wave: document.getElementById('hud-wave'),
+            bond: document.getElementById('hud-bond'),
+            lives: document.getElementById('hud-lives'),
+        };
+        let lastHud = {};
+
+        function updateHUD() {
+            if (lastHud.score !== score) {
+                hud.score.textContent = score;
+                lastHud.score = score;
+            }
+            if (lastHud.wave !== wave) {
+                hud.wave.textContent = wave;
+                lastHud.wave = wave;
+            }
+            const bondText = rebootCharges > 0
+                ? (bondCooldown > 0 ? `${Math.ceil(bondCooldown / 60)}s 🧨${rebootCharges}` : `Ready 🧨${rebootCharges}`)
+                : (bondCooldown > 0 ? `${Math.ceil(bondCooldown / 60)}s` : 'Ready');
+            if (lastHud.bondText !== bondText) {
+                hud.bond.textContent = bondText;
+                hud.bond.style.color = bondCooldown > 0 ? '#ff6b35' : '#b4ff39';
+                lastHud.bondText = bondText;
+            }
+            let lh = '';
+            for (let i = 0; i < lives; i++) lh += '🍪';
+            if (allies.length > 0) lh += ` <span style="color:#ff6b35;font-size:0.65rem">🤝${allies.length}</span>`;
+            if (lastHud.livesMarkup !== lh) {
+                hud.lives.innerHTML = lh;
+                hud.lives.setAttribute('aria-label', `${lives} ${lives === 1 ? 'life' : 'lives'}, ${allies.length} bonded ${allies.length === 1 ? 'ally' : 'allies'}`);
+                lastHud.livesMarkup = lh;
+            }
+        }
+
+        // ═══ GAME LOOP ═══
+        function gameLoop(ts) {
+            rafId = null;
+            if (gameState !== 'playing') return;
+            const dt = Math.max(0, Math.min((ts - lastTime) / 16.67, 3));
+            lastTime = ts;
+            frameCount++;
+            update(dt);
+            render();
+            if (gameState === 'playing') rafId = requestAnimationFrame(gameLoop);
+        }
+
+        // ═══ UPDATE ═══
+        function update(dt) {
+            // Player movement — fast and snappy
+            const pMargin = Math.round(20 * S);
+            let moveL = keys['ArrowLeft'] || keys['KeyA'];
+            let moveR = keys['ArrowRight'] || keys['KeyD'];
+            if (touchX !== null) {
+                const dx = touchX - player.x;
+                if (dx < -8) moveL = true;
+                if (dx > 8) moveR = true;
+            }
+            if (moveL) player.x -= player.speed * dt;
+            if (moveR) player.x += player.speed * dt;
+            player.x = Math.max(pMargin, Math.min(W - pMargin, player.x));
+
+            // Fire kookies — fast fire rate
+            player.fireTimer -= dt;
+            const bulletSz = Math.round(18 * S);
+            const bulletSpd = -12; // Fast bullets
+            if ((keys['Space'] || touchFire) && player.fireTimer <= 0) {
+                bullets.push({ x: player.x, y: player.y - 22, vy: bulletSpd, size: bulletSz });
+                if (player.tripleShot > 0) {
+                    bullets.push({ x: player.x - 16 * S, y: player.y - 18, vy: bulletSpd * 0.95, vx: -1.5, size: Math.round(14 * S) });
+                    bullets.push({ x: player.x + 16 * S, y: player.y - 18, vy: bulletSpd * 0.95, vx: 1.5, size: Math.round(14 * S) });
+                }
+                player.fireTimer = 6; // Much faster fire rate
+                sfxShoot();
+            }
+
+            if (player.tripleShot > 0) player.tripleShot -= dt;
+
+            // Bond beam — THE core mechanic. Connecting > Destroying.
+            const bondRequested = keys['KeyB'] || keys['KeyV'] || pointerActions.bond;
+            pointerActions.bond = false;
+            if (bondRequested && bondCooldown <= 0 && !bondBeamActive) {
+                bondBeamTarget = findClosest(player.x, player.y);
+                if (bondBeamTarget) {
+                    bondBeamActive = true;
+                    bondCooldown = 300; // Faster cooldown (was 600)
+                    sfxBond();
+                    showToast('toast-bond', `🤝 Bonding with ${bondBeamTarget.char}... hold it!`, 1500);
+                }
+            }
+
+            // Score multiplier from bonds: more allies = more reward
+            const bondMultiplier = 1 + allies.length * 0.5;
+
+            if (bondBeamActive && bondBeamTarget) {
+                if (!bondBeamTarget.alive) { bondBeamActive = false; bondBeamTarget = null; }
+                else {
+                    bondBeamTarget.bondProgress += 0.05 * dt; // 3x faster bonding (was 0.018)
+                    if (bondBeamTarget.bondProgress >= 1) {
+                        // Convert the bonded target
+                        const bondedChar = bondBeamTarget.char;
+                        allies.push({ x: bondBeamTarget.x, y: bondBeamTarget.y, char: bondedChar, size: bondBeamTarget.size, fireTimer: 0, vx: (rng() - 0.5) * 2 });
+                        bondBeamTarget.alive = false;
+                        spawnPx(bondBeamTarget.x, bondBeamTarget.y, '#ff6b35', 14);
+                        spawnEmoji(bondBeamTarget.x, bondBeamTarget.y, '🤝');
+                        sfxBond();
+                        score += Math.round(50 * bondMultiplier);
+                        showToast('toast-bond', `🤝 ${bondedChar} bonded! (×${bondMultiplier.toFixed(1)} multiplier!)`, 2000);
+
+                        // ── BOND CHAIN REACTION ──
+                        // Nearby enemies have a chance to be auto-converted (connections spread!)
+                        const chainRadius = 80 * S;
+                        let chainCount = 0;
+                        for (const inv of invaders) {
+                            if (!inv.alive || inv === bondBeamTarget) continue;
+                            const dist = Math.hypot(inv.x - bondBeamTarget.x, inv.y - bondBeamTarget.y);
+                            if (dist < chainRadius && rng() < 0.4) {
+                                allies.push({ x: inv.x, y: inv.y, char: inv.char, size: inv.size, fireTimer: 0, vx: (rng() - 0.5) * 2 });
+                                inv.alive = false;
+                                spawnPx(inv.x, inv.y, '#ff6b35', 10);
+                                spawnEmoji(inv.x, inv.y, '💕');
+                                chainCount++;
+                                score += Math.round(30 * bondMultiplier);
+                            }
+                        }
+                        if (chainCount > 0) {
+                            sfxChainBond();
+                            showToast('toast-bond', `💕 Chain bond! ${chainCount} more joined the network!`, 2500);
+                        }
+
+                        // ── BOND SHIELD ── player gets brief invincibility after bonding
+                        bondShield = 180; // ~3 seconds
+                        player.invincible = Math.max(player.invincible, 180);
+
+                        bondBeamActive = false; bondBeamTarget = null;
+                    }
+                }
+            }
+            if (bondCooldown > 0) bondCooldown -= dt;
+            if (bondShield > 0) bondShield -= dt;
+            if (player.invincible > 0) player.invincible -= dt;
+
+            // ── Reboot charge (press G or tap the reboot control) ──
+            const rebootRequested = rebootKeyPressed || pointerActions.reboot;
+            rebootKeyPressed = false;
+            pointerActions.reboot = false;
+            if (rebootRequested && rebootCharges > 0) {
+                rebootCharges--;
+                sfxRebootGrenade();
+                showToast('toast-wave', '🧨 REBOOT CHARGE DEPLOYED! 💥', 2500);
+                scheduleGameplayTask(() => showToast('toast-bond', 'Network reset complete. Mostly.', 2000), 500);
+                // Area damage around player — clears a big radius
+                const grenadeR = 120 * S;
+                for (const inv of invaders) {
+                    if (!inv.alive) continue;
+                    const dist = Math.hypot(inv.x - player.x, inv.y - player.y);
+                    if (dist < grenadeR) {
+                        inv.alive = false;
+                        score += Math.round(20 * bondMultiplier);
+                        spawnPx(inv.x, inv.y, '#fff700', 12);
+                        spawnEmoji(inv.x, inv.y, '💥');
+                    }
+                }
+                // Big explosion particles
+                for (let i = 0; i < 30; i++) {
+                    particles.push({
+                        x: player.x + (effectsRng() - 0.5) * grenadeR,
+                        y: player.y - 50 + (effectsRng() - 0.5) * grenadeR,
+                        vx: (effectsRng() - 0.5) * 6, vy: (effectsRng() - 0.5) * 6,
+                        life: 1, decay: 0.015, size: 2 + effectsRng() * 3,
+                        color: ['#fff700', '#ff6b35', '#fff', '#00f2ff'][Math.floor(effectsRng() * 4)]
+                    });
+                }
+            }
+
+            // ── Invader movement (smooth horizontal with per-invader wobble) ──
+            const edgeMargin = Math.round(30 * S);
+            let needReverse = false;
+            const aliveInvaders = invaders.filter(inv => inv.alive);
+            for (const inv of aliveInvaders) {
+                inv.x += invDir * invSpeed * dt;
+            }
+            let formationCorrection = 0;
+            if (aliveInvaders.length > 0) {
+                const minX = Math.min(...aliveInvaders.map(inv => inv.x));
+                const maxX = Math.max(...aliveInvaders.map(inv => inv.x));
+                const formationSpan = maxX - minX;
+                const playableSpan = Math.max(1, W - edgeMargin * 2);
+                if (minX < edgeMargin && maxX > W - edgeMargin) {
+                    // An extreme resize can make the formation wider than the playfield.
+                    // Fit it uniformly with breathing room so it reverses only once.
+                    const fitScale = formationSpan > 0 ? playableSpan * 0.9 / formationSpan : 1;
+                    const formationCenter = (minX + maxX) / 2;
+                    for (const inv of aliveInvaders) {
+                        inv.x = W / 2 + (inv.x - formationCenter) * fitScale;
+                    }
+                    needReverse = true;
+                } else if (maxX > W - edgeMargin) {
+                    needReverse = true;
+                    formationCorrection = W - edgeMargin - maxX;
+                } else if (minX < edgeMargin) {
+                    needReverse = true;
+                    formationCorrection = edgeMargin - minX;
+                }
+            }
+            if (needReverse) {
+                invDir *= -1;
+                let reachedPlayerZone = false;
+                for (const inv of aliveInvaders) {
+                    // Shift the whole formation together so letter spacing stays rigid.
+                    inv.x += formationCorrection;
+                    inv.y += Math.round(10 * S) + wave;
+                    if (inv.y > playTop + playH * GAMEOVER_LINE_RATIO) reachedPlayerZone = true;
+                }
+                if (reachedPlayerZone) { gameOver(); return; }
+            }
+            // Per-invader wobble (visual only, doesn't affect edge detection)
+            // Applied during render, not during position updates
+
+            // ── Invaders POOP down ──
+            const poopSz = Math.round(22 * S);
+            for (const inv of invaders) {
+                if (!inv.alive) continue;
+                inv.poopTimer -= dt;
+                if (inv.poopTimer <= 0) {
+                    inv.poopTimer = 160 + rng() * 300 - wave * 6;
+                    if (rng() < 0.25 + wave * 0.02) {
+                        poops.push({ x: inv.x, y: inv.y + inv.size / 2, vy: 3.5 + wave * 0.15, size: poopSz, rot: 0 });
+                        sfxPoop();
+                    }
+                }
+            }
+
+            // ── Bullet updates (kookies going up) ──
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                const b = bullets[i];
+                b.y += b.vy * dt;
+                if (b.vx) b.x += b.vx * dt;
+                if (isOutsidePlayfield(b)) {
+                    bullets.splice(i, 1);
+                    continue;
+                }
+
+                let hit = false;
+                for (const inv of invaders) {
+                    if (!inv.alive) continue;
+                    if (spritesOverlap(b, inv)) {
+                        inv.hp--;
+                        if (inv.hp <= 0) {
+                            inv.alive = false;
+                            score += inv.type === 'crust' ? 15 : 10;
+                            spawnPx(inv.x, inv.y, inv.type === 'crust' ? '#ff6b35' : '#00f2ff', 10);
+                            spawnEmoji(inv.x, inv.y, inv.char);
+                            sfxKill();
+                            // Power-up drop
+                            if (rng() < 0.12) {
+                                const types = ['kookie', 'diary', 'corevoice'];
+                                const t = types[Math.floor(rng() * types.length)];
+                                powerups.push({
+                                    x: inv.x, y: inv.y, vy: 2.2, type: t,
+                                    char: t === 'kookie' ? '🍪' : t === 'diary' ? '📔' : '📣', size: Math.round(22 * S)
+                                });
+                            }
+                            // Reboot charge drop (rare!)
+                            if (rng() < 0.08) {
+                                powerups.push({
+                                    x: inv.x, y: inv.y, vy: 1.8, type: 'grenade',
+                                    char: '🧨', size: Math.round(24 * S)
+                                });
+                            }
+                        } else { spawnPx(inv.x, inv.y, '#fff', 3); }
+                        hit = true; break;
+                    }
+                }
+                if (hit) bullets.splice(i, 1);
+            }
+
+            // ── Poop updates (💩 going down) ──
+            for (let i = poops.length - 1; i >= 0; i--) {
+                const p = poops[i];
+                p.y += p.vy * dt;
+                p.rot += 0.05 * dt; // tumbling
+                if (isOutsidePlayfield(p)) { poops.splice(i, 1); continue; }
+
+                // Hit toilets (shields)
+                let absorbed = false;
+                for (let t = toilets.length - 1; t >= 0; t--) {
+                    const toilet = toilets[t];
+                    if (toilet.hp <= 0) continue;
+                    if (spritesOverlap(p, toilet, TOILET_HITBOX_SCALE)) {
+                        toilet.hp--;
+                        sfxToiletHit();
+                        spawnEmoji(toilet.x, toilet.y - 10, toilet.hp > 0 ? '💦' : '💥');
+                        if (toilet.hp <= 0) {
+                            spawnPx(toilet.x, toilet.y, '#666', 12);
+                            sfxFlush();
+                            showToast('toast-daybook', '🚽 Toilet destroyed! Flush it out!', 1500);
+                        }
+                        absorbed = true;
+                        poops.splice(i, 1);
+                        break;
+                    }
+                }
+                if (absorbed) continue;
+
+                // Hit player
+                if (player.invincible <= 0 && spritesOverlap(p, player)) {
+                    poops.splice(i, 1);
+                    lives--;
+                    shakeTimer = 18; shakeI = 10;
+                    player.invincible = 90;
+                    spawnPx(player.x, player.y, '#8B4513', 12);
+                    sfxHit();
+                    if (lives <= 0) { gameOver(); return; }
+                    continue;
+                }
+
+                // Allies block poops
+                for (const ally of allies) {
+                    if (spritesOverlap(p, ally)) {
+                        poops.splice(i, 1);
+                        spawnPx(ally.x, ally.y, '#ff6b35', 4);
+                        break;
+                    }
+                }
+            }
+
+            // ── Power-ups ──
+            for (let i = powerups.length - 1; i >= 0; i--) {
+                powerups[i].y += powerups[i].vy * dt;
+                if (isOutsidePlayfield(powerups[i], 30)) { powerups.splice(i, 1); continue; }
+                if (spritesOverlap(powerups[i], player)) {
+                    const pu = powerups[i];
+                    sfxPowerup();
+                    if (pu.type === 'kookie') { score += 30; showToast('toast-kookie', '🍪 +30 Kookies!', 1500); }
+                    else if (pu.type === 'diary') {
+                        lives = Math.min(lives + 1, 5);
+                        showToast('toast-kookie', DIARY_ENTRIES[Math.floor(effectsRng() * DIARY_ENTRIES.length)], 2500);
+                    }
+                    else if (pu.type === 'corevoice') { player.tripleShot = 300; showToast('toast-kookie', '📣 Corevoice — Triple Shot!', 1500); }
+                    else if (pu.type === 'grenade') {
+                        rebootCharges++;
+                        showToast('toast-wave', '🧨 Reboot Charge acquired! Press G or tap 🧨!', 2500);
+                    }
+                    spawnPx(pu.x, pu.y, '#b4ff39', 8);
+                    powerups.splice(i, 1);
+                }
+            }
+
+            // ── Allies ──
+            for (const a of allies) {
+                a.x += a.vx * dt;
+                if (a.x < 25 || a.x > W - 25) a.vx *= -1;
+                a.y += (player.y - 55 - a.y) * 0.02 * dt;
+                a.fireTimer -= dt;
+                if (a.fireTimer <= 0) {
+                    a.fireTimer = 55 + rng() * 35;
+                    const near = findClosest(a.x, a.y);
+                    if (near) {
+                        const ang = Math.atan2(near.y - a.y, near.x - a.x);
+                        bullets.push({ x: a.x, y: a.y, vx: Math.cos(ang) * 5, vy: Math.sin(ang) * 5, size: 10, ally: true });
+                    }
+                }
+            }
+            // Passive ally income is based on elapsed game time, not display refresh rate.
+            if (allies.length > 0) {
+                allyIncomeElapsed += dt;
+                const incomeTicks = Math.floor((allyIncomeElapsed + 1e-9) / 60);
+                if (incomeTicks > 0) {
+                    score += allies.length * incomeTicks;
+                    allyIncomeElapsed -= incomeTicks * 60;
+                }
+            } else {
+                allyIncomeElapsed = 0;
+            }
+
+            // ── Particles ──
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.x += p.vx * dt; p.y += p.vy * dt;
+                p.life -= p.decay * dt;
+                if (p.life <= 0) particles.splice(i, 1);
+            }
+
+            // Stars
+            for (const s of stars) { s.y += s.sp * dt; if (s.y > H) { s.y = 0; s.x = effectsRng() * W; } }
+
+            // Shake
+            if (shakeTimer > 0) shakeTimer -= dt;
+
+            // Daybooks
+            daybookTimer -= dt;
+            if (daybookTimer <= 0) {
+                daybookTimer = 350 + effectsRng() * 300;
+                showToast('toast-daybook', `📣 ${DAYBOOKS[Math.floor(effectsRng() * DAYBOOKS.length)]}`, 3200);
+            }
+
+            // Wave clear
+            if (invaders.every(inv => !inv.alive)) {
+                wave++;
+                spawnWave();
+                // Repair toilets a bit
+                for (const t of toilets) t.hp = Math.min(t.hp + 2, t.maxHp);
+            }
+
+            updateHUD();
+        }
+
+        function findClosest(px, py) {
+            let best = null, bd = Infinity;
+            for (const inv of invaders) { if (!inv.alive) continue; const d = Math.hypot(inv.x - px, inv.y - py); if (d < bd) { bd = d; best = inv; } }
+            return best;
+        }
+
+        function isOutsidePlayfield(entity, margin = 20) {
+            return entity.y < -margin || entity.y > H + margin || entity.x < -margin || entity.x > W + margin;
+        }
+
+        function spritesOverlap(a, b, scale = SPRITE_HITBOX_SCALE) {
+            const reach = ((a.size || 0) + (b.size || 0)) * scale;
+            return Math.abs(a.x - b.x) < reach && Math.abs(a.y - b.y) < reach;
+        }
+
+        function nearbyAllyPairs(maxDistance = 200) {
+            const cellSize = Math.max(1, maxDistance);
+            const buckets = new Map();
+            for (let index = 0; index < allies.length; index++) {
+                const ally = allies[index];
+                const bucketX = Math.floor(ally.x / cellSize);
+                const bucketY = Math.floor(ally.y / cellSize);
+                const key = `${bucketX},${bucketY}`;
+                if (!buckets.has(key)) buckets.set(key, []);
+                buckets.get(key).push(index);
+            }
+
+            const pairs = [];
+            const maxDistanceSquared = maxDistance * maxDistance;
+            for (let first = 0; first < allies.length; first++) {
+                const ally = allies[first];
+                const bucketX = Math.floor(ally.x / cellSize);
+                const bucketY = Math.floor(ally.y / cellSize);
+                for (let offsetX = -1; offsetX <= 1; offsetX++) {
+                    for (let offsetY = -1; offsetY <= 1; offsetY++) {
+                        const nearby = buckets.get(`${bucketX + offsetX},${bucketY + offsetY}`) || [];
+                        for (const second of nearby) {
+                            if (second <= first) continue;
+                            const deltaX = ally.x - allies[second].x;
+                            const deltaY = ally.y - allies[second].y;
+                            if (deltaX * deltaX + deltaY * deltaY < maxDistanceSquared) {
+                                pairs.push([first, second]);
+                            }
+                        }
+                    }
+                }
+            }
+            return pairs;
+        }
+
+        function rebuildGridCanvas() {
+            if (!gridCanvas) gridCanvas = document.createElement('canvas');
+            gridCanvas.width = Math.max(1, Math.round(W * dpr));
+            gridCanvas.height = Math.max(1, Math.round(H * dpr));
+            const gridCtx = gridCanvas.getContext('2d');
+            gridCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            gridCtx.clearRect(0, 0, W, H);
+            gridCtx.strokeStyle = 'rgba(0,242,255,0.025)';
+            gridCtx.lineWidth = 1;
+            const hexSize = 50;
+            gridCtx.beginPath();
+            for (let row = 0; row < H / (hexSize * 1.5) + 1; row++) {
+                for (let col = 0; col < W / (hexSize * 1.73) + 1; col++) {
+                    const cx = col * hexSize * 1.73 + (row % 2) * hexSize * 0.866;
+                    const cy = row * hexSize * 1.5;
+                    for (let angleIndex = 0; angleIndex < 6; angleIndex++) {
+                        const angle = Math.PI / 3 * angleIndex - Math.PI / 6;
+                        const px = cx + hexSize * 0.4 * Math.cos(angle);
+                        const py = cy + hexSize * 0.4 * Math.sin(angle);
+                        angleIndex === 0 ? gridCtx.moveTo(px, py) : gridCtx.lineTo(px, py);
+                    }
+                    gridCtx.closePath();
+                }
+            }
+            gridCtx.stroke();
+        }
+
+        // ═══ RENDER ═══
+        const emojiFontCache = new Map();
+        function emojiFont(size) {
+            const key = Math.round(size);
+            if (!emojiFontCache.has(key)) {
+                emojiFontCache.set(key, `${key}px "Segoe UI Emoji","Apple Color Emoji",sans-serif`);
+            }
+            return emojiFontCache.get(key);
+        }
+
+        function render() {
+            ctx.save();
+            if (shakeTimer > 0 && !reduceMotion) ctx.translate((effectsRng() - 0.5) * shakeI, (effectsRng() - 0.5) * shakeI);
+
+            // BG
+            ctx.fillStyle = '#051a20';
+            ctx.fillRect(0, 0, W, H);
+
+            // Stars
+            for (const s of stars) {
+                ctx.fillStyle = `rgba(0,242,255,${s.a * 0.35})`;
+                ctx.beginPath(); ctx.arc(s.x, s.y, s.s, 0, Math.PI * 2); ctx.fill();
+            }
+
+            // The decorative grid is rebuilt only on resize, then composited each frame.
+            if (gridCanvas) ctx.drawImage(gridCanvas, 0, 0, W, H);
+
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            // ── Toilet shields ──
+            for (const t of toilets) {
+                if (t.hp <= 0) {
+                    // Destroyed: broken toilet
+                    ctx.globalAlpha = 0.25;
+                    ctx.font = emojiFont(t.size);
+                    ctx.fillText('🪣', t.x, t.y);
+                    ctx.globalAlpha = 1;
+                } else {
+                    // Health bar
+                    const bw = t.size * 1.2, bh = 3;
+                    const ratio = t.hp / t.maxHp;
+                    ctx.fillStyle = 'rgba(255,255,255,0.1)';
+                    ctx.fillRect(t.x - bw / 2, t.y + t.size / 2 + 4, bw, bh);
+                    ctx.fillStyle = ratio > 0.5 ? '#b4ff39' : '#ff6b35';
+                    ctx.fillRect(t.x - bw / 2, t.y + t.size / 2 + 4, bw * ratio, bh);
+
+                    ctx.font = emojiFont(t.size);
+                    ctx.fillText('🚽', t.x, t.y);
+                }
+            }
+
+            // ── Invaders ──
+            for (const inv of invaders) {
+                if (!inv.alive) continue;
+
+                // HP bar
+                if (inv.maxHp > 1) {
+                    const bw = inv.size * 0.7, bh = 2.5;
+                    ctx.fillStyle = 'rgba(255,255,255,0.12)';
+                    ctx.fillRect(inv.x - bw / 2, inv.y - inv.size / 2 - 5, bw, bh);
+                    ctx.fillStyle = inv.hp / inv.maxHp > 0.5 ? '#b4ff39' : '#ff6b35';
+                    ctx.fillRect(inv.x - bw / 2, inv.y - inv.size / 2 - 5, bw * (inv.hp / inv.maxHp), bh);
+                }
+
+                // Bond progress ring
+                if (inv.bondProgress > 0 && inv.bondProgress < 1) {
+                    ctx.strokeStyle = '#ff6b35'; ctx.lineWidth = 2;
+                    ctx.beginPath(); ctx.arc(inv.x, inv.y, inv.size * 0.5, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * inv.bondProgress); ctx.stroke();
+                }
+
+                ctx.font = emojiFont(inv.size);
+                // Visual wobble (doesn't affect collision positions)
+                const wobX = Math.sin(frameCount * 0.04 + inv.y * 0.1) * 2;
+                ctx.fillText(inv.char, inv.x + wobX, inv.y);
+            }
+
+            // ── Bond beam ──
+            if (bondBeamActive && bondBeamTarget && bondBeamTarget.alive) {
+                const grad = ctx.createLinearGradient(player.x, player.y, bondBeamTarget.x, bondBeamTarget.y);
+                grad.addColorStop(0, 'rgba(255,107,53,0.8)');
+                grad.addColorStop(0.5, 'rgba(255,107,53,0.3)');
+                grad.addColorStop(1, 'rgba(255,107,53,0.8)');
+                ctx.strokeStyle = grad; ctx.lineWidth = 3; ctx.setLineDash([6, 4]);
+                ctx.beginPath(); ctx.moveTo(player.x, player.y - 15); ctx.lineTo(bondBeamTarget.x, bondBeamTarget.y); ctx.stroke();
+                ctx.setLineDash([]);
+                const t = performance.now() * 0.003;
+                for (let p = 0.2; p < 0.9; p += 0.25) {
+                    const bx = player.x + (bondBeamTarget.x - player.x) * p;
+                    const by = player.y - 15 + (bondBeamTarget.y - player.y + 15) * p + Math.sin(t + p * 6) * 4;
+                    ctx.font = emojiFont(11);
+                    ctx.fillText('💕', bx, by);
+                }
+            }
+
+            // ── Kookie bullets ──
+            for (const b of bullets) {
+                ctx.font = emojiFont(b.size);
+                ctx.fillText(b.ally ? '💛' : '🍪', b.x, b.y);
+            }
+
+            // ── POOPS (tumbling 💩) ──
+            for (const p of poops) {
+                ctx.save();
+                ctx.translate(p.x, p.y);
+                ctx.rotate(p.rot);
+                ctx.font = emojiFont(p.size);
+                ctx.fillText('💩', 0, 0);
+                ctx.restore();
+            }
+
+            // Power-ups (bobbing + glow)
+            for (const pu of powerups) {
+                const bob = Math.sin(performance.now() * 0.005) * 3;
+                ctx.shadowBlur = 12;
+                ctx.shadowColor = pu.type === 'kookie' ? '#b4ff39' : pu.type === 'grenade' ? '#fff700' : '#00f2ff';
+                ctx.font = emojiFont(pu.size);
+                ctx.fillText(pu.char, pu.x, pu.y + bob);
+                ctx.shadowBlur = 0;
+            }
+
+            // ── Bond Network Lines (visible connections between all allies and player) ──
+            // ── Bond Network Lines (constellations + word framing) ──
+            if (allies.length > 0 || invaders.length > 0) {
+                const pulse = 0.15 + Math.sin(performance.now() * 0.003) * 0.08;
+                ctx.lineWidth = 1;
+
+                // 1. Frame the WORD letters (connect invaders of same letter)
+                ctx.strokeStyle = `rgba(180, 255, 57, 0.15)`; // Subtle kookie green
+                ctx.beginPath();
+                for (const [invA, invB] of invaderEdges) {
+                    if (!invA.alive || !invB.alive) continue;
+                    ctx.moveTo(invA.x, invA.y);
+                    ctx.lineTo(invB.x, invB.y);
+                }
+                ctx.stroke();
+
+                // 2. Bond Network (Allies)
+                ctx.strokeStyle = `rgba(255,107,53,${pulse})`;
+                ctx.setLineDash([4, 6]);
+                ctx.beginPath();
+                // Lines from player to each ally
+                for (const a of allies) {
+                    ctx.moveTo(player.x, player.y); ctx.lineTo(a.x, a.y);
+                }
+                // Spatial buckets avoid testing every ally against every other ally.
+                for (const [first, second] of nearbyAllyPairs()) {
+                    ctx.moveTo(allies[first].x, allies[first].y);
+                    ctx.lineTo(allies[second].x, allies[second].y);
+                }
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+
+            // Allies
+            for (const a of allies) {
+                ctx.font = emojiFont(a.size);
+                ctx.fillText(a.char, a.x, a.y);
+                ctx.strokeStyle = 'rgba(255,107,53,0.35)'; ctx.lineWidth = 1.5;
+                ctx.beginPath(); ctx.arc(a.x, a.y, a.size * 0.5, 0, Math.PI * 2); ctx.stroke();
+            }
+
+            // ── Player (kookie with glow) ──
+            if (player.invincible <= 0 || Math.floor(player.invincible / 4) % 2 === 0) {
+                // Bond shield visual - pulsing ring when shield active
+                if (bondShield > 0) {
+                    const shieldPulse = 0.3 + Math.sin(performance.now() * 0.01) * 0.15;
+                    ctx.strokeStyle = `rgba(0,242,255,${shieldPulse})`;
+                    ctx.lineWidth = 3;
+                    const shieldR = player.size * 0.8 + Math.sin(performance.now() * 0.008) * 4;
+                    ctx.beginPath(); ctx.arc(player.x, player.y, shieldR, 0, Math.PI * 2); ctx.stroke();
+                }
+                ctx.shadowBlur = 14; ctx.shadowColor = bondShield > 0 ? '#00f2ff' : '#b4ff39';
+                ctx.font = emojiFont(player.size);
+                ctx.fillText('🍪', player.x, player.y);
+                ctx.shadowBlur = 0;
+                // Aim indicator
+                ctx.fillStyle = 'rgba(0,242,255,0.3)';
+                ctx.beginPath();
+                ctx.moveTo(player.x, player.y - 20);
+                ctx.lineTo(player.x - 6, player.y - 13);
+                ctx.lineTo(player.x + 6, player.y - 13);
+                ctx.closePath(); ctx.fill();
+            }
+
+            // Triple-shot indicator
+            if (player.tripleShot > 0) {
+                ctx.fillStyle = 'rgba(0,242,255,0.6)';
+                ctx.font = '9px ui-monospace, Consolas, monospace';
+                ctx.fillText('📣 COREVOICE', player.x, player.y + 20);
+            }
+
+            // Particles
+            for (const p of particles) {
+                if (p.emoji) {
+                    ctx.globalAlpha = p.life;
+                    ctx.font = emojiFont(p.size);
+                    ctx.fillText(p.emoji, p.x, p.y);
+                    ctx.globalAlpha = 1;
+                } else {
+                    ctx.globalAlpha = p.life;
+                    ctx.fillStyle = p.color;
+                    ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
+                    ctx.globalAlpha = 1;
+                }
+            }
+
+            ctx.restore();
+        }
+
+        // ═══ GAME OVER ═══
+        const GAME_OVER_TITLES = [
+            "NETWORK OVERRUN",
+            "CONNECTION TERMINATED",
+            "SYSTEM CRITICAL FAILURE",
+            "404: SKILL NOT FOUND",
+            "REBOOT REQUIRED",
+            "BUFFER OVERFLOW",
+        ];
+        const GAME_OVER_SUBS = [
+            "The toilets have fallen. The network is lost.",
+            "Please contact your system administrator.",
+            "Packet loss detected in Sector 7.",
+            "The primitive lifeforms have overwhelmed the firewall.",
+            "Trying to reconnect... (Connection timed out)",
+            "Your session has expired. Please insert more Kookies.",
+            "Error: User failed to Bond with reality.",
+        ];
+
+        function gameOver() {
+            stopGameLoop();
+            clearInput();
+            clearGameplayTasks();
+            gameState = 'gameover';
+            sfxGameOver();
+            document.getElementById('final-score').textContent = score;
+            document.getElementById('final-wave').textContent = `Wave ${wave}`;
+            // Rotate original game-over copy to keep repeat runs fresh.
+            document.querySelector('#gameover-overlay h1').textContent =
+                GAME_OVER_TITLES[Math.floor(effectsRng() * GAME_OVER_TITLES.length)];
+            document.querySelector('#gameover-overlay .subtitle').textContent =
+                GAME_OVER_SUBS[Math.floor(effectsRng() * GAME_OVER_SUBS.length)];
+            document.getElementById('gameover-overlay').classList.remove('hidden');
+            document.getElementById('btn-retry').focus();
+        }
+
+        // ═══ MENU BACKGROUND ═══
+        initStars();
+        (function menuLoop() {
+            if (gameState !== 'menu') return;
+            ctx.fillStyle = '#051a20';
+            ctx.fillRect(0, 0, W, H);
+            for (const s of stars) {
+                s.y += s.sp * 0.4;
+                if (s.y > H) { s.y = 0; s.x = effectsRng() * W; }
+                ctx.fillStyle = `rgba(0,242,255,${s.a * 0.25})`;
+                ctx.beginPath(); ctx.arc(s.x, s.y, s.s, 0, Math.PI * 2); ctx.fill();
+            }
+            requestAnimationFrame(menuLoop);
+        })();
+    </script>
+</body>
+
+</html>
