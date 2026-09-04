@@ -1,4 +1,4 @@
-import { a as FINAL_ROOM_ID, c as WORLD_GRAPH, d as playSfx, f as controls, i as LATENCY_DRAIN, l as guardianX, n as useGameStore, o as GUARDIAN_REASONS, s as ROOMS, u as moverX } from "./index-D0xPQ0Xn.js";
+import { a as GUARDIAN_REASONS, c as moverX, i as LATENCY_DRAIN, l as playSfx, n as useGameStore, o as ROOMS, s as guardianX, u as controls } from "./index-Bv7U71o_.js";
 //#region app/game/engine.mjs
 var FIXED_STEP = 1 / 60;
 var PLAYER_HALF_WIDTH = .3;
@@ -190,13 +190,14 @@ function stepEngine(state, controls, game) {
 		const nearestY = clamp(guardian.y, nextY - PLAYER_HALF_HEIGHT, nextY + PLAYER_HALF_HEIGHT);
 		if (Math.hypot(gx - nearestX, guardian.y - nearestY) < guardian.radius) return die(state, game, events, GUARDIAN_REASONS[guardian.kind] ?? GUARDIAN_REASONS.manager);
 	}
+	game.recordTraversal?.(Boolean(grounded && wildcardGround), grounded && ridingMoverId ? FIXED_STEP : 0);
 	const nearGate = Math.hypot(nextX - room.exit.x, nextY - room.exit.y) < GATE_RADIUS;
 	const outstanding = room.shards.length - game.roomCollectedCount();
 	if (nearGate && outstanding === 0) {
 		game.setPlayerX(nextX);
 		const result = game.clearRoom();
 		if (result === "won") events.push("win");
-		else if (result === "routing") events.push("route");
+		else if (result === "cleared" || result === "routing") events.push("route");
 		return events;
 	}
 	if (nearGate && !state.gateWasNear && outstanding > 0) {
@@ -289,28 +290,8 @@ REFINE_MACROS.push([
 	0,
 	0
 ]);
-function planNextRoute(currentRoomId, completedRooms) {
-	const completed = new Set(completedRooms);
-	const othersDone = ROOMS.every((room) => room.id === FINAL_ROOM_ID || completed.has(room.id));
-	const isGoal = othersDone ? (id) => id === FINAL_ROOM_ID : (id) => id !== FINAL_ROOM_ID && !completed.has(id);
-	const queue = [[currentRoomId]];
-	const seen = /* @__PURE__ */ new Set([currentRoomId]);
-	while (queue.length) {
-		const path = queue.shift();
-		for (const next of WORLD_GRAPH[path.at(-1)] ?? []) {
-			if (seen.has(next)) continue;
-			if (!othersDone && next === FINAL_ROOM_ID) continue;
-			const nextPath = [...path, next];
-			if (isGoal(next)) return nextPath[1];
-			seen.add(next);
-			queue.push(nextPath);
-		}
-	}
-	return WORLD_GRAPH[currentRoomId]?.[0] ?? null;
-}
 function createAutopilotController(lessons) {
 	const offsetsByRoom = /* @__PURE__ */ new Map();
-	let routeDelay = 0;
 	function macroAt(roomId, stepIndex) {
 		const lesson = lessons?.rooms?.[roomId];
 		if (!lesson) return null;
@@ -334,37 +315,24 @@ function createAutopilotController(lessons) {
 		}
 		return null;
 	}
-	return {
-		applyStep(engine, controls) {
-			controls.wildcardHeld = false;
-			controls.wildcardQueued = false;
-			const roomId = ROOMS[engine.roomIndex].id;
-			const hit = macroAt(roomId, Math.round(engine.seconds / FIXED_STEP));
-			if (!hit) {
-				controls.left = false;
-				controls.right = false;
-				controls.jumpHeld = false;
-				controls.jumpQueued = false;
-				return;
-			}
-			const [, dir, jump] = hit.macro;
-			controls.left = dir === -1;
-			controls.right = dir === 1;
-			controls.jumpHeld = hit.local < jump;
-			controls.jumpQueued = hit.local === 0 && jump > 0;
-		},
-		routeTick(store) {
-			if (store.phase !== "routing") {
-				routeDelay = 0;
-				return;
-			}
-			routeDelay += 1;
-			if (routeDelay < 24) return;
-			routeDelay = 0;
-			const next = planNextRoute(ROOMS[store.roomIndex].id, store.completedRooms);
-			if (next) store.chooseRoute(next);
+	return { applyStep(engine, controls) {
+		controls.wildcardHeld = false;
+		controls.wildcardQueued = false;
+		const roomId = ROOMS[engine.roomIndex].id;
+		const hit = macroAt(roomId, Math.round(engine.seconds / FIXED_STEP));
+		if (!hit) {
+			controls.left = false;
+			controls.right = false;
+			controls.jumpHeld = false;
+			controls.jumpQueued = false;
+			return;
 		}
-	};
+		const [, dir, jump] = hit.macro;
+		controls.left = dir === -1;
+		controls.right = dir === 1;
+		controls.jumpHeld = hit.local < jump;
+		controls.jumpQueued = hit.local === 0 && jump > 0;
+	} };
 }
 //#endregion
 //#region app/game/lessons.mjs
@@ -4460,7 +4428,8 @@ var storeAdapter = {
 		return ROOMS[state.roomIndex].shards.filter((shard) => state.collected.includes(shard.id)).length;
 	},
 	activateWildcard: () => useGameStore.getState().activateWildcard(),
-	expireWildcard: () => useGameStore.getState().expireWildcard()
+	expireWildcard: () => useGameStore.getState().expireWildcard(),
+	recordTraversal: (stabilised, rideSeconds) => useGameStore.getState().recordTraversal(stabilised, rideSeconds)
 };
 function playEvent(event) {
 	switch (event) {
@@ -4503,15 +4472,16 @@ function createDriver() {
 	return {
 		engine,
 		frame(frameDelta) {
-			let state = useGameStore.getState();
-			if (state.autopilot) {
-				autopilotController.routeTick({
-					phase: state.phase,
-					roomIndex: state.roomIndex,
-					completedRooms: state.completedRooms,
-					chooseRoute: (id) => useGameStore.getState().chooseRoute(id)
-				});
-				state = useGameStore.getState();
+			if (typeof document !== "undefined" && document.hidden) return;
+			const state = useGameStore.getState();
+			if (state.phase === "cleared") {
+				accumulator = 0;
+				if (state.advanceTransition(frameDelta)) {
+					const entered = useGameStore.getState();
+					resetEngineState(engine, entered.roomIndex);
+					observedRunSerial = entered.runSerial;
+				}
+				return;
 			}
 			const autopilotEngaged = state.autopilot && !observedAutopilot && state.phase === "playing";
 			if (state.phase === "playing" || !state.autopilot) observedAutopilot = state.autopilot;
@@ -4521,7 +4491,7 @@ function createDriver() {
 				observedRunSerial = state.runSerial;
 			}
 			if (useGameStore.getState().phase !== "playing") return;
-			accumulator = Math.min(accumulator + Math.min(frameDelta, .05), FIXED_STEP * 5);
+			accumulator = Math.min(accumulator + (Number.isFinite(frameDelta) ? Math.max(0, Math.min(frameDelta, .05)) : 0), FIXED_STEP * 5);
 			let steps = 0;
 			while (accumulator >= .016666666666666666 && steps < 5) {
 				accumulator -= FIXED_STEP;

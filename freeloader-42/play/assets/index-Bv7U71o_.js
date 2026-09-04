@@ -1,4 +1,4 @@
-const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["./Canvas2D-BeFeTtkY.js","./sprites-CVAII7Pr.js","./ThreeField-dM8_6B9E.js"])))=>i.map(i=>d[i]);
+const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["./Canvas2D-CjedAT6p.js","./sprites-DPkwcO6g.js","./ThreeField-BUvW3RRr.js"])))=>i.map(i=>d[i]);
 //#region \0rolldown/runtime.js
 var __create = Object.create;
 var __defProp = Object.defineProperty;
@@ -11319,6 +11319,81 @@ function guardianX(guardianDefinition, seconds) {
 function moverX(moverDefinition, seconds) {
 	return moverDefinition.baseX + Math.sin(seconds * moverDefinition.speed) * moverDefinition.amplitude;
 }
+//#endregion
+//#region app/game/contracts.mjs
+var CLEAR_BEAT_SECONDS = 1.8;
+var RIDE_TARGET_SECONDS = .6;
+var KINDS = [
+	"clean",
+	"pace",
+	"wildcard",
+	"ride",
+	"clean",
+	"audit"
+];
+var PAR_SECONDS = [
+	24,
+	30,
+	38,
+	42,
+	32,
+	34
+];
+var HINTS = [
+	"Use the steps to pass above the patrol. Hold jump for height; release it for a shorter hop.",
+	"The belts push against you. E stabilises the outlined platform for 4.2 seconds.",
+	"Watch the flashing floors. E makes the outlined phantom solid for 4.2 seconds.",
+	"Wait for the moving platform on safe ground, then ride it across the gap.",
+	"Keep moving on crumbling ledges. Use the solid shelf to time the moving platform.",
+	"Combine the belt, phantom and moving platform. Time the final patrol before extracting."
+];
+function contractFor(room) {
+	const archetype = room.index % 6;
+	const kind = KINDS[archetype];
+	const parSeconds = PAR_SECONDS[archetype] + Math.floor(room.index / 6) * 2;
+	return {
+		kind,
+		parSeconds,
+		bonus: kind === "clean" ? "Reach the exit without a core dump" : kind === "pace" ? `Certify this room within ${parSeconds}s` : kind === "wildcard" ? "Use E, then land on the outlined platform while it is stabilised" : kind === "ride" ? "Ride the moving platform for 0.6s total" : `No core dumps AND certify within ${parSeconds}s`,
+		hint: HINTS[archetype],
+		goal: `Recover ${room.shards.length} receipts, then reach the glowing exit`
+	};
+}
+function freshRoomStats(eligible = true) {
+	return {
+		elapsed: 0,
+		deaths: 0,
+		stabilised: false,
+		rideSeconds: 0,
+		eligible
+	};
+}
+function masteryStatus(contract, stats, finished = false) {
+	if (!stats.eligible) return {
+		state: "unverified",
+		passed: false,
+		text: "Legacy attempt · retry this room for a bonus"
+	};
+	const clean = stats.deaths === 0;
+	const inTime = stats.elapsed <= contract.parSeconds;
+	const passed = contract.kind === "clean" ? clean : contract.kind === "pace" ? inTime : contract.kind === "wildcard" ? stats.stabilised : contract.kind === "ride" ? stats.rideSeconds + 1e-8 >= RIDE_TARGET_SECONDS : clean && inTime;
+	const failed = (contract.kind === "clean" || contract.kind === "audit") && !clean || (contract.kind === "pace" || contract.kind === "audit") && !inTime;
+	if (finished) return {
+		state: passed ? "earned" : "missed",
+		passed,
+		text: passed ? "BONUS EARNED" : "ROOM CLEARED · BONUS MISSED"
+	};
+	if (failed) return {
+		state: "missed",
+		passed: false,
+		text: "Bonus missed · J retries this room · exit still open"
+	};
+	return {
+		state: "pending",
+		passed: false,
+		text: contract.kind === "clean" ? "Clean so far · bank it at the exit" : contract.kind === "pace" || contract.kind === "audit" ? `${Math.max(0, Math.ceil(contract.parSeconds - stats.elapsed))}s left${contract.kind === "audit" ? " · clean so far" : ""}` : contract.kind === "wildcard" ? stats.stabilised ? "Stabilisation proved · bank it at the exit" : "Press E near the outlined platform, then land on it" : stats.rideSeconds >= .6 ? "Ride proved · bank it at the exit" : `${Math.min(stats.rideSeconds, RIDE_TARGET_SECONDS).toFixed(1)} / 0.6s riding`
+	};
+}
 var LATENCY_DRAIN = 1.35;
 function respawnLatency(current) {
 	return Math.max(42, Math.min(100, current));
@@ -11378,18 +11453,18 @@ var createImpl = (createState) => {
 var create = ((createState) => createState ? createImpl(createState) : createImpl);
 //#endregion
 //#region app/game/storage.mjs
-function readBestScore(getStorage) {
+function readBestScore(getStorage, assisted = false) {
 	try {
 		const storage = getStorage?.();
-		const value = Number(storage?.getItem("freeloader42-best-v2"));
+		const value = Number(storage?.getItem(assisted ? "freeloader42-best-v3-assisted" : "freeloader42-best-v3-human"));
 		return Number.isFinite(value) && value > 0 ? value : null;
 	} catch {
 		return null;
 	}
 }
-function writeBestScore(getStorage, score) {
+function writeBestScore(getStorage, score, assisted = false) {
 	try {
-		(getStorage?.())?.setItem("freeloader42-best-v2", String(score));
+		(getStorage?.())?.setItem(assisted ? "freeloader42-best-v3-assisted" : "freeloader42-best-v3-human", String(score));
 		return true;
 	} catch {
 		return false;
@@ -11413,19 +11488,20 @@ function writeRenderMode(getStorage, mode) {
 }
 function readProgress(getStorage) {
 	try {
-		const raw = getStorage?.()?.getItem("freeloader42-progress-v1");
+		const storage = getStorage?.();
+		const raw = storage?.getItem("freeloader42-progress-v2") ?? storage?.getItem("freeloader42-progress-v1");
 		if (!raw) return null;
 		const value = JSON.parse(raw);
-		return value && typeof value === "object" && value.version === 1 ? value : null;
+		return value && typeof value === "object" && [1, 2].includes(value.version) ? value : null;
 	} catch {
 		return null;
 	}
 }
 function writeProgress(getStorage, progress) {
 	try {
-		getStorage?.()?.setItem("freeloader42-progress-v1", JSON.stringify({
+		getStorage?.()?.setItem("freeloader42-progress-v2", JSON.stringify({
 			...progress,
-			version: 1
+			version: 2
 		}));
 		return true;
 	} catch {
@@ -11434,7 +11510,9 @@ function writeProgress(getStorage, progress) {
 }
 function clearProgress(getStorage) {
 	try {
-		getStorage?.()?.removeItem?.("freeloader42-progress-v1");
+		const storage = getStorage?.();
+		storage?.removeItem?.("freeloader42-progress-v2");
+		storage?.removeItem?.("freeloader42-progress-v1");
 		return true;
 	} catch {
 		return false;
@@ -11449,7 +11527,7 @@ var wholeOr = (value, fallback) => Math.max(0, Math.floor(finiteOr(value, fallba
 function sanitiseProgress(raw) {
 	if (!raw || typeof raw !== "object") return null;
 	const candidate = raw;
-	if (candidate.version !== 1 || typeof candidate.roomId !== "string" || !roomIds.has(candidate.roomId)) return null;
+	if (![1, 2].includes(candidate.version ?? 0) || typeof candidate.roomId !== "string" || !roomIds.has(candidate.roomId)) return null;
 	const collected = Array.from(new Set((Array.isArray(candidate.collected) ? candidate.collected : []).filter((id) => typeof id === "string" && receiptIds.has(id))));
 	const completedRooms = Array.from(new Set((Array.isArray(candidate.completedRooms) ? candidate.completedRooms : []).filter((id) => typeof id === "string" && roomIds.has(id)))).filter((id) => ROOMS[ROOM_INDEX_BY_ID[id]].shards.every((receipt) => collected.includes(receipt.id)));
 	const visitedRooms = Array.from(/* @__PURE__ */ new Set([
@@ -11457,8 +11535,9 @@ function sanitiseProgress(raw) {
 		candidate.roomId,
 		...(Array.isArray(candidate.visitedRooms) ? candidate.visitedRooms : []).filter((id) => typeof id === "string" && roomIds.has(id))
 	]));
+	const stats = candidate.roomStats;
 	return {
-		version: 1,
+		version: candidate.version ?? 1,
 		roomId: candidate.roomId,
 		collected,
 		completedRooms,
@@ -11467,12 +11546,20 @@ function sanitiseProgress(raw) {
 		elapsed: Math.max(0, finiteOr(candidate.elapsed, 0)),
 		streak: wholeOr(candidate.streak, 0),
 		deaths: wholeOr(candidate.deaths, 0),
-		atDirectory: candidate.atDirectory === true && completedRooms.includes(candidate.roomId)
+		assisted: candidate.assisted !== false,
+		roomStats: candidate.version === 2 && stats && typeof stats === "object" ? {
+			elapsed: Math.max(0, finiteOr(stats.elapsed, 0)),
+			deaths: wholeOr(stats.deaths, 0),
+			stabilised: stats.stabilised === true,
+			rideSeconds: Math.max(0, finiteOr(stats.rideSeconds, 0)),
+			eligible: stats.eligible === true
+		} : freshRoomStats(false),
+		masteredRooms: Array.from(new Set((Array.isArray(candidate.masteredRooms) ? candidate.masteredRooms : []).filter((id) => typeof id === "string" && completedRooms.includes(id))))
 	};
 }
 function snapshotProgress(state) {
 	return {
-		version: 1,
+		version: 2,
 		roomId: ROOMS[state.roomIndex].id,
 		collected: state.collected,
 		completedRooms: state.completedRooms,
@@ -11481,14 +11568,25 @@ function snapshotProgress(state) {
 		elapsed: state.elapsed,
 		streak: state.streak,
 		deaths: state.deaths,
-		atDirectory: state.phase === "routing"
+		assisted: state.assisted,
+		roomStats: state.roomStats,
+		masteredRooms: state.masteredRooms
 	};
 }
 function persistProgress(state) {
-	if (typeof window !== "undefined") writeProgress(() => window.localStorage, snapshotProgress(state));
+	const savedProgress = snapshotProgress(state);
+	if (typeof window !== "undefined" && writeProgress(() => window.localStorage, savedProgress)) useGameStore.setState({
+		hasProgress: true,
+		savedProgress
+	});
 }
-var freshRun = () => ({
+var freshRun = (assisted = false) => ({
 	latency: 100,
+	resumePhase: "playing",
+	transitionRemaining: 0,
+	roomStats: freshRoomStats(),
+	masteredRooms: [],
+	assisted,
 	elapsed: 0,
 	roomIndex: 0,
 	roomsCleared: 0,
@@ -11511,13 +11609,14 @@ var useGameStore = create((set, get) => ({
 	autopilot: false,
 	renderMode: "2d",
 	bestScore: null,
+	bestAssistedScore: null,
 	hasProgress: false,
 	savedProgress: null,
 	start: () => {
 		if (typeof window !== "undefined") clearProgress(() => window.localStorage);
 		set((state) => ({
 			phase: "playing",
-			...freshRun(),
+			...freshRun(state.autopilot),
 			hasProgress: false,
 			savedProgress: null,
 			runSerial: state.runSerial + 1
@@ -11527,46 +11626,77 @@ var useGameStore = create((set, get) => ({
 		const state = get();
 		const saved = state.savedProgress;
 		if (!saved) return false;
-		const roomIndex = ROOM_INDEX_BY_ID[saved.roomId];
+		const pending = ROOMS.findIndex((room) => !saved.completedRooms.includes(room.id));
+		const roomIndex = pending < 0 ? ROOMS.length - 1 : pending;
 		const room = ROOMS[roomIndex];
+		const sameRoom = room.id === saved.roomId;
+		clearControls();
 		set({
-			phase: saved.atDirectory ? "routing" : "playing",
+			phase: pending < 0 ? "won" : "playing",
+			resumePhase: "playing",
+			transitionRemaining: 0,
 			roomIndex,
 			collected: saved.collected,
 			completedRooms: saved.completedRooms,
-			visitedRooms: saved.visitedRooms,
+			visitedRooms: saved.visitedRooms.includes(room.id) ? saved.visitedRooms : [...saved.visitedRooms, room.id],
 			roomsCleared: saved.completedRooms.length,
 			banked: saved.collected.length,
 			latency: saved.latency,
 			elapsed: saved.elapsed,
 			streak: saved.streak,
 			deaths: saved.deaths,
+			roomStats: sameRoom ? saved.roomStats : freshRoomStats(!room.shards.some((receipt) => saved.collected.includes(receipt.id))),
+			masteredRooms: saved.masteredRooms,
+			assisted: saved.assisted || state.autopilot,
 			deathSerial: 0,
 			playerX: room.start.x,
 			wildcard: "ready",
-			notice: saved.atDirectory ? `${room.property} CERTIFIED // WILDCARD DIRECTORY RESTORED` : `${room.intro} // CHECKPOINT RESTORED`,
+			notice: pending < 0 ? "PORTFOLIO ALREADY CERTIFIED // NO EMPTY ROOMS TO REPLAY" : `CHECKPOINT RESTORED // ${saved.completedRooms.length} CERTIFICATES KEPT // NEXT UNFINISHED: PROPERTY ${String(roomIndex + 1).padStart(2, "0")}`,
 			runSerial: state.runSerial + 1
 		});
+		if (pending < 0) {
+			if (typeof window !== "undefined") clearProgress(() => window.localStorage);
+			set({
+				hasProgress: false,
+				savedProgress: null
+			});
+		} else persistProgress(get());
 		return true;
 	},
 	restart: () => {
 		if (typeof window !== "undefined") clearProgress(() => window.localStorage);
 		set((state) => ({
 			phase: "playing",
-			...freshRun(),
+			...freshRun(state.autopilot),
 			hasProgress: false,
 			savedProgress: null,
 			runSerial: state.runSerial + 1
 		}));
 	},
 	togglePause: () => {
-		set((state) => ({ phase: state.phase === "paused" ? "playing" : state.phase === "playing" ? "paused" : state.phase }));
+		clearControls();
+		set((state) => state.phase === "paused" ? { phase: state.resumePhase } : state.phase === "playing" || state.phase === "cleared" ? {
+			phase: "paused",
+			resumePhase: state.phase
+		} : state);
 		if (get().phase === "paused") persistProgress(get());
 	},
 	toggleMute: () => set((state) => ({ muted: !state.muted })),
 	toggleAutopilot: () => {
 		clearControls();
-		set((state) => ({ autopilot: !state.autopilot }));
+		set((state) => ({
+			autopilot: !state.autopilot,
+			assisted: state.assisted || !state.autopilot && state.phase !== "menu" && state.phase !== "won",
+			...!state.autopilot && (state.phase === "playing" || state.phase === "paused") ? {
+				wildcard: "ready",
+				notice: "WATCH / ASSIST ON // ROOM REWOUND; RECEIPTS KEPT // O TO TAKE OVER"
+			} : state.autopilot && state.phase === "playing" ? { notice: "YOUR HANDS, YOUR PROBLEM // ASSISTED RECORD CATEGORY RETAINED" } : {}
+		}));
+		if ([
+			"playing",
+			"paused",
+			"cleared"
+		].includes(get().phase)) persistProgress(get());
 	},
 	setRenderMode: (renderMode) => {
 		set({ renderMode });
@@ -11575,10 +11705,12 @@ var useGameStore = create((set, get) => ({
 	hydrateBest: () => {
 		if (typeof window === "undefined") return;
 		const best = readBestScore(() => window.localStorage);
+		const bestAssisted = readBestScore(() => window.localStorage, true);
 		const mode = readRenderMode(() => window.localStorage);
 		const progress = sanitiseProgress(readProgress(() => window.localStorage));
 		set((state) => ({
 			bestScore: best ?? state.bestScore,
+			bestAssistedScore: bestAssisted ?? state.bestAssistedScore,
 			renderMode: mode ?? state.renderMode,
 			hasProgress: progress !== null,
 			savedProgress: progress
@@ -11601,11 +11733,29 @@ var useGameStore = create((set, get) => ({
 	} : state),
 	tick: (seconds) => set((state) => {
 		if (state.phase !== "playing") return state;
+		if (!Number.isFinite(seconds) || seconds <= 0) return state;
 		return {
 			elapsed: state.elapsed + seconds,
+			roomStats: {
+				...state.roomStats,
+				elapsed: state.roomStats.elapsed + seconds
+			},
 			latency: Math.max(0, state.latency - seconds * LATENCY_DRAIN)
 		};
 	}),
+	recordTraversal: (stabilised, rideSeconds) => {
+		const state = get();
+		if (state.phase !== "playing") return;
+		const ride = Number.isFinite(rideSeconds) ? Math.max(0, Math.min(rideSeconds, 1 / 60)) : 0;
+		if ((!stabilised || state.roomStats.stabilised) && (ride === 0 || state.roomStats.rideSeconds >= .6)) return;
+		const roomStats = {
+			...state.roomStats,
+			stabilised: state.roomStats.stabilised || stabilised,
+			rideSeconds: Math.min(RIDE_TARGET_SECONDS, state.roomStats.rideSeconds + ride)
+		};
+		set({ roomStats });
+		if (roomStats.stabilised && !state.roomStats.stabilised || roomStats.rideSeconds >= .6 && state.roomStats.rideSeconds < .6) persistProgress(get());
+	},
 	collect: (id) => {
 		const state = get();
 		const room = ROOMS[state.roomIndex];
@@ -11618,7 +11768,7 @@ var useGameStore = create((set, get) => ({
 			banked: state.banked + 1,
 			streak: state.streak + 1,
 			latency: collectLatency(state.latency),
-			notice: roomCollected === room.shards.length ? "PROPERTY CERTIFIED. WILDCARD DIRECTORY'S OPEN. LIABILITY'S PACKED ITS BAGS." : `EVIDENCE RECOVERED // ${roomCollected} OF ${room.shards.length} IN PROPERTY`
+			notice: roomCollected === room.shards.length ? "ALL RECEIPTS BANKED // REACH T'EXIT TO CERTIFY THIS PROPERTY" : `EVIDENCE RECOVERED // ${roomCollected} OF ${room.shards.length} IN PROPERTY`
 		});
 		persistProgress(get());
 		return true;
@@ -11630,65 +11780,100 @@ var useGameStore = create((set, get) => ({
 		const state = get();
 		const room = ROOMS[state.roomIndex];
 		const roomCollected = room.shards.filter((shard) => state.collected.includes(shard.id)).length;
-		if (state.phase !== "playing" || roomCollected !== room.shards.length) return null;
+		if (state.phase !== "playing" || roomCollected !== room.shards.length || state.completedRooms.includes(room.id)) return null;
+		if (room.id === FINAL_ROOM_ID && ROOMS.some((entry) => entry.id !== FINAL_ROOM_ID && !state.completedRooms.includes(entry.id))) return null;
 		const completedRooms = state.completedRooms.includes(room.id) ? state.completedRooms : [...state.completedRooms, room.id];
 		const roomsCleared = completedRooms.length;
-		if (room.id === FINAL_ROOM_ID && state.collected.length === TOTAL_SHARDS) {
+		const masteredRooms = masteryStatus(contractFor(room), state.roomStats, true).passed ? [...state.masteredRooms, room.id] : state.masteredRooms;
+		clearControls();
+		if (roomsCleared === ROOMS.length && state.collected.length === TOTAL_SHARDS) {
 			const score = scoreRun(state.latency, state.streak, state.banked, roomsCleared);
-			const bestScore = Math.max(score, state.bestScore ?? 0);
-			if (typeof window !== "undefined") writeBestScore(() => window.localStorage, bestScore);
+			const best = Math.max(score, (state.assisted ? state.bestAssistedScore : state.bestScore) ?? 0);
+			if (typeof window !== "undefined") writeBestScore(() => window.localStorage, best, state.assisted);
 			if (typeof window !== "undefined") clearProgress(() => window.localStorage);
 			set({
 				phase: "won",
 				completedRooms,
 				roomsCleared,
-				bestScore,
+				masteredRooms,
+				...state.assisted ? { bestAssistedScore: best } : { bestScore: best },
+				hasProgress: false,
+				savedProgress: null,
 				notice: "FORTY-TWO PROPERTIES CERTIFIED. LOOKS REET SUSPICIOUS."
 			});
 			return "won";
 		}
 		set({
-			phase: "routing",
+			phase: "cleared",
+			transitionRemaining: CLEAR_BEAT_SECONDS,
+			masteredRooms,
 			completedRooms,
 			roomsCleared,
 			latency: completedRooms.length > state.completedRooms.length ? roomClearLatency(state.latency) : state.latency,
 			notice: `${room.property} CERTIFIED // ${TOTAL_SHARDS - state.collected.length} RECEIPTS REMAIN IN T'PORTFOLIO`
 		});
 		persistProgress(get());
-		return "routing";
+		return "cleared";
 	},
-	chooseRoute: (roomId) => {
+	advanceTransition: (seconds) => {
 		const state = get();
-		const room = ROOMS[state.roomIndex];
-		if (state.phase !== "routing" || !room.routes.some((route) => route.to === roomId)) return false;
-		if (roomId === FINAL_ROOM_ID) {
-			const outstanding = ROOMS.filter((entry) => entry.id !== FINAL_ROOM_ID && !state.completedRooms.includes(entry.id)).length;
-			if (outstanding > 0) {
-				set({ notice: `T'WILDCARD FREEHOLD IS SEALED // ${outstanding} PROPERT${outstanding === 1 ? "Y" : "IES"} STILL UNCERTIFIED` });
-				return false;
-			}
+		if (state.phase !== "cleared" || !Number.isFinite(seconds) || seconds <= 0) return false;
+		const remaining = Math.max(0, state.transitionRemaining - Math.min(seconds, .05));
+		if (remaining > 1e-8) {
+			set({ transitionRemaining: remaining });
+			return false;
 		}
-		const nextIndex = ROOM_INDEX_BY_ID[roomId];
-		if (!Number.isInteger(nextIndex)) return false;
+		const nextIndex = ROOMS.findIndex((room) => !state.completedRooms.includes(room.id));
+		if (nextIndex < 0) return false;
 		const nextRoom = ROOMS[nextIndex];
+		clearControls();
 		set({
 			phase: "playing",
 			roomIndex: nextIndex,
+			transitionRemaining: 0,
+			roomStats: freshRoomStats(!nextRoom.shards.some((receipt) => state.collected.includes(receipt.id))),
 			wildcard: "ready",
 			playerX: nextRoom.start.x,
-			visitedRooms: state.visitedRooms.includes(roomId) ? state.visitedRooms : [...state.visitedRooms, roomId],
+			visitedRooms: state.visitedRooms.includes(nextRoom.id) ? state.visitedRooms : [...state.visitedRooms, nextRoom.id],
 			notice: nextRoom.intro
 		});
 		persistProgress(get());
 		return true;
 	},
+	retryRoom: () => {
+		const state = get();
+		if (state.phase !== "playing" && !(state.phase === "paused" && state.resumePhase === "playing")) return false;
+		const room = ROOMS[state.roomIndex];
+		if (state.completedRooms.includes(room.id)) return false;
+		const roomReceipts = new Set(room.shards.map((receipt) => receipt.id));
+		const collected = state.collected.filter((id) => !roomReceipts.has(id));
+		clearControls();
+		set({
+			phase: "playing",
+			collected,
+			banked: collected.length,
+			streak: 0,
+			roomStats: freshRoomStats(),
+			wildcard: "ready",
+			latency: respawnLatency(state.latency),
+			playerX: room.start.x,
+			runSerial: state.runSerial + 1,
+			notice: "THIS ROOM RETRIED // EARLIER CERTIFICATES KEPT // BONUS RESET"
+		});
+		persistProgress(get());
+		return true;
+	},
 	die: (reason) => {
+		if (get().phase !== "playing") return;
 		set((state) => {
-			if (state.phase !== "playing") return state;
 			return {
 				latency: respawnLatency(state.latency),
 				streak: 0,
 				deaths: state.deaths + 1,
+				roomStats: {
+					...state.roomStats,
+					deaths: state.roomStats.deaths + 1
+				},
 				deathSerial: state.deathSerial + 1,
 				wildcard: "ready",
 				notice: `${reason} // CORE DUMP ${String(state.deaths + 1).padStart(2, "0")} // RESUMING, SOMEHOW`
@@ -11807,8 +11992,8 @@ var __vitePreload = function preload(baseModule, deps, importerUrl) {
 };
 //#endregion
 //#region app/FreeloaderGame.tsx
-var Canvas2D = (0, import_react.lazy)(() => __vitePreload(() => import("./Canvas2D-BeFeTtkY.js"), __vite__mapDeps([0,1]), import.meta.url));
-var ThreeField = (0, import_react.lazy)(() => __vitePreload(() => import("./ThreeField-dM8_6B9E.js"), __vite__mapDeps([2,1]), import.meta.url));
+var Canvas2D = (0, import_react.lazy)(() => __vitePreload(() => import("./Canvas2D-CjedAT6p.js"), __vite__mapDeps([0,1]), import.meta.url));
+var ThreeField = (0, import_react.lazy)(() => __vitePreload(() => import("./ThreeField-BUvW3RRr.js"), __vite__mapDeps([2,1]), import.meta.url));
 var CONTROL_BY_CODE = {
 	ArrowLeft: "left",
 	KeyA: "left",
@@ -11828,7 +12013,12 @@ function unlockFreshRunAudio() {
 	});
 }
 function confirmPortfolioRestart() {
-	return window.confirm("Restart t'whole portfolio and permanently bin every saved checkpoint?");
+	clearControls();
+	try {
+		return window.confirm("Restart t'whole portfolio and permanently bin every saved checkpoint?");
+	} finally {
+		clearControls();
+	}
 }
 var SceneBoundary = class extends import_react.Component {
 	constructor(..._args) {
@@ -11893,21 +12083,29 @@ function FreeloaderGame() {
 	const deathSerial = useGameStore((state) => state.deathSerial);
 	const muted = useGameStore((state) => state.muted);
 	const autopilot = useGameStore((state) => state.autopilot);
+	const assisted = useGameStore((state) => state.assisted);
 	const renderMode = useGameStore((state) => state.renderMode);
 	const bestScore = useGameStore((state) => state.bestScore);
+	const bestAssistedScore = useGameStore((state) => state.bestAssistedScore);
 	const hasProgress = useGameStore((state) => state.hasProgress);
 	const roomIndex = useGameStore((state) => state.roomIndex);
 	const roomsCleared = useGameStore((state) => state.roomsCleared);
 	const completedRooms = useGameStore((state) => state.completedRooms);
-	const visitedRooms = useGameStore((state) => state.visitedRooms);
+	const roomStats = useGameStore((state) => state.roomStats);
+	const masteredRooms = useGameStore((state) => state.masteredRooms);
+	const resumePhase = useGameStore((state) => state.resumePhase);
 	const notice = useGameStore((state) => state.notice);
 	const wildcard = useGameStore((state) => state.wildcard);
 	const runSerial = useGameStore((state) => state.runSerial);
 	const modalCardRef = (0, import_react.useRef)(null);
+	const playfieldRef = (0, import_react.useRef)(null);
 	const currentScore = scoreRun(latency, streak, banked, roomsCleared);
 	const room = ROOMS[roomIndex];
+	const contract = contractFor(room);
+	const mastery = masteryStatus(contract, roomStats, phase === "cleared" || phase === "won");
+	const nextRoom = ROOMS.find((entry) => !completedRooms.includes(entry.id));
 	const roomCollected = room.shards.filter((shard) => collected.includes(shard.id)).length;
-	const modalOpen = phase === "paused" || phase === "routing" || phase === "won";
+	const modalOpen = phase === "paused" || phase === "won";
 	(0, import_react.useEffect)(() => {
 		useGameStore.getState().hydrateBest();
 	}, []);
@@ -11927,7 +12125,7 @@ function FreeloaderGame() {
 		roomIndex
 	]);
 	(0, import_react.useEffect)(() => {
-		if (phase === "paused" || phase === "routing" || phase === "won" || deathSerial > 0) stopIntroVoice();
+		if (phase === "paused" || phase === "cleared" || phase === "won" || deathSerial > 0) stopIntroVoice();
 	}, [deathSerial, phase]);
 	(0, import_react.useEffect)(() => {
 		clearControls();
@@ -11965,9 +12163,13 @@ function FreeloaderGame() {
 		};
 	}, [modalOpen, phase]);
 	(0, import_react.useEffect)(() => {
+		if (phase === "playing") playfieldRef.current?.focus({ preventScroll: true });
+	}, [phase]);
+	(0, import_react.useEffect)(() => {
 		const keyDown = (event) => {
 			if (event.defaultPrevented) return;
-			if (event.target instanceof HTMLElement && Boolean(event.target.closest("button,a,input,textarea,select")) || event.ctrlKey || event.metaKey || event.altKey) return;
+			const target = event.target instanceof HTMLElement ? event.target : null;
+			if (target && (target.isContentEditable || target.closest("a,input,textarea,select") || target.closest("button") && (event.code === "Space" || event.code === "Enter")) || event.ctrlKey || event.metaKey || event.altKey) return;
 			const control = CONTROL_BY_CODE[event.code];
 			const game = useGameStore.getState();
 			if (control && game.phase === "playing") {
@@ -11986,11 +12188,15 @@ function FreeloaderGame() {
 				game.toggleMute();
 			}
 			if (!event.repeat && event.code === "KeyV" && (game.phase === "menu" || game.phase === "playing")) game.setRenderMode(game.renderMode === "3d" ? "2d" : "3d");
+			if (!event.repeat && event.code === "KeyJ" && game.phase === "playing") {
+				stopIntroVoice();
+				game.retryRoom();
+			}
 			if (!event.repeat && event.code === "KeyO" && game.phase === "playing") {
 				clearControls();
 				game.toggleAutopilot();
 			}
-			if (!event.repeat && (event.code === "KeyP" || event.code === "Escape") && (game.phase === "playing" || game.phase === "paused")) game.togglePause();
+			if (!event.repeat && (event.code === "KeyP" || event.code === "Escape") && (game.phase === "playing" || game.phase === "paused" || game.phase === "cleared")) game.togglePause();
 			if (!event.repeat && event.code === "Enter" && game.phase === "menu") {
 				clearControls();
 				if (!game.continueRun()) {
@@ -12003,13 +12209,30 @@ function FreeloaderGame() {
 			const control = CONTROL_BY_CODE[event.code];
 			if (control) setControl(control, false);
 		};
+		const pauseForAbsence = () => {
+			clearControls();
+			const game = useGameStore.getState();
+			if (game.phase === "playing" || game.phase === "cleared") game.togglePause();
+		};
+		const visibilityChanged = () => {
+			if (document.hidden) pauseForAbsence();
+		};
+		const returnPointerFocus = (event) => {
+			if (event.detail > 0 && useGameStore.getState().phase === "playing" && event.target instanceof HTMLElement && event.target.closest("button")) event.target.closest(".game-shell")?.focus({ preventScroll: true });
+		};
 		window.addEventListener("keydown", keyDown, { passive: false });
 		window.addEventListener("keyup", keyUp);
-		window.addEventListener("blur", clearControls);
+		window.addEventListener("blur", pauseForAbsence);
+		window.addEventListener("pagehide", pauseForAbsence);
+		window.addEventListener("click", returnPointerFocus);
+		document.addEventListener("visibilitychange", visibilityChanged);
 		return () => {
 			window.removeEventListener("keydown", keyDown);
 			window.removeEventListener("keyup", keyUp);
-			window.removeEventListener("blur", clearControls);
+			window.removeEventListener("blur", pauseForAbsence);
+			window.removeEventListener("pagehide", pauseForAbsence);
+			window.removeEventListener("click", returnPointerFocus);
+			document.removeEventListener("visibilitychange", visibilityChanged);
 		};
 	}, []);
 	const begin = () => {
@@ -12040,6 +12263,8 @@ function FreeloaderGame() {
 	};
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("main", {
 		className: `game-shell phase-${phase}`,
+		ref: playfieldRef,
+		tabIndex: -1,
 		children: [
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 				className: "scene-layer",
@@ -12089,8 +12314,9 @@ function FreeloaderGame() {
 								clearControls();
 								useGameStore.getState().toggleAutopilot();
 							},
-							"aria-label": autopilot ? "Disable autopilot" : "Enable autopilot",
-							children: "AI"
+							title: "Watch / Assist (O): rewinds this room, keeps receipts, uses a separate assisted record",
+							"aria-label": autopilot ? "Take over from AI" : "Watch AI play this room",
+							children: autopilot ? "TAKE OVER" : "WATCH AI"
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
 							type: "button",
@@ -12103,8 +12329,8 @@ function FreeloaderGame() {
 							type: "button",
 							disabled: modalOpen,
 							onClick: () => useGameStore.getState().togglePause(),
-							"aria-label": phase === "paused" ? "Resume" : "Pause",
-							children: phase === "paused" ? "▶" : "Ⅱ"
+							"aria-label": "Pause",
+							children: "Ⅱ"
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
 							type: "button",
@@ -12143,7 +12369,7 @@ function FreeloaderGame() {
 					}),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
 						className: "briefing",
-						children: "You're GUEST@42, unpaid caretaker of forty-two condemned digital properties. Recover 126 evidence receipts, learn each property's daft little rules, and use t'wildcard directory to choose your route before latency gets sold to t'new overlords. Every failure is data. Wages remain speculative."
+						children: "You're GUEST@42, unpaid caretaker of forty-two condemned digital properties. Clear them in order: collect each room's receipts and reach its exit. The next property opens automatically. Aim for optional bonus audits as you learn each room's daft little rules. Every failure is data. Wages remain speculative."
 					}),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 						className: "mode-row",
@@ -12189,7 +12415,9 @@ function FreeloaderGame() {
 							/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "V" }),
 							" SWAP VIEW ",
 							/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "O" }),
-							" AUTOPILOT ",
+							" WATCH / ASSIST ",
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "J" }),
+							" RETRY ROOM ",
 							/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "P" }),
 							" BREATHER ",
 							/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "R" }),
@@ -12256,6 +12484,33 @@ function FreeloaderGame() {
 					})
 				]
 			}),
+			phase === "playing" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", {
+				className: "contract-strip",
+				"aria-label": "Level objectives",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "mandatory-goal",
+					children: [
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
+							"GOAL // ",
+							String(roomIndex + 1).padStart(2, "0"),
+							" OF 42"
+						] }),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: roomCollected < room.shards.length ? `Recover receipts: ${roomCollected} / ${room.shards.length}` : "Receipts banked — reach the exit" }),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("small", { children: [
+							"Exit ",
+							room.exit.x > room.start.x ? "→ right" : "← left",
+							" · next level opens automatically"
+						] })
+					]
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: `bonus-goal bonus-${mastery.state}`,
+					children: [
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "BONUS AUDIT · OPTIONAL" }),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: contract.bonus }),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("small", { children: mastery.text })
+					]
+				})]
+			}),
 			phase === "paused" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", {
 				className: "modal-card compact-card",
 				role: "dialog",
@@ -12271,81 +12526,91 @@ function FreeloaderGame() {
 						id: "pause-title",
 						children: "T'APOCALYPSE IS HAVING A BREATHER."
 					}),
-					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: "Nowt improved while you were away." }),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: "Clock stopped. Receipts kept. T'landlord can wait." }),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
+						className: "pause-help",
+						children: [
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: contract.goal }),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)("br", {}),
+							contract.hint,
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)("br", {}),
+							"Optional: ",
+							contract.bonus
+						]
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
+						className: "pause-help",
+						children: [
+							"A / D or arrows: move · SPACE: jump · E: wildcard for 4.2 seconds.",
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)("br", {}),
+							"Collect every receipt, then reach the glowing exit. O: watch AI / take over. V: swap 2D / 3D."
+						]
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
+						className: "run-category",
+						children: [
+							assisted ? "ASSISTED / LEGACY RUN" : "HUMAN RUN",
+							" // ",
+							roomsCleared,
+							"/",
+							TOTAL_ROOMS,
+							" PROPERTIES CERTIFIED"
+						]
+					}),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
 						className: "primary-action",
 						type: "button",
 						onClick: () => useGameStore.getState().togglePause(),
 						children: "[ GET ON WI' IT ]"
+					}),
+					resumePhase === "playing" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
+						className: "secondary-action retry-room",
+						type: "button",
+						onClick: () => useGameStore.getState().retryRoom(),
+						children: "[ RETRY THIS ROOM + RESET BONUS ]"
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+						className: "retry-note",
+						children: "J retries only this room and its receipts. Earlier certificates stay banked."
 					})
 				]
 			}),
-			phase === "routing" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", {
-				className: "modal-card route-card",
-				role: "dialog",
-				"aria-modal": "true",
-				"aria-labelledby": "route-title",
-				ref: modalCardRef,
+			phase === "cleared" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", {
+				className: "clear-banner",
+				role: "status",
+				"aria-live": "polite",
+				"aria-label": "Level complete",
 				children: [
 					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
 						className: "kicker",
 						children: [
-							"WILDCARD DIRECTORY // ",
-							visitedRooms.length,
-							"/",
-							TOTAL_ROOMS,
-							" VISITED // ",
-							completedRooms.length,
-							"/",
-							TOTAL_ROOMS,
-							" CERTIFIED"
+							"PROPERTY ",
+							String(roomIndex + 1).padStart(2, "0"),
+							" // CERTIFIED"
 						]
 					}),
-					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("h2", {
-						id: "route-title",
-						children: [
-							"WHERE NEXT,",
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)("br", {}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)("em", { children: "FREELOADER?" })
-						]
-					}),
-					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", { children: [
-						banked,
-						"/",
-						TOTAL_SHARDS,
-						" evidence receipts banked. Pick a connected property; green routes are certified, amber routes are unfinished, and none include mileage."
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("h2", { children: [
+						"JOB DONE.",
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("br", {}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("em", { children: "NEXT LIABILITY." })
 					] }),
-					room.routes.some((route) => route.to === FINAL_ROOM_ID) && completedRooms.filter((id) => id !== FINAL_ROOM_ID).length < TOTAL_ROOMS - 1 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
-						id: "freehold-seal-note",
-						role: "status",
-						children: "PROPERTY 42 IS SEALED UNTIL EVERY OTHER PROPERTY IS CERTIFIED."
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", { children: [
+						roomStats.elapsed.toFixed(1),
+						"s · ",
+						roomStats.deaths,
+						" core dumps · ",
+						mastery.text
+					] }),
+					nextRoom && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
+						className: "next-contract",
+						children: [
+							"NEXT: ",
+							String(nextRoom.number).padStart(2, "0"),
+							" // ",
+							nextRoom.property
+						]
 					}),
-					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-						className: "route-grid",
-						children: room.routes.map((route) => {
-							const target = ROOMS[ROOM_INDEX_BY_ID[route.to]];
-							const certified = completedRooms.includes(route.to);
-							const visited = visitedRooms.includes(route.to);
-							const sealed = route.to === FINAL_ROOM_ID && completedRooms.filter((id) => id !== FINAL_ROOM_ID).length < TOTAL_ROOMS - 1;
-							return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
-								type: "button",
-								disabled: sealed,
-								title: sealed ? "The wildcard freehold opens once every other property is certified" : void 0,
-								"aria-describedby": sealed ? "freehold-seal-note" : void 0,
-								className: certified ? "route-certified" : visited ? "route-visited" : "",
-								onClick: () => useGameStore.getState().chooseRoute(route.to),
-								children: [
-									/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: sealed ? "SEALED" : certified ? "CERTIFIED" : visited ? "VISITED" : "UNKNOWN" }),
-									/* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: route.label }),
-									/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("small", { children: [
-										target.districtName,
-										" // ",
-										target.mechanic
-									] })
-								]
-							}, route.to);
-						})
-					})
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("small", { children: "Continuing automatically · P to pause" })
 				]
 			}),
 			phase === "won" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", {
@@ -12378,8 +12643,18 @@ function FreeloaderGame() {
 							] })] }),
 							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "UPTIME" }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("strong", { children: [elapsed.toFixed(1), "s"] })] }),
 							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "SCORE" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: currentScore.toLocaleString() })] }),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "BEST" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: (bestScore ?? currentScore).toLocaleString() })] })
+							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: assisted ? "ASSISTED BEST" : "HUMAN BEST" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: ((assisted ? bestAssistedScore : bestScore) ?? currentScore).toLocaleString() })] })
 						]
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", { children: [
+						masteredRooms.length,
+						"/",
+						TOTAL_ROOMS,
+						" bonus audits earned. Bonuses were optional; all property goals are complete."
+					] }),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+						className: "run-category",
+						children: assisted ? "ASSISTED / LEGACY RUN — HUMAN RECORD UNTOUCHED" : "HUMAN RUN — ALL YOUR OWN BOTHER"
 					}),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
 						className: "primary-action",
@@ -12415,7 +12690,7 @@ function FreeloaderGame() {
 						room.name,
 						" // ",
 						room.property,
-						autopilot ? " // AUTOPILOT" : ""
+						autopilot ? " // AI PLAYING" : assisted ? " // ASSISTED" : " // HUMAN"
 					] }),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
 						className: "notice",
@@ -12439,4 +12714,4 @@ var root = document.getElementById("root");
 if (!root) throw new Error("FREEL*ADER 42 could not find its arcade cabinet.");
 (0, import_client.createRoot)(root).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(import_react.StrictMode, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(FreeloaderGame, {}) }));
 //#endregion
-export { __toESM as _, FINAL_ROOM_ID as a, WORLD_GRAPH as c, playSfx as d, controls as f, __exportAll as g, __commonJSMin as h, LATENCY_DRAIN as i, guardianX as l, require_react as m, useGameStore as n, GUARDIAN_REASONS as o, require_scheduler as p, createStore as r, ROOMS as s, require_jsx_runtime as t, moverX as u };
+export { GUARDIAN_REASONS as a, moverX as c, require_scheduler as d, require_react as f, __toESM as h, LATENCY_DRAIN as i, playSfx as l, __exportAll as m, useGameStore as n, ROOMS as o, __commonJSMin as p, createStore as r, guardianX as s, require_jsx_runtime as t, controls as u };

@@ -1,4 +1,33 @@
-# Campaign redesign — verified diagnosis and aligned backlog
+# Campaign redesign — current direction and historical diagnosis
+
+## Current direction — 5 September 2026
+
+The user's latest instruction supersedes the branching-route proposals below:
+**no path selection and no empty transit through certified levels**.
+
+Implemented: a linear 1–42 campaign, shared automatic progression after a
+1.8-second clear beat, a visible receipt/exit contract in every room, and five
+optional mastery predicates (clean, pace, wildcard contact, moving-platform
+ride, combined clean-and-pace audit). Failure of any or all bonuses never
+blocks certification. J, or the pause-card retry action, resets only the
+current room and its bonus attempt; earlier certificates remain earned.
+
+Legacy saves retain valid earned credit and resume at the earliest unfinished
+property. Already-certified properties are skipped automatically. Completion
+requires receipts and an exit certificate for every room, not bonus awards.
+
+Both renderers and Watch/Assist use the same progression in the shared driver.
+The campaign replay test exercises that live driver, proves 42 ordered visits
+with no repeats and no deaths, and separately verifies every room trace from
+the post-death latency floor. This proves mechanical completion, not human fun.
+
+Do not reintroduce directory choices, mandatory mastery detours or certified
+transit rooms from the historical proposals below without a new user request.
+The 28+14 branching plan is superseded. New mechanics, bespoke geometry and
+human-tested difficulty pacing remain future work; this release does not
+claim 42 newly authored layouts.
+
+See [linear-campaign.md](linear-campaign.md) for current rules and testing.
 
 Source: the 2026-08-24 campaign design audits (momm runs `rev_20260824234641_uk5g`
 and `rev_20260824235016_7joa`), with every quantitative claim independently
@@ -6,7 +35,7 @@ reproduced from live level data and verified solver traces on 2026-08-25.
 Update this file in the same change as any campaign-structure work, mirroring
 the momm ROADMAP convention, so parallel sessions build one redesign.
 
-## Verified diagnosis (reproduced, not opinion)
+## Historical diagnosis (before linear progression)
 
 - Six layout archetypes repeat across seven districts; every major mechanic
   appears by Property 3 and nothing new is introduced after.
@@ -25,7 +54,7 @@ the momm ROADMAP convention, so parallel sessions build one redesign.
 - All 42 properties and 126 receipts are mandatory; branching changes order
   but rarely constitutes a meaningful choice.
 
-## The agreed structure (deferred backlog, in priority order)
+## Historical backlog (subject to the current direction above)
 
 1. **Six-room dramatic shape per district**: Reveal → Reverse → Choose →
    Combine → Breather (with optional mastery anomaly) → Audit.
@@ -62,16 +91,6 @@ the momm ROADMAP convention, so parallel sessions build one redesign.
 Rising median clear time and deaths by district; no difficulty drop greater
 than 10%; at most three consecutive high-intensity rooms; a finale
 demonstrably harder than every ordinary property.
-
-## Release boundary
-
-The current v1 release is not blocked on the nine-item redesign backlog above.
-Its v1 blockers were deterministic reachability, the Property 42 prerequisite
-gate, consent-safe audio packaging, accessible pause/reset behavior, and a
-complete 42-property autopilot proof; those gates are shipped and tested.
-Items 1–9 are the ordered v1.1 campaign-expansion contract. None should be
-presented as shipped until its level data, solver trace, and human playtest
-criteria land in the same change.
 
 ## Standing constraints
 

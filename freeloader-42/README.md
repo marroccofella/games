@@ -1,8 +1,8 @@
 # FREEL\*ADER 42: Property Overflow
 
-Forty-two condemned digital properties. 126 evidence receipts. One wildcard directory.
+Forty-two condemned digital properties. 126 evidence receipts. One uninterrupted campaign.
 
-GUEST@42 is the unpaid caretaker of a branching digital portfolio. Each named property is an original room-scale precision-platform challenge with its own patrols, timing, geometry, and deadpan systems failure. Collect the evidence, certify the property, and choose the next route before latency runs dry.
+GUEST@42 is the unpaid caretaker of 42 digital properties, played in order. Recover each room's receipts, reach the glowing exit, and the next job starts automatically. The goal strip keeps the required work visible; optional bonus audits add something to aim for without locking the exit. No route menus or empty certified-room revisits.
 
 ## Play
 
@@ -19,13 +19,18 @@ GUEST@42 is the unpaid caretaker of a branching digital portfolio. Each named pr
 | V | Switch between 2D CRT and 3D field |
 | O | Toggle the verified local autopilot |
 | P / Escape | Pause |
+| J / pause → Retry this room | Retry the current room and bonus; retain earlier certificates |
 | M | Mute |
 | R | Confirm and restart the complete portfolio |
 
 ## What ships
 
-- 42 connected properties across seven themed districts
-- 126 evidence receipts and branching, revisitable routes
+Latest update: **2026.09.05-linear** — [linear progression, bonus rules and save compatibility](docs/linear-campaign.md). All 42 rooms complete in order through the real shared driver with all 126 receipts and zero AI deaths; 108 tests, both builds, lint and type-check pass. These checks prove mechanics, not human enjoyment. The six existing layout families remain.
+
+Also included: **2026.09.05-playability** — [release notes and testing checklist](docs/playability-release.md). Improved keyboard focus, automatic pause when leaving play, separate human/assisted records, safer checkpoints and clearer WATCH AI handover. Older checkpoints remain playable in the assisted/legacy category; earlier mixed records are kept in storage but not counted as new human records.
+
+- 42 properties across seven themed districts, advancing automatically
+- 126 evidence receipts, visible exit goals, optional bonus audits and room-local retries
 - A renderer-neutral fixed-step platform simulation shared by 2D and 3D views
 - An original wildcard-physics ability
 - An original procedural score: 84 BPM, seven 6/8 bars, 42 eighth-note positions
