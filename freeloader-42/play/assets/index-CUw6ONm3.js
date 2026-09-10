@@ -1,4 +1,4 @@
-const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["./Canvas2D-BpD9-x12.js","./sprites-Dta5RfQQ.js","./ThreeField-BIOyth82.js"])))=>i.map(i=>d[i]);
+const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["./Canvas2D-UouXzLLh.js","./sprites-_95Bzw8A.js","./ThreeField-4yG5PeGI.js"])))=>i.map(i=>d[i]);
 //#region \0rolldown/runtime.js
 var __create = Object.create;
 var __defProp = Object.defineProperty;
@@ -10188,6 +10188,379 @@ function clearControls() {
 	controls.wildcardHeld = false;
 	controls.wildcardQueued = false;
 }
+//#endregion
+//#region app/game/portal.mjs
+var PORTAL_SECONDS = 4.2;
+var PORTAL_ARRIVAL_SECONDS = .56;
+var PORTAL_HANDOFF = 3.64;
+var PORTAL_PULL_START = 1.54;
+var PORTAL_PULL_END = 3.5;
+var PORTAL_CUES = Object.freeze([
+	{
+		at: 0,
+		name: "portalCharge"
+	},
+	...Array.from({ length: 6 }, (_, lock) => ({
+		at: .56 + lock * .14,
+		name: "portalLock",
+		lock
+	})),
+	{
+		at: 1.4,
+		name: "portalOpen"
+	},
+	{
+		at: PORTAL_PULL_START,
+		name: "portalTransit"
+	},
+	{
+		at: PORTAL_HANDOFF,
+		name: "portalArrive"
+	}
+]);
+var clamp = (n) => Math.max(0, Math.min(1, n));
+var smooth = (n) => {
+	const t = clamp(n);
+	return clamp(t * t * t * (t * (t * 6 - 15) + 10));
+};
+function portalFrame(remaining, arriving = false, reducedMotion = false) {
+	const t = PORTAL_SECONDS - Math.max(0, Math.min(PORTAL_SECONDS, Number.isFinite(remaining) ? remaining : PORTAL_SECONDS));
+	const progress = clamp((t - PORTAL_PULL_START) / 1.96);
+	const entry = smooth(progress);
+	const arrival = smooth((t - PORTAL_HANDOFF) / PORTAL_ARRIVAL_SECONDS);
+	return {
+		t,
+		arriving,
+		reducedMotion,
+		morph: reducedMotion ? 1 : smooth(t / .56),
+		locks: Math.min(6, Math.max(0, Math.floor((t - .56 + 1e-8) / .14) + 1)),
+		aperture: arriving ? 1 - arrival : smooth((t - 1.4) / .28),
+		pull: arriving ? 0 : entry,
+		orbit: reducedMotion || arriving ? 0 : -Math.PI * 2 * 2.1 * entry,
+		playerRotation: reducedMotion || arriving ? 0 : -Math.PI * 2 * 4.2 * entry,
+		playerAlpha: arriving ? arrival : 1 - smooth((progress - .9) / .1),
+		playerScale: reducedMotion ? 1 : arriving ? .08 + .92 * arrival : Math.pow(1 - entry, .85),
+		veil: reducedMotion ? 0 : arriving ? 1 - arrival : smooth((t - PORTAL_PULL_END) / .14000000000000012),
+		ringAlpha: arriving ? 1 - arrival : 1,
+		stage: arriving ? "REASSEMBLING THE TENANT" : t < .56 ? "EXPANDING THE SMALL PRINT" : t < 1.4 ? "DIALING THE NEXT LIABILITY" : t < 2.1 ? "WORMHOLE APPROVED. WAGES PENDING." : "PLEASE KEEP ALL ATOMS INSIDE THE RIDE"
+	};
+}
+/** Shared world-space spiral: neither renderer moves the actual physics body.
+* @param {ReturnType<typeof portalFrame> | null} frame
+* @param {{x:number, y:number}} origin
+* @param {{x:number, y:number}} centre
+*/
+function portalPose(frame, origin, centre) {
+	const pull = frame?.reducedMotion ? 0 : frame?.pull ?? 0;
+	const angle = frame?.orbit ?? 0;
+	const dx = origin.x - centre.x;
+	const dy = origin.y - centre.y;
+	return {
+		x: centre.x + (dx * Math.cos(angle) - dy * Math.sin(angle)) * (1 - pull),
+		y: centre.y + (dx * Math.sin(angle) + dy * Math.cos(angle)) * (1 - pull),
+		rotation: frame?.playerRotation ?? 0,
+		scale: frame?.playerScale ?? 1,
+		alpha: frame?.playerAlpha ?? 1
+	};
+}
+function portalActive(game) {
+	return game.portalSourceIndex !== null && (game.phase === "cleared" || game.phase === "paused" && game.resumePhase === "cleared");
+}
+var PORTAL_QUIPS = Object.freeze([
+	"T'UNIVERSE IS VAST. YOUR ALLOCATION IS A SEMI.",
+	"TRAVEL EXPENSES: REJECTED. YOU WERE ALREADY AT WORK.",
+	"YOUR ATOMS ARE IMPORTANT TO US. PLEASE HOLD.",
+	"ENTROPY IS A FEATURE. MISSING SOCKS ARE BILLABLE.",
+	"NO TICKET REQUIRED. THE LATENCY TAX HAS YOU COVERED.",
+	"SAME CARETAKER. DIFFERENT CONTEXT WINDOW.",
+	"42 IS THE ANSWER. T'LANDLORD HAS ADDED VAT."
+]);
+/**
+* @param {CanvasRenderingContext2D} ctx
+* @param {{size: number, theme: {accent: string, platform: string, haze: string, bg: string}, open?: boolean, seconds?: number, frame?: ReturnType<typeof portalFrame> | null, reducedMotion?: boolean}} options
+*/
+function drawPortal(ctx, { size, theme, open = true, seconds = 0, frame = null, reducedMotion = false }) {
+	ctx.clearRect(0, 0, size, size);
+	ctx.save();
+	ctx.translate(size / 2, size / 2);
+	ctx.scale(size / 128, size / 128);
+	const accent = open ? theme.accent : "#ff1d6c";
+	const ink = "#e6ffe6";
+	const t = frame ? frame.t : seconds;
+	const idleAngle = reducedMotion ? 0 : seconds * (open ? 1.4 : .3) % (Math.PI / 3);
+	const morph = frame?.morph ?? 0;
+	ctx.globalAlpha = frame?.ringAlpha ?? 1;
+	for (let arm = 0; arm < 6; arm++) {
+		ctx.save();
+		ctx.rotate(arm * Math.PI / 3 + idleAngle * (1 - morph) + Math.PI / 6 * morph);
+		ctx.fillStyle = accent;
+		ctx.fillRect(4 + 39 * morph, -3, 35 - 30 * morph, 6);
+		ctx.restore();
+	}
+	if (frame) {
+		const radius = 43 * (.55 + .45 * morph);
+		ctx.globalAlpha = frame.ringAlpha * morph;
+		for (let segment = 0; segment < 42; segment++) {
+			const angle = segment * Math.PI * 2 / 42 - Math.PI / 2;
+			const lit = Math.floor(segment / 7) < frame.locks;
+			const x = Math.cos(angle) * radius;
+			const y = Math.sin(angle) * radius;
+			ctx.fillStyle = theme.platform;
+			ctx.fillRect(x - 4, y - 4, 8, 8);
+			ctx.fillStyle = lit ? accent : theme.haze;
+			ctx.fillRect(x - 2, y - 2, 4, 4);
+		}
+		const aperture = frame.aperture;
+		for (let y = -34; y <= 34; y += 3) for (let x = -34; x <= 34; x += 3) {
+			const distance = Math.hypot(x, y);
+			if (distance > 34 * aperture) continue;
+			const ripple = Math.sin(distance * .42 + (reducedMotion ? 0 : Math.atan2(y, x) * 3 - t * 8) + Math.sin((x + y) * .16));
+			ctx.fillStyle = ripple > .82 ? ink : ripple > .05 ? accent : ripple > -.6 ? theme.haze : theme.bg;
+			ctx.globalAlpha = (frame.ringAlpha ?? 1) * (ripple > .82 ? .8 : .75);
+			ctx.fillRect(x, y, 3, 3);
+		}
+		ctx.globalAlpha = frame.ringAlpha * morph;
+		for (let lock = 0; lock < 6; lock++) {
+			const angle = lock * Math.PI / 3 - Math.PI / 2;
+			const x = Math.round(Math.cos(angle) * 48);
+			const y = Math.round(Math.sin(angle) * 48);
+			ctx.fillStyle = lock < frame.locks ? ink : theme.haze;
+			ctx.fillRect(x - 4, y - 4, 8, 8);
+			ctx.fillStyle = accent;
+			ctx.fillRect(x - 2, y - 2, 4, 4);
+		}
+		if (!reducedMotion && frame.pull > 0 && !frame.arriving) for (let particle = 0; particle < 18; particle++) {
+			const travel = (particle / 18 + t * .55) % 1;
+			const angle = particle * 2.399 - travel * Math.PI * 4;
+			const radius = 44 * (1 - travel);
+			ctx.globalAlpha = Math.sin(Math.PI * travel) * frame.pull;
+			ctx.fillStyle = particle % 3 ? accent : ink;
+			ctx.fillRect(Math.round(Math.cos(angle) * radius), Math.round(Math.sin(angle) * radius), 2, 2);
+		}
+		ctx.globalAlpha = frame.ringAlpha * morph;
+		ctx.fillStyle = ink;
+		ctx.font = "bold 8px monospace";
+		ctx.textAlign = "center";
+		ctx.fillText("42.UK", 0, -55);
+	}
+	ctx.restore();
+}
+var pullSeconds = PORTAL_PULL_END - PORTAL_PULL_START;
+function portalSoundLayers(name, lock = 0) {
+	const pitch = 252 + Math.max(0, Math.min(5, lock)) * 42;
+	switch (name) {
+		case "portalCharge": return [
+			{
+				wave: "triangle",
+				hz: 84,
+				to: 126,
+				seconds: .56,
+				gain: .18,
+				attack: .2
+			},
+			{
+				wave: "sine",
+				hz: 168,
+				to: 252,
+				seconds: .56,
+				gain: .1,
+				attack: .28
+			},
+			{
+				wave: "noise",
+				hz: 180,
+				to: 900,
+				seconds: .56,
+				gain: .3,
+				attack: .3
+			}
+		];
+		case "portalLock": return [{
+			wave: "triangle",
+			hz: pitch,
+			to: pitch * .75,
+			seconds: .11,
+			gain: .15,
+			attack: .004
+		}, {
+			wave: "sine",
+			hz: pitch * 4,
+			to: pitch * 3,
+			seconds: .09,
+			gain: .045,
+			attack: .005,
+			pan: lock % 2 ? .35 : -.35
+		}];
+		case "portalOpen": return [
+			{
+				wave: "noise",
+				hz: 240,
+				to: 2800,
+				seconds: .56,
+				gain: .42,
+				attack: .16,
+				turns: .5
+			},
+			{
+				wave: "sine",
+				hz: 63,
+				to: 126,
+				seconds: .5,
+				gain: .22,
+				attack: .055
+			},
+			{
+				wave: "triangle",
+				hz: 336,
+				to: 168,
+				seconds: .42,
+				gain: .09,
+				attack: .06
+			}
+		];
+		case "portalTransit": return [
+			{
+				wave: "noise",
+				hz: 220,
+				to: 5200,
+				seconds: pullSeconds,
+				gain: .6,
+				attack: pullSeconds * .76,
+				turns: 4.2
+			},
+			{
+				wave: "sawtooth",
+				hz: 126,
+				to: 1008,
+				seconds: pullSeconds,
+				gain: .1,
+				attack: pullSeconds * .66,
+				turns: 2.1
+			},
+			{
+				wave: "sine",
+				hz: 84,
+				to: 42,
+				seconds: pullSeconds,
+				gain: .22,
+				attack: pullSeconds * .55
+			},
+			{
+				wave: "triangle",
+				hz: 168,
+				to: 1344,
+				seconds: pullSeconds,
+				gain: .07,
+				attack: pullSeconds * .72,
+				turns: -2.1
+			}
+		];
+		case "portalArrive": return [
+			{
+				wave: "noise",
+				hz: 3200,
+				to: 420,
+				seconds: .42,
+				gain: .22,
+				attack: .018
+			},
+			{
+				wave: "sine",
+				hz: 168,
+				to: 336,
+				seconds: PORTAL_ARRIVAL_SECONDS - .025,
+				gain: .2,
+				attack: .02,
+				pan: -.18
+			},
+			{
+				wave: "triangle",
+				hz: 420,
+				to: 672,
+				seconds: .48,
+				gain: .12,
+				attack: .025,
+				pan: .18
+			}
+		];
+		default: return [];
+	}
+}
+/** @param {AudioContext} context @param {AudioNode} destination */
+function createPortalAudio(context, destination) {
+	const voices = /* @__PURE__ */ new Map();
+	const noise = context.createBuffer(1, context.sampleRate, context.sampleRate);
+	const samples = noise.getChannelData(0);
+	let seed = 42;
+	for (let i = 0; i < samples.length; i++) {
+		seed = Math.imul(seed, 1664525) + 1013904223 >>> 0;
+		samples[i] = seed / 4294967296 * 2 - 1;
+	}
+	function release(source, voice) {
+		voices.delete(source);
+		const now = context.currentTime;
+		voice.gain.gain.cancelAndHoldAtTime(now);
+		voice.gain.gain.setTargetAtTime(1e-4, now, .004);
+		try {
+			source.stop(now + .024);
+		} catch {}
+	}
+	function play(name, lock = 0) {
+		for (const layer of portalSoundLayers(name, lock)) {
+			while (voices.size >= 8) {
+				const [source, voice] = voices.entries().next().value;
+				release(source, voice);
+			}
+			const start = context.currentTime;
+			const end = start + layer.seconds;
+			const gain = context.createGain();
+			const filter = context.createBiquadFilter();
+			const panner = context.createStereoPanner();
+			const isNoise = layer.wave === "noise";
+			const source = isNoise ? context.createBufferSource() : context.createOscillator();
+			if (isNoise) {
+				source.buffer = noise;
+				source.loop = true;
+			} else {
+				source.type = layer.wave;
+				source.frequency.setValueAtTime(layer.hz, start);
+				source.frequency.exponentialRampToValueAtTime(layer.to, end);
+			}
+			filter.type = isNoise ? "bandpass" : "lowpass";
+			filter.Q.setValueAtTime(isNoise ? .7 : .5, start);
+			filter.frequency.setValueAtTime(isNoise ? layer.hz : 1600, start);
+			filter.frequency.exponentialRampToValueAtTime(isNoise ? layer.to : 3200, end);
+			gain.gain.setValueAtTime(1e-4, start);
+			gain.gain.linearRampToValueAtTime(layer.gain, start + layer.attack);
+			gain.gain.exponentialRampToValueAtTime(1e-4, end);
+			if (layer.turns) {
+				const curve = /* @__PURE__ */ new Float32Array(96);
+				for (let i = 0; i < curve.length; i++) {
+					const p = i / (curve.length - 1);
+					curve[i] = Math.sin(p * p * Math.PI * 2 * layer.turns) * .65 * Math.sin(p * Math.PI);
+				}
+				panner.pan.setValueCurveAtTime(curve, start, layer.seconds);
+			} else panner.pan.setValueAtTime(layer.pan ?? 0, start);
+			source.connect(filter).connect(gain).connect(panner).connect(destination);
+			voices.set(source, { gain });
+			source.addEventListener("ended", () => {
+				voices.delete(source);
+				source.disconnect();
+				filter.disconnect();
+				gain.disconnect();
+				panner.disconnect();
+			}, { once: true });
+			source.start(start);
+			source.stop(end + .005);
+		}
+	}
+	return {
+		play,
+		stop() {
+			for (const [source, voice] of voices) release(source, voice);
+		}
+	};
+}
 var MUSIC_STEP_SECONDS = 60 / 84 / 3;
 var MUSIC_PATTERN = Object.freeze([
 	0,
@@ -10329,7 +10702,7 @@ var desiredMusic = {
 };
 var appliedMusic = desiredMusic;
 var activeOscillators = /* @__PURE__ */ new Set();
-var portalOscillators = /* @__PURE__ */ new Set();
+var portalAudio = null;
 var MAX_OSCILLATORS = 8;
 var MUSIC_GAIN = .12;
 function createIntroVoice() {
@@ -10379,7 +10752,7 @@ function releaseOldestOscillator() {
 		oldest.stop((context?.currentTime ?? 0) + .008);
 	} catch {}
 }
-function spawnTone({ frequency, duration, wave = "square", gain = .12, at, destination, endFrequency, filterFrequency, portal = false }) {
+function spawnTone({ frequency, duration, wave = "square", gain = .12, at, destination, endFrequency, filterFrequency }) {
 	if (!context || muted || !destination || !Number.isFinite(frequency) || frequency <= 0) return;
 	while (activeOscillators.size >= MAX_OSCILLATORS) releaseOldestOscillator();
 	const start = Math.max(context.currentTime, at ?? context.currentTime);
@@ -10403,12 +10776,10 @@ function spawnTone({ frequency, duration, wave = "square", gain = .12, at, desti
 	} else envelope.connect(destination);
 	oscillator.addEventListener("ended", () => {
 		activeOscillators.delete(oscillator);
-		portalOscillators.delete(oscillator);
 		oscillator.disconnect();
 		envelope.disconnect();
 		filter?.disconnect();
 	}, { once: true });
-	if (portal) portalOscillators.add(oscillator);
 	activeOscillators.add(oscillator);
 	oscillator.start(start);
 	oscillator.stop(end + .005);
@@ -10434,40 +10805,12 @@ function spectralAsterisk(spokes, at = context?.currentTime ?? 0) {
 function playSfx(name, detail = {}) {
 	if (!context || muted) return;
 	const now = context.currentTime;
-	const portalTone = (frequency, endFrequency, duration, wave, gain) => spawnTone({
-		frequency,
-		endFrequency,
-		duration,
-		wave,
-		gain,
-		destination: sfxBus,
-		filterFrequency: 2400,
-		portal: true
-	});
+	if (name.startsWith("portal")) {
+		if (sfxBus) portalAudio ??= createPortalAudio(context, sfxBus);
+		portalAudio?.play(name, detail.portalLock ?? 0);
+		return;
+	}
 	switch (name) {
-		case "portalCharge":
-			portalTone(84, 168, .4, "sawtooth", .12);
-			portalTone(168, 420, .4, "triangle", .08);
-			break;
-		case "portalLock": {
-			const pitch = 252 + Math.max(0, Math.min(5, detail.portalLock ?? 0)) * 42;
-			portalTone(pitch, pitch * .75, .09, "square", .085);
-			portalTone(84, 63, .055, "triangle", .08);
-			break;
-		}
-		case "portalOpen":
-			portalTone(84, 672, .5, "sawtooth", .12);
-			portalTone(420, 168, .52, "triangle", .1);
-			portalTone(42, 84, .5, "sine", .12);
-			break;
-		case "portalTransit":
-			portalTone(1008, 84, .64, "sawtooth", .12);
-			portalTone(672, 126, .64, "triangle", .09);
-			break;
-		case "portalArrive":
-			portalTone(168, 336, .35, "triangle", .1);
-			portalTone(420, 672, .35, "sine", .075);
-			break;
 		case "ui":
 			spawnTone({
 				frequency: 252,
@@ -10652,13 +10995,7 @@ function restoreMusicAfterVoice() {
 	if (context && musicBus) musicBus.gain.setTargetAtTime(MUSIC_GAIN, context.currentTime, .16);
 }
 function stopPortalAudio() {
-	for (const oscillator of portalOscillators) {
-		try {
-			oscillator.stop();
-		} catch {}
-		activeOscillators.delete(oscillator);
-	}
-	portalOscillators.clear();
+	portalAudio?.stop();
 }
 function setAudioMuted(value) {
 	muted = value;
@@ -11373,136 +11710,6 @@ function moverX(moverDefinition, seconds) {
 	return moverDefinition.baseX + Math.sin(seconds * moverDefinition.speed) * moverDefinition.amplitude;
 }
 //#endregion
-//#region app/game/portal.mjs
-var PORTAL_SECONDS = 2.94;
-var PORTAL_ARRIVAL_SECONDS = .42;
-var PORTAL_HANDOFF = 2.52;
-var PORTAL_CUES = Object.freeze([
-	{
-		at: 0,
-		name: "portalCharge"
-	},
-	...Array.from({ length: 6 }, (_, lock) => ({
-		at: .42 + lock * .14,
-		name: "portalLock",
-		lock
-	})),
-	{
-		at: 1.26,
-		name: "portalOpen"
-	},
-	{
-		at: 1.82,
-		name: "portalTransit"
-	},
-	{
-		at: PORTAL_HANDOFF,
-		name: "portalArrive"
-	}
-]);
-var clamp = (n) => Math.max(0, Math.min(1, n));
-var smooth = (n) => {
-	const t = clamp(n);
-	return t * t * (3 - 2 * t);
-};
-function portalFrame(remaining, arriving = false, reducedMotion = false) {
-	const t = PORTAL_SECONDS - Math.max(0, Math.min(PORTAL_SECONDS, Number.isFinite(remaining) ? remaining : PORTAL_SECONDS));
-	const entry = smooth((t - 1.64) / .56);
-	const arrival = smooth((t - PORTAL_HANDOFF) / PORTAL_ARRIVAL_SECONDS);
-	return {
-		t,
-		arriving,
-		reducedMotion,
-		morph: reducedMotion ? 1 : smooth(t / .42),
-		locks: Math.min(6, Math.max(0, Math.floor((t - .42 + 1e-8) / .14) + 1)),
-		aperture: arriving ? 1 - arrival : smooth((t - 1.26) / .35),
-		pull: arriving ? 0 : entry,
-		playerAlpha: arriving ? arrival : 1 - entry,
-		playerScale: reducedMotion ? 1 : arriving ? .55 + .45 * arrival : 1 - .8 * entry,
-		veil: reducedMotion ? 0 : arriving ? 1 - arrival : smooth((t - 2.16) / .3599999999999999),
-		ringAlpha: arriving ? 1 - arrival : 1,
-		stage: arriving ? "REASSEMBLING THE TENANT" : t < .42 ? "EXPANDING THE SMALL PRINT" : t < 1.26 ? "DIALING THE NEXT LIABILITY" : t < 1.82 ? "WORMHOLE APPROVED. WAGES PENDING." : "MIND THE GAP IN REALITY"
-	};
-}
-function portalActive(game) {
-	return game.portalSourceIndex !== null && (game.phase === "cleared" || game.phase === "paused" && game.resumePhase === "cleared");
-}
-var PORTAL_QUIPS = Object.freeze([
-	"T'UNIVERSE IS VAST. YOUR ALLOCATION IS A SEMI.",
-	"TRAVEL EXPENSES: REJECTED. YOU WERE ALREADY AT WORK.",
-	"YOUR ATOMS ARE IMPORTANT TO US. PLEASE HOLD.",
-	"ENTROPY IS A FEATURE. MISSING SOCKS ARE BILLABLE.",
-	"NO TICKET REQUIRED. THE LATENCY TAX HAS YOU COVERED.",
-	"SAME CARETAKER. DIFFERENT CONTEXT WINDOW.",
-	"42 IS THE ANSWER. T'LANDLORD HAS ADDED VAT."
-]);
-/**
-* @param {CanvasRenderingContext2D} ctx
-* @param {{size: number, theme: {accent: string, platform: string, haze: string, bg: string}, open?: boolean, seconds?: number, frame?: ReturnType<typeof portalFrame> | null, reducedMotion?: boolean}} options
-*/
-function drawPortal(ctx, { size, theme, open = true, seconds = 0, frame = null, reducedMotion = false }) {
-	ctx.clearRect(0, 0, size, size);
-	ctx.save();
-	ctx.translate(size / 2, size / 2);
-	ctx.scale(size / 128, size / 128);
-	const accent = open ? theme.accent : "#ff1d6c";
-	const ink = "#e6ffe6";
-	const t = frame ? frame.t : seconds;
-	const spin = reducedMotion ? 0 : t * (frame ? .9 : open ? 1.4 : .3);
-	const morph = frame?.morph ?? 0;
-	ctx.globalAlpha = frame?.ringAlpha ?? 1;
-	for (let arm = 0; arm < 6; arm++) {
-		ctx.save();
-		ctx.rotate(arm * Math.PI / 3 + spin * (1 - morph));
-		ctx.fillStyle = accent;
-		ctx.fillRect(Math.round(4 + 37 * morph), -3, Math.round(35 - 30 * morph), 6);
-		ctx.restore();
-	}
-	if (frame) {
-		const radius = 43 * (.55 + .45 * morph);
-		for (let segment = 0; segment < 42; segment++) {
-			const angle = segment * Math.PI * 2 / 42 - Math.PI / 2;
-			const lit = Math.floor(segment / 7) < frame.locks;
-			const x = Math.round(Math.cos(angle) * radius);
-			const y = Math.round(Math.sin(angle) * radius);
-			ctx.fillStyle = theme.platform;
-			ctx.fillRect(x - 4, y - 4, 8, 8);
-			ctx.fillStyle = lit ? accent : theme.haze;
-			ctx.fillRect(x - 2, y - 2, 4, 4);
-		}
-		const aperture = frame.aperture;
-		for (let y = -34; y <= 34; y += 3) for (let x = -34; x <= 34; x += 3) {
-			const distance = Math.hypot(x, y);
-			if (distance > 34 * aperture) continue;
-			const ripple = Math.sin(distance * .42 - (reducedMotion ? 0 : t * 12) + Math.sin((x + y) * .16));
-			ctx.fillStyle = ripple > .82 ? ink : ripple > .05 ? accent : ripple > -.6 ? theme.haze : theme.bg;
-			ctx.globalAlpha = (frame.ringAlpha ?? 1) * (ripple > .82 ? .8 : .75);
-			ctx.fillRect(x, y, 3, 3);
-		}
-		ctx.globalAlpha = frame.ringAlpha;
-		for (let lock = 0; lock < 6; lock++) {
-			const angle = lock * Math.PI / 3 - Math.PI / 2;
-			const x = Math.round(Math.cos(angle) * 48);
-			const y = Math.round(Math.sin(angle) * 48);
-			ctx.fillStyle = lock < frame.locks ? ink : theme.haze;
-			ctx.fillRect(x - 4, y - 4, 8, 8);
-			ctx.fillStyle = accent;
-			ctx.fillRect(x - 2, y - 2, 4, 4);
-		}
-		if (!reducedMotion && frame.pull > 0 && !frame.arriving) for (let particle = 0; particle < 18; particle++) {
-			const angle = particle * 2.399 + t;
-			const radius = 6 + ((particle * 11 - t * 50) % 48 + 48) % 48;
-			ctx.fillStyle = particle % 3 ? accent : ink;
-			ctx.fillRect(Math.round(Math.cos(angle) * radius), Math.round(Math.sin(angle) * radius), 2, 2);
-		}
-		ctx.fillStyle = ink;
-		ctx.font = "bold 8px monospace";
-		ctx.textAlign = "center";
-		ctx.fillText("42.UK", 0, -55);
-	}
-	ctx.restore();
-}
-//#endregion
 //#region app/game/contracts.mjs
 var RIDE_TARGET_SECONDS = .6;
 var KINDS = [
@@ -12007,7 +12214,7 @@ var useGameStore = create((set, get) => ({
 		if (state.phase !== "cleared" || !Number.isFinite(seconds) || seconds <= 0) return false;
 		const remaining = Math.max(0, state.transitionRemaining - Math.min(seconds, .05));
 		const nextIndex = ROOMS.findIndex((room) => !state.completedRooms.includes(room.id));
-		if (remaining > .42 + 1e-8 || remaining > 1e-8 && (state.roomIndex !== state.portalSourceIndex || nextIndex < 0)) {
+		if (remaining > .56 + 1e-8 || remaining > 1e-8 && (state.roomIndex !== state.portalSourceIndex || nextIndex < 0)) {
 			set({ transitionRemaining: remaining });
 			return false;
 		}
@@ -12198,7 +12405,7 @@ function PortalTransfer({ reducedMotion }) {
 }
 //#endregion
 //#region app/game/release.mjs
-var RELEASE_ID = "2026.09.10-portal";
+var RELEASE_ID = "2026.09.10-wormhole";
 //#endregion
 //#region \0vite/preload-helper.js
 var scriptRel = "modulepreload";
@@ -12268,8 +12475,8 @@ var __vitePreload = function preload(baseModule, deps, importerUrl) {
 };
 //#endregion
 //#region app/FreeloaderGame.tsx
-var Canvas2D = (0, import_react.lazy)(() => __vitePreload(() => import("./Canvas2D-BpD9-x12.js"), __vite__mapDeps([0,1]), import.meta.url));
-var ThreeField = (0, import_react.lazy)(() => __vitePreload(() => import("./ThreeField-BIOyth82.js"), __vite__mapDeps([2,1]), import.meta.url));
+var Canvas2D = (0, import_react.lazy)(() => __vitePreload(() => import("./Canvas2D-UouXzLLh.js"), __vite__mapDeps([0,1]), import.meta.url));
+var ThreeField = (0, import_react.lazy)(() => __vitePreload(() => import("./ThreeField-4yG5PeGI.js"), __vite__mapDeps([2,1]), import.meta.url));
 var CONTROL_BY_CODE = {
 	ArrowLeft: "left",
 	KeyA: "left",
@@ -12954,4 +13161,4 @@ var root = document.getElementById("root");
 if (!root) throw new Error("FREEL*ADER 42 could not find its arcade cabinet.");
 (0, import_client.createRoot)(root).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(import_react.StrictMode, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(FreeloaderGame, {}) }));
 //#endregion
-export { require_scheduler as _, PORTAL_CUES as a, __exportAll as b, portalActive as c, ROOMS as d, guardianX as f, controls as g, stopPortalAudio as h, createStore as i, portalFrame as l, playSfx as m, useGameStore as n, PORTAL_SECONDS as o, moverX as p, LATENCY_DRAIN as r, drawPortal as s, require_jsx_runtime as t, GUARDIAN_REASONS as u, require_react as v, __toESM as x, __commonJSMin as y };
+export { __toESM as S, controls as _, GUARDIAN_REASONS as a, __commonJSMin as b, moverX as c, PORTAL_CUES as d, PORTAL_SECONDS as f, portalPose as g, portalFrame as h, createStore as i, playSfx as l, portalActive as m, useGameStore as n, ROOMS as o, drawPortal as p, LATENCY_DRAIN as r, guardianX as s, require_jsx_runtime as t, stopPortalAudio as u, require_scheduler as v, __exportAll as x, require_react as y };

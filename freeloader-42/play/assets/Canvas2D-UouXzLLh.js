@@ -1,5 +1,5 @@
-import { c as portalActive, d as ROOMS, f as guardianX, l as portalFrame, n as useGameStore, p as moverX, s as drawPortal, t as require_jsx_runtime, v as require_react, x as __toESM } from "./index-COPh9UYq.js";
-import { a as TILE_SPRITES, c as getDriver, i as SPRITE_PALETTES, l as BELT_SPEED, n as GUARDIAN_SPRITES, o as spriteToCanvas, r as SHARD_SPRITE, s as tilePalette, t as FREELOADER_FRAMES, u as phantomStateAt } from "./sprites-Dta5RfQQ.js";
+import { S as __toESM, c as moverX, g as portalPose, h as portalFrame, m as portalActive, n as useGameStore, o as ROOMS, p as drawPortal, s as guardianX, t as require_jsx_runtime, y as require_react } from "./index-CUw6ONm3.js";
+import { a as TILE_SPRITES, c as getDriver, i as SPRITE_PALETTES, l as BELT_SPEED, n as GUARDIAN_SPRITES, o as spriteToCanvas, r as SHARD_SPRITE, s as tilePalette, t as FREELOADER_FRAMES, u as phantomStateAt } from "./sprites-_95Bzw8A.js";
 //#region app/game/Canvas2D.tsx
 var import_react = /* @__PURE__ */ __toESM(require_react(), 1);
 var import_jsx_runtime = require_jsx_runtime();
@@ -203,16 +203,16 @@ function Canvas2D({ reducedMotion }) {
 			const freeloader = sprites[`freeloader:${frame}`];
 			if (freeloader) {
 				ctx.save();
-				const pull = reducedMotion ? 0 : portal?.pull ?? 0;
-				const px = engine.x + (room.exit.x - engine.x) * pull;
-				const py = engine.y + (room.exit.y - engine.y) * pull;
-				ctx.translate(sx(px), sy(py));
-				ctx.globalAlpha = portal?.playerAlpha ?? 1;
-				const shrink = portal?.playerScale ?? 1;
-				ctx.scale(shrink, shrink);
-				ctx.translate(0, -.7150000000000001 * scale);
+				const pose = portalPose(portal, {
+					x: engine.x,
+					y: engine.y + .06
+				}, room.exit);
+				ctx.translate(sx(pose.x), sy(pose.y));
+				ctx.rotate(-pose.rotation);
+				ctx.globalAlpha = pose.alpha;
+				ctx.scale(pose.scale, pose.scale);
 				if (engine.facing < 0) ctx.scale(-1, 1);
-				ctx.drawImage(freeloader, -1.55 * scale / 2, 0, PLAYER_DRAW * scale, PLAYER_DRAW * scale);
+				ctx.drawImage(freeloader, -1.55 * scale / 2, -1.55 * scale / 2, PLAYER_DRAW * scale, PLAYER_DRAW * scale);
 				ctx.restore();
 			}
 			if (flashFrames > 0) {

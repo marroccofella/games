@@ -1,5 +1,5 @@
-import { _ as require_scheduler, b as __exportAll, c as portalActive, d as ROOMS, f as guardianX, i as createStore$1, l as portalFrame, n as useGameStore, p as moverX, s as drawPortal, t as require_jsx_runtime, v as require_react, x as __toESM, y as __commonJSMin } from "./index-COPh9UYq.js";
-import { c as getDriver, i as SPRITE_PALETTES, n as GUARDIAN_SPRITES, o as spriteToCanvas, t as FREELOADER_FRAMES, u as phantomStateAt } from "./sprites-Dta5RfQQ.js";
+import { S as __toESM, b as __commonJSMin, c as moverX, g as portalPose, h as portalFrame, i as createStore$1, m as portalActive, n as useGameStore, o as ROOMS, p as drawPortal, s as guardianX, t as require_jsx_runtime, v as require_scheduler, x as __exportAll, y as require_react } from "./index-CUw6ONm3.js";
+import { c as getDriver, i as SPRITE_PALETTES, n as GUARDIAN_SPRITES, o as spriteToCanvas, t as FREELOADER_FRAMES, u as phantomStateAt } from "./sprites-_95Bzw8A.js";
 //#region node_modules/three/build/three.core.js
 var import_react = /* @__PURE__ */ __toESM(require_react(), 1);
 /**
@@ -59365,12 +59365,16 @@ function Caretaker({ driver, reducedMotion }) {
 		const game = useGameStore.getState();
 		const portal = portalActive(game) ? portalFrame(game.transitionRemaining, game.roomIndex !== game.portalSourceIndex, reducedMotion) : null;
 		const room = ROOMS[engine.roomIndex];
-		const pull = reducedMotion ? 0 : portal?.pull ?? 0;
-		group.current.position.set(engine.x + (room.exit.x - engine.x) * pull, engine.y + (room.exit.y - engine.y) * pull + .06, portal ? .15 - pull * .35 : 0);
-		group.current.scale.setScalar(portal?.playerScale ?? 1);
-		group.current.visible = !portal || portal.playerAlpha > .01;
-		plane.current.material.opacity = portal?.playerAlpha ?? 1;
-		plane.current.scale.x = MathUtils.lerp(plane.current.scale.x, engine.facing, .35);
+		const pose = portalPose(portal, {
+			x: engine.x,
+			y: engine.y + .06
+		}, room.exit);
+		group.current.position.set(pose.x, pose.y, .15);
+		group.current.rotation.z = pose.rotation;
+		group.current.scale.setScalar(pose.scale);
+		group.current.visible = pose.alpha > .001;
+		plane.current.material.opacity = pose.alpha;
+		plane.current.scale.x = portal ? engine.facing : MathUtils.lerp(plane.current.scale.x, engine.facing, .35);
 		const moving = Math.abs(engine.vx) > .6;
 		const frame = !engine.grounded ? "jump" : moving ? Math.floor(engine.walkCycle * 6) % 2 === 0 ? "walk1" : "walk2" : "idle";
 		const material = plane.current.material;

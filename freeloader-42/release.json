@@ -1,13 +1,14 @@
 {
-  "revision": "2026.09.10-portal",
+  "revision": "2026.09.10-wormhole",
   "released": "2026-09-10",
-  "portalSeconds": 2.94,
+  "portalSeconds": 4.2,
+  "playerTurns": 4.2,
   "assets": {
-    "play/index.html": "30cf3e66646f3af32c40e6d9e83d8c1ce9eeec367746ad1d9ab593c9ac8a13ec",
-    "play/assets/Canvas2D-BpD9-x12.js": "59f972a43ffc67abad542e48ef6e4d465a88d5f58fdbcf682265c274ecb833fd",
-    "play/assets/index-B8CayJWC.css": "2e70458badd6eac7cbf43430b56a46726eb1b4422aedc8d4a3ec7f823d55657d",
-    "play/assets/index-COPh9UYq.js": "fcf59b8572a276ac7104932f85e04848162fff1863c6b899141dc5e6e9df0bae",
-    "play/assets/sprites-Dta5RfQQ.js": "365a86c1561a5b502160c8e9a1be5b4b3c47f2514580b54e6589a1c4edfe3309",
-    "play/assets/ThreeField-BIOyth82.js": "5036d332d5b08eb6a94f4f31f087fe20588cf14b53d110a936d38f68bab836b7"
+    "play/index.html": "6f7f908808cc58621fc62995366fa6b0d8dfc3546fdfc06373a2f04dd1614268",
+    "play/assets/Canvas2D-UouXzLLh.js": "a75d749912c13b068cbd7a59ab44a98202bc0ade7d5ecbe2f4dd0afc32466819",
+    "play/assets/ThreeField-4yG5PeGI.js": "0547adcaec5beba4fc4d25619744d18f290015c1c3c6a722973c7488e8d9b388",
+    "play/assets/index-CUw6ONm3.js": "02afe7b863caea011b1facc3bed27e0eff0b21a26b3a9b4d58783ad55e0eb84e",
+    "play/assets/index-D0wKK4E_.css": "b43904d177bee55588a5e6f658bc7f6b7a87f532d9f32628d3851cde65e7f61a",
+    "play/assets/sprites-_95Bzw8A.js": "85268abb78bc2c9879218b8b4bba1f992be829434739dcef55c83a6c7b877f2c"
   }
 }

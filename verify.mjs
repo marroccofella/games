@@ -206,12 +206,14 @@ const entryCode = scriptText.get(entryName);
 // A 200 response can still be an old cabinet. Pin the revision and every
 // hashed asset to the release manifest before accepting a public package.
 const release = JSON.parse(await readFile(path.join(productRoot, "release.json"), "utf8"));
-assert.equal(release.revision, "2026.09.10-portal");
-assert.equal(release.portalSeconds, 2.94);
+assert.equal(release.revision, "2026.09.10-wormhole");
+assert.equal(release.portalSeconds, 4.2);
+assert.equal(release.playerTurns, 4.2);
 assert.ok(cabinet.includes('name="game-revision" content="' + release.revision + '"'));
 assert.ok(entryCode.includes(release.revision), "the revision must be visible inside the running game");
 assert.ok(entryCode.includes("LIABILITY TRANSFER"), "the portal interface must be in the actual entry bundle");
 assert.ok(entryCode.includes("portalCharge") && entryCode.includes("portalArrive"), "the portal sound cues must ship");
+assert.ok(entryCode.includes("playerRotation") && entryCode.includes("createStereoPanner"), "the spiral and stereo suction must ship");
 const shipped = ["play/index.html", ...assetNames.map(name => "play/assets/" + name)].sort();
 assert.deepEqual(Object.keys(release.assets).sort(), shipped, "manifest must cover every game file without stale extras");
 for (const relative of shipped) {
