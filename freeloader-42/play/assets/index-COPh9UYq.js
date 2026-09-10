@@ -1,4 +1,4 @@
-const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["./Canvas2D-CjedAT6p.js","./sprites-DPkwcO6g.js","./ThreeField-BUvW3RRr.js"])))=>i.map(i=>d[i]);
+const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["./Canvas2D-BpD9-x12.js","./sprites-Dta5RfQQ.js","./ThreeField-BIOyth82.js"])))=>i.map(i=>d[i]);
 //#region \0rolldown/runtime.js
 var __create = Object.create;
 var __defProp = Object.defineProperty;
@@ -10329,6 +10329,7 @@ var desiredMusic = {
 };
 var appliedMusic = desiredMusic;
 var activeOscillators = /* @__PURE__ */ new Set();
+var portalOscillators = /* @__PURE__ */ new Set();
 var MAX_OSCILLATORS = 8;
 var MUSIC_GAIN = .12;
 function createIntroVoice() {
@@ -10378,7 +10379,7 @@ function releaseOldestOscillator() {
 		oldest.stop((context?.currentTime ?? 0) + .008);
 	} catch {}
 }
-function spawnTone({ frequency, duration, wave = "square", gain = .12, at, destination, endFrequency, filterFrequency }) {
+function spawnTone({ frequency, duration, wave = "square", gain = .12, at, destination, endFrequency, filterFrequency, portal = false }) {
 	if (!context || muted || !destination || !Number.isFinite(frequency) || frequency <= 0) return;
 	while (activeOscillators.size >= MAX_OSCILLATORS) releaseOldestOscillator();
 	const start = Math.max(context.currentTime, at ?? context.currentTime);
@@ -10392,14 +10393,22 @@ function spawnTone({ frequency, duration, wave = "square", gain = .12, at, desti
 	envelope.gain.linearRampToValueAtTime(gain, start + Math.min(.012, duration * .2));
 	envelope.gain.exponentialRampToValueAtTime(1e-4, end);
 	oscillator.connect(envelope);
+	let filter = null;
 	if (filterFrequency && Number.isFinite(filterFrequency)) {
-		const filter = context.createBiquadFilter();
+		filter = context.createBiquadFilter();
 		filter.type = "lowpass";
 		filter.frequency.setValueAtTime(filterFrequency, start);
 		filter.Q.setValueAtTime(.8, start);
 		envelope.connect(filter).connect(destination);
 	} else envelope.connect(destination);
-	oscillator.addEventListener("ended", () => activeOscillators.delete(oscillator), { once: true });
+	oscillator.addEventListener("ended", () => {
+		activeOscillators.delete(oscillator);
+		portalOscillators.delete(oscillator);
+		oscillator.disconnect();
+		envelope.disconnect();
+		filter?.disconnect();
+	}, { once: true });
+	if (portal) portalOscillators.add(oscillator);
 	activeOscillators.add(oscillator);
 	oscillator.start(start);
 	oscillator.stop(end + .005);
@@ -10425,7 +10434,40 @@ function spectralAsterisk(spokes, at = context?.currentTime ?? 0) {
 function playSfx(name, detail = {}) {
 	if (!context || muted) return;
 	const now = context.currentTime;
+	const portalTone = (frequency, endFrequency, duration, wave, gain) => spawnTone({
+		frequency,
+		endFrequency,
+		duration,
+		wave,
+		gain,
+		destination: sfxBus,
+		filterFrequency: 2400,
+		portal: true
+	});
 	switch (name) {
+		case "portalCharge":
+			portalTone(84, 168, .4, "sawtooth", .12);
+			portalTone(168, 420, .4, "triangle", .08);
+			break;
+		case "portalLock": {
+			const pitch = 252 + Math.max(0, Math.min(5, detail.portalLock ?? 0)) * 42;
+			portalTone(pitch, pitch * .75, .09, "square", .085);
+			portalTone(84, 63, .055, "triangle", .08);
+			break;
+		}
+		case "portalOpen":
+			portalTone(84, 672, .5, "sawtooth", .12);
+			portalTone(420, 168, .52, "triangle", .1);
+			portalTone(42, 84, .5, "sine", .12);
+			break;
+		case "portalTransit":
+			portalTone(1008, 84, .64, "sawtooth", .12);
+			portalTone(672, 126, .64, "triangle", .09);
+			break;
+		case "portalArrive":
+			portalTone(168, 336, .35, "triangle", .1);
+			portalTone(420, 672, .35, "sine", .075);
+			break;
 		case "ui":
 			spawnTone({
 				frequency: 252,
@@ -10609,10 +10651,20 @@ function setMusicState(state) {
 function restoreMusicAfterVoice() {
 	if (context && musicBus) musicBus.gain.setTargetAtTime(MUSIC_GAIN, context.currentTime, .16);
 }
+function stopPortalAudio() {
+	for (const oscillator of portalOscillators) {
+		try {
+			oscillator.stop();
+		} catch {}
+		activeOscillators.delete(oscillator);
+	}
+	portalOscillators.clear();
+}
 function setAudioMuted(value) {
 	muted = value;
 	if (context && master) master.gain.setTargetAtTime(value ? 0 : .72, context.currentTime, .025);
 	if (value) {
+		stopPortalAudio();
 		stopIntroVoice();
 		stopMusicScheduler();
 	} else if (desiredMusic.active) startMusicScheduler();
@@ -10626,6 +10678,7 @@ function stopIntroVoice() {
 	restoreMusicAfterVoice();
 }
 function stopAudio() {
+	stopPortalAudio();
 	setMusicState({
 		...desiredMusic,
 		active: false
@@ -11320,8 +11373,137 @@ function moverX(moverDefinition, seconds) {
 	return moverDefinition.baseX + Math.sin(seconds * moverDefinition.speed) * moverDefinition.amplitude;
 }
 //#endregion
+//#region app/game/portal.mjs
+var PORTAL_SECONDS = 2.94;
+var PORTAL_ARRIVAL_SECONDS = .42;
+var PORTAL_HANDOFF = 2.52;
+var PORTAL_CUES = Object.freeze([
+	{
+		at: 0,
+		name: "portalCharge"
+	},
+	...Array.from({ length: 6 }, (_, lock) => ({
+		at: .42 + lock * .14,
+		name: "portalLock",
+		lock
+	})),
+	{
+		at: 1.26,
+		name: "portalOpen"
+	},
+	{
+		at: 1.82,
+		name: "portalTransit"
+	},
+	{
+		at: PORTAL_HANDOFF,
+		name: "portalArrive"
+	}
+]);
+var clamp = (n) => Math.max(0, Math.min(1, n));
+var smooth = (n) => {
+	const t = clamp(n);
+	return t * t * (3 - 2 * t);
+};
+function portalFrame(remaining, arriving = false, reducedMotion = false) {
+	const t = PORTAL_SECONDS - Math.max(0, Math.min(PORTAL_SECONDS, Number.isFinite(remaining) ? remaining : PORTAL_SECONDS));
+	const entry = smooth((t - 1.64) / .56);
+	const arrival = smooth((t - PORTAL_HANDOFF) / PORTAL_ARRIVAL_SECONDS);
+	return {
+		t,
+		arriving,
+		reducedMotion,
+		morph: reducedMotion ? 1 : smooth(t / .42),
+		locks: Math.min(6, Math.max(0, Math.floor((t - .42 + 1e-8) / .14) + 1)),
+		aperture: arriving ? 1 - arrival : smooth((t - 1.26) / .35),
+		pull: arriving ? 0 : entry,
+		playerAlpha: arriving ? arrival : 1 - entry,
+		playerScale: reducedMotion ? 1 : arriving ? .55 + .45 * arrival : 1 - .8 * entry,
+		veil: reducedMotion ? 0 : arriving ? 1 - arrival : smooth((t - 2.16) / .3599999999999999),
+		ringAlpha: arriving ? 1 - arrival : 1,
+		stage: arriving ? "REASSEMBLING THE TENANT" : t < .42 ? "EXPANDING THE SMALL PRINT" : t < 1.26 ? "DIALING THE NEXT LIABILITY" : t < 1.82 ? "WORMHOLE APPROVED. WAGES PENDING." : "MIND THE GAP IN REALITY"
+	};
+}
+function portalActive(game) {
+	return game.portalSourceIndex !== null && (game.phase === "cleared" || game.phase === "paused" && game.resumePhase === "cleared");
+}
+var PORTAL_QUIPS = Object.freeze([
+	"T'UNIVERSE IS VAST. YOUR ALLOCATION IS A SEMI.",
+	"TRAVEL EXPENSES: REJECTED. YOU WERE ALREADY AT WORK.",
+	"YOUR ATOMS ARE IMPORTANT TO US. PLEASE HOLD.",
+	"ENTROPY IS A FEATURE. MISSING SOCKS ARE BILLABLE.",
+	"NO TICKET REQUIRED. THE LATENCY TAX HAS YOU COVERED.",
+	"SAME CARETAKER. DIFFERENT CONTEXT WINDOW.",
+	"42 IS THE ANSWER. T'LANDLORD HAS ADDED VAT."
+]);
+/**
+* @param {CanvasRenderingContext2D} ctx
+* @param {{size: number, theme: {accent: string, platform: string, haze: string, bg: string}, open?: boolean, seconds?: number, frame?: ReturnType<typeof portalFrame> | null, reducedMotion?: boolean}} options
+*/
+function drawPortal(ctx, { size, theme, open = true, seconds = 0, frame = null, reducedMotion = false }) {
+	ctx.clearRect(0, 0, size, size);
+	ctx.save();
+	ctx.translate(size / 2, size / 2);
+	ctx.scale(size / 128, size / 128);
+	const accent = open ? theme.accent : "#ff1d6c";
+	const ink = "#e6ffe6";
+	const t = frame ? frame.t : seconds;
+	const spin = reducedMotion ? 0 : t * (frame ? .9 : open ? 1.4 : .3);
+	const morph = frame?.morph ?? 0;
+	ctx.globalAlpha = frame?.ringAlpha ?? 1;
+	for (let arm = 0; arm < 6; arm++) {
+		ctx.save();
+		ctx.rotate(arm * Math.PI / 3 + spin * (1 - morph));
+		ctx.fillStyle = accent;
+		ctx.fillRect(Math.round(4 + 37 * morph), -3, Math.round(35 - 30 * morph), 6);
+		ctx.restore();
+	}
+	if (frame) {
+		const radius = 43 * (.55 + .45 * morph);
+		for (let segment = 0; segment < 42; segment++) {
+			const angle = segment * Math.PI * 2 / 42 - Math.PI / 2;
+			const lit = Math.floor(segment / 7) < frame.locks;
+			const x = Math.round(Math.cos(angle) * radius);
+			const y = Math.round(Math.sin(angle) * radius);
+			ctx.fillStyle = theme.platform;
+			ctx.fillRect(x - 4, y - 4, 8, 8);
+			ctx.fillStyle = lit ? accent : theme.haze;
+			ctx.fillRect(x - 2, y - 2, 4, 4);
+		}
+		const aperture = frame.aperture;
+		for (let y = -34; y <= 34; y += 3) for (let x = -34; x <= 34; x += 3) {
+			const distance = Math.hypot(x, y);
+			if (distance > 34 * aperture) continue;
+			const ripple = Math.sin(distance * .42 - (reducedMotion ? 0 : t * 12) + Math.sin((x + y) * .16));
+			ctx.fillStyle = ripple > .82 ? ink : ripple > .05 ? accent : ripple > -.6 ? theme.haze : theme.bg;
+			ctx.globalAlpha = (frame.ringAlpha ?? 1) * (ripple > .82 ? .8 : .75);
+			ctx.fillRect(x, y, 3, 3);
+		}
+		ctx.globalAlpha = frame.ringAlpha;
+		for (let lock = 0; lock < 6; lock++) {
+			const angle = lock * Math.PI / 3 - Math.PI / 2;
+			const x = Math.round(Math.cos(angle) * 48);
+			const y = Math.round(Math.sin(angle) * 48);
+			ctx.fillStyle = lock < frame.locks ? ink : theme.haze;
+			ctx.fillRect(x - 4, y - 4, 8, 8);
+			ctx.fillStyle = accent;
+			ctx.fillRect(x - 2, y - 2, 4, 4);
+		}
+		if (!reducedMotion && frame.pull > 0 && !frame.arriving) for (let particle = 0; particle < 18; particle++) {
+			const angle = particle * 2.399 + t;
+			const radius = 6 + ((particle * 11 - t * 50) % 48 + 48) % 48;
+			ctx.fillStyle = particle % 3 ? accent : ink;
+			ctx.fillRect(Math.round(Math.cos(angle) * radius), Math.round(Math.sin(angle) * radius), 2, 2);
+		}
+		ctx.fillStyle = ink;
+		ctx.font = "bold 8px monospace";
+		ctx.textAlign = "center";
+		ctx.fillText("42.UK", 0, -55);
+	}
+	ctx.restore();
+}
+//#endregion
 //#region app/game/contracts.mjs
-var CLEAR_BEAT_SECONDS = 1.8;
 var RIDE_TARGET_SECONDS = .6;
 var KINDS = [
 	"clean",
@@ -11394,19 +11576,6 @@ function masteryStatus(contract, stats, finished = false) {
 		text: contract.kind === "clean" ? "Clean so far · bank it at the exit" : contract.kind === "pace" || contract.kind === "audit" ? `${Math.max(0, Math.ceil(contract.parSeconds - stats.elapsed))}s left${contract.kind === "audit" ? " · clean so far" : ""}` : contract.kind === "wildcard" ? stats.stabilised ? "Stabilisation proved · bank it at the exit" : "Press E near the outlined platform, then land on it" : stats.rideSeconds >= .6 ? "Ride proved · bank it at the exit" : `${Math.min(stats.rideSeconds, RIDE_TARGET_SECONDS).toFixed(1)} / 0.6s riding`
 	};
 }
-var LATENCY_DRAIN = 1.35;
-function respawnLatency(current) {
-	return Math.max(42, Math.min(100, current));
-}
-function collectLatency(current) {
-	return Math.min(100, current + 14);
-}
-function roomClearLatency(current) {
-	return Math.min(100, current + 22);
-}
-function scoreRun(latency, streak, banked = 0, roomsCleared = 0) {
-	return Math.max(0, Math.round(latency * 100 + streak * 420 + banked * 260 + roomsCleared * 1500));
-}
 //#endregion
 //#region node_modules/zustand/esm/vanilla.mjs
 var createStoreImpl = (createState) => {
@@ -11451,6 +11620,19 @@ var createImpl = (createState) => {
 	return useBoundStore;
 };
 var create = ((createState) => createState ? createImpl(createState) : createImpl);
+var LATENCY_DRAIN = 1.35;
+function respawnLatency(current) {
+	return Math.max(42, Math.min(100, current));
+}
+function collectLatency(current) {
+	return Math.min(100, current + 14);
+}
+function roomClearLatency(current) {
+	return Math.min(100, current + 22);
+}
+function scoreRun(latency, streak, banked = 0, roomsCleared = 0) {
+	return Math.max(0, Math.round(latency * 100 + streak * 420 + banked * 260 + roomsCleared * 1500));
+}
 //#endregion
 //#region app/game/storage.mjs
 function readBestScore(getStorage, assisted = false) {
@@ -11584,6 +11766,7 @@ var freshRun = (assisted = false) => ({
 	latency: 100,
 	resumePhase: "playing",
 	transitionRemaining: 0,
+	portalSourceIndex: null,
 	roomStats: freshRoomStats(),
 	masteredRooms: [],
 	assisted,
@@ -11635,6 +11818,7 @@ var useGameStore = create((set, get) => ({
 			phase: pending < 0 ? "won" : "playing",
 			resumePhase: "playing",
 			transitionRemaining: 0,
+			portalSourceIndex: null,
 			roomIndex,
 			collected: saved.collected,
 			completedRooms: saved.completedRooms,
@@ -11792,7 +11976,9 @@ var useGameStore = create((set, get) => ({
 			if (typeof window !== "undefined") writeBestScore(() => window.localStorage, best, state.assisted);
 			if (typeof window !== "undefined") clearProgress(() => window.localStorage);
 			set({
-				phase: "won",
+				phase: "cleared",
+				transitionRemaining: PORTAL_SECONDS,
+				portalSourceIndex: state.roomIndex,
 				completedRooms,
 				roomsCleared,
 				masteredRooms,
@@ -11801,11 +11987,12 @@ var useGameStore = create((set, get) => ({
 				savedProgress: null,
 				notice: "FORTY-TWO PROPERTIES CERTIFIED. LOOKS REET SUSPICIOUS."
 			});
-			return "won";
+			return "cleared";
 		}
 		set({
 			phase: "cleared",
-			transitionRemaining: CLEAR_BEAT_SECONDS,
+			transitionRemaining: PORTAL_SECONDS,
+			portalSourceIndex: state.roomIndex,
 			masteredRooms,
 			completedRooms,
 			roomsCleared,
@@ -11819,26 +12006,39 @@ var useGameStore = create((set, get) => ({
 		const state = get();
 		if (state.phase !== "cleared" || !Number.isFinite(seconds) || seconds <= 0) return false;
 		const remaining = Math.max(0, state.transitionRemaining - Math.min(seconds, .05));
-		if (remaining > 1e-8) {
+		const nextIndex = ROOMS.findIndex((room) => !state.completedRooms.includes(room.id));
+		if (remaining > .42 + 1e-8 || remaining > 1e-8 && (state.roomIndex !== state.portalSourceIndex || nextIndex < 0)) {
 			set({ transitionRemaining: remaining });
 			return false;
 		}
-		const nextIndex = ROOMS.findIndex((room) => !state.completedRooms.includes(room.id));
-		if (nextIndex < 0) return false;
+		if (remaining <= 1e-8) {
+			clearControls();
+			if (nextIndex < 0 && typeof window !== "undefined") clearProgress(() => window.localStorage);
+			set({
+				phase: nextIndex < 0 ? "won" : "playing",
+				transitionRemaining: 0,
+				portalSourceIndex: null,
+				...nextIndex < 0 ? {
+					hasProgress: false,
+					savedProgress: null
+				} : {},
+				notice: nextIndex < 0 ? "FORTY-TWO PROPERTIES CERTIFIED. LOOKS REET SUSPICIOUS." : ROOMS[state.roomIndex].intro
+			});
+			return true;
+		}
 		const nextRoom = ROOMS[nextIndex];
 		clearControls();
 		set({
-			phase: "playing",
 			roomIndex: nextIndex,
-			transitionRemaining: 0,
+			transitionRemaining: remaining,
 			roomStats: freshRoomStats(!nextRoom.shards.some((receipt) => state.collected.includes(receipt.id))),
 			wildcard: "ready",
 			playerX: nextRoom.start.x,
 			visitedRooms: state.visitedRooms.includes(nextRoom.id) ? state.visitedRooms : [...state.visitedRooms, nextRoom.id],
-			notice: nextRoom.intro
+			notice: "42.UK // TENANT REASSEMBLY // ALL LIMBS PRESENT. PROBABLY."
 		});
 		persistProgress(get());
-		return true;
+		return false;
 	},
 	retryRoom: () => {
 		const state = get();
@@ -11923,8 +12123,84 @@ var require_jsx_runtime = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	module.exports = require_react_jsx_runtime_production();
 }));
 //#endregion
-//#region \0vite/preload-helper.js
+//#region app/game/PortalTransfer.tsx
 var import_jsx_runtime = require_jsx_runtime();
+function PortalTransfer({ reducedMotion }) {
+	const remaining = useGameStore((state) => state.transitionRemaining);
+	const sourceIndex = useGameStore((state) => state.portalSourceIndex);
+	const roomIndex = useGameStore((state) => state.roomIndex);
+	const completed = useGameStore((state) => state.completedRooms);
+	const mastered = useGameStore((state) => state.masteredRooms);
+	if (sourceIndex === null) return null;
+	const source = ROOMS[sourceIndex];
+	const next = ROOMS.find((room) => !completed.includes(room.id));
+	const frame = portalFrame(remaining, roomIndex !== sourceIndex, reducedMotion);
+	const style = { "--portal-accent": ROOMS[roomIndex].theme.accent };
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+		className: "portal-transfer",
+		style,
+		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+			className: "portal-veil",
+			"aria-hidden": "true",
+			style: {
+				opacity: frame.veil,
+				background: ROOMS[roomIndex].theme.bg
+			}
+		}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", {
+			className: "portal-caption",
+			"aria-label": "Portal transfer",
+			style: { top: roomIndex === sourceIndex && source.exit.y > 3.2 ? "52%" : void 0 },
+			children: [
+				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
+					className: "portal-address",
+					children: [
+						"42.UK // LIABILITY TRANSFER // ",
+						String(source.number).padStart(2, "0"),
+						" → ",
+						next ? String(next.number).padStart(2, "0") : "FREEHOLD"
+					]
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", {
+					"aria-hidden": "true",
+					children: frame.stage
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+					className: "portal-destination",
+					children: next ? next.property : "LARGELY YOUR PROPERTY NOW"
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+					className: "portal-locks",
+					"aria-hidden": "true",
+					children: Array.from({ length: 6 }, (_, i) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("i", { className: i < frame.locks ? "locked" : "" }, i))
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
+					className: "portal-result",
+					children: ["PROPERTY CERTIFIED · ", mastered.includes(source.id) ? "BONUS AUDIT EARNED" : "BONUS NOT AWARDED"]
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+					className: "portal-quip",
+					children: PORTAL_QUIPS[Math.floor(sourceIndex / 6)]
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)("small", { children: "P: breather · M: mute · latency tax suspended" }),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+					className: "sr-only",
+					role: "status",
+					children: [
+						"Property ",
+						source.number,
+						" certified. ",
+						next ? `Teleporting to property ${next.number}: ${next.property}.` : "Final portal. All forty-two properties complete."
+					]
+				})
+			]
+		})]
+	});
+}
+//#endregion
+//#region app/game/release.mjs
+var RELEASE_ID = "2026.09.10-portal";
+//#endregion
+//#region \0vite/preload-helper.js
 var scriptRel = "modulepreload";
 var assetsURL = function(dep, importerUrl) {
 	return new URL(dep, importerUrl).href;
@@ -11992,8 +12268,8 @@ var __vitePreload = function preload(baseModule, deps, importerUrl) {
 };
 //#endregion
 //#region app/FreeloaderGame.tsx
-var Canvas2D = (0, import_react.lazy)(() => __vitePreload(() => import("./Canvas2D-CjedAT6p.js"), __vite__mapDeps([0,1]), import.meta.url));
-var ThreeField = (0, import_react.lazy)(() => __vitePreload(() => import("./ThreeField-BUvW3RRr.js"), __vite__mapDeps([2,1]), import.meta.url));
+var Canvas2D = (0, import_react.lazy)(() => __vitePreload(() => import("./Canvas2D-BpD9-x12.js"), __vite__mapDeps([0,1]), import.meta.url));
+var ThreeField = (0, import_react.lazy)(() => __vitePreload(() => import("./ThreeField-BIOyth82.js"), __vite__mapDeps([2,1]), import.meta.url));
 var CONTROL_BY_CODE = {
 	ArrowLeft: "left",
 	KeyA: "left",
@@ -12090,7 +12366,6 @@ function FreeloaderGame() {
 	const hasProgress = useGameStore((state) => state.hasProgress);
 	const roomIndex = useGameStore((state) => state.roomIndex);
 	const roomsCleared = useGameStore((state) => state.roomsCleared);
-	const completedRooms = useGameStore((state) => state.completedRooms);
 	const roomStats = useGameStore((state) => state.roomStats);
 	const masteredRooms = useGameStore((state) => state.masteredRooms);
 	const resumePhase = useGameStore((state) => state.resumePhase);
@@ -12103,13 +12378,15 @@ function FreeloaderGame() {
 	const room = ROOMS[roomIndex];
 	const contract = contractFor(room);
 	const mastery = masteryStatus(contract, roomStats, phase === "cleared" || phase === "won");
-	const nextRoom = ROOMS.find((entry) => !completedRooms.includes(entry.id));
 	const roomCollected = room.shards.filter((shard) => collected.includes(shard.id)).length;
 	const modalOpen = phase === "paused" || phase === "won";
 	(0, import_react.useEffect)(() => {
 		useGameStore.getState().hydrateBest();
 	}, []);
 	(0, import_react.useEffect)(() => () => stopAudio(), []);
+	(0, import_react.useEffect)(() => {
+		if (phase !== "cleared") stopPortalAudio();
+	}, [phase, runSerial]);
 	(0, import_react.useEffect)(() => {
 		setAudioMuted(muted);
 	}, [muted]);
@@ -12294,9 +12571,9 @@ function FreeloaderGame() {
 				"aria-hidden": modalOpen || void 0,
 				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 					className: "brand-lockup",
-					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
 						className: "eyebrow",
-						children: "42.UK // ANOMALOUS APPLICATION 0X2A"
+						children: ["42.UK // ANOMALOUS APPLICATION 0X2A // ", RELEASE_ID]
 					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: "FREEL*ADER 42: PROPERTY OVERFLOW" })]
 				}), phase === "menu" ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 					className: "field-status",
@@ -12575,44 +12852,7 @@ function FreeloaderGame() {
 					})
 				]
 			}),
-			phase === "cleared" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", {
-				className: "clear-banner",
-				role: "status",
-				"aria-live": "polite",
-				"aria-label": "Level complete",
-				children: [
-					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
-						className: "kicker",
-						children: [
-							"PROPERTY ",
-							String(roomIndex + 1).padStart(2, "0"),
-							" // CERTIFIED"
-						]
-					}),
-					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("h2", { children: [
-						"JOB DONE.",
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("br", {}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("em", { children: "NEXT LIABILITY." })
-					] }),
-					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", { children: [
-						roomStats.elapsed.toFixed(1),
-						"s · ",
-						roomStats.deaths,
-						" core dumps · ",
-						mastery.text
-					] }),
-					nextRoom && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
-						className: "next-contract",
-						children: [
-							"NEXT: ",
-							String(nextRoom.number).padStart(2, "0"),
-							" // ",
-							nextRoom.property
-						]
-					}),
-					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("small", { children: "Continuing automatically · P to pause" })
-				]
-			}),
+			phase === "cleared" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(PortalTransfer, { reducedMotion }),
 			phase === "won" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", {
 				className: "modal-card victory-card",
 				role: "dialog",
@@ -12714,4 +12954,4 @@ var root = document.getElementById("root");
 if (!root) throw new Error("FREEL*ADER 42 could not find its arcade cabinet.");
 (0, import_client.createRoot)(root).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(import_react.StrictMode, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(FreeloaderGame, {}) }));
 //#endregion
-export { GUARDIAN_REASONS as a, moverX as c, require_scheduler as d, require_react as f, __toESM as h, LATENCY_DRAIN as i, playSfx as l, __exportAll as m, useGameStore as n, ROOMS as o, __commonJSMin as p, createStore as r, guardianX as s, require_jsx_runtime as t, controls as u };
+export { require_scheduler as _, PORTAL_CUES as a, __exportAll as b, portalActive as c, ROOMS as d, guardianX as f, controls as g, stopPortalAudio as h, createStore as i, portalFrame as l, playSfx as m, useGameStore as n, PORTAL_SECONDS as o, moverX as p, LATENCY_DRAIN as r, drawPortal as s, require_jsx_runtime as t, GUARDIAN_REASONS as u, require_react as v, __toESM as x, __commonJSMin as y };

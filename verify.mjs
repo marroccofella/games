@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { readFile, readdir, stat } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -202,6 +203,23 @@ const scriptText = new Map(await Promise.all(scripts.map(async (name) => [name, 
 const entryName = moduleSource?.slice("./assets/".length);
 assert.ok(entryName && scripts.includes(entryName), "cabinet must contain its declared Vite entry chunk");
 const entryCode = scriptText.get(entryName);
+// A 200 response can still be an old cabinet. Pin the revision and every
+// hashed asset to the release manifest before accepting a public package.
+const release = JSON.parse(await readFile(path.join(productRoot, "release.json"), "utf8"));
+assert.equal(release.revision, "2026.09.10-portal");
+assert.equal(release.portalSeconds, 2.94);
+assert.ok(cabinet.includes('name="game-revision" content="' + release.revision + '"'));
+assert.ok(entryCode.includes(release.revision), "the revision must be visible inside the running game");
+assert.ok(entryCode.includes("LIABILITY TRANSFER"), "the portal interface must be in the actual entry bundle");
+assert.ok(entryCode.includes("portalCharge") && entryCode.includes("portalArrive"), "the portal sound cues must ship");
+const shipped = ["play/index.html", ...assetNames.map(name => "play/assets/" + name)].sort();
+assert.deepEqual(Object.keys(release.assets).sort(), shipped, "manifest must cover every game file without stale extras");
+for (const relative of shipped) {
+  const digest = createHash("sha256").update(await readFile(path.join(productRoot, relative))).digest("hex");
+  assert.equal(digest, release.assets[relative], "Release asset differs from manifest: " + relative);
+}
+assert.ok(product.includes(release.revision), "the product page must identify the same revision");
+
 export const controlContracts = [
   ["ArrowLeft", /\bArrowLeft\s*:\s*["']left["']/],
   ["KeyA", /\bKeyA\s*:\s*["']left["']/],

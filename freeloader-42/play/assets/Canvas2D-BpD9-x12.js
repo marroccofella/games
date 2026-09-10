@@ -1,5 +1,5 @@
-import { c as moverX, f as require_react, h as __toESM, n as useGameStore, o as ROOMS, s as guardianX, t as require_jsx_runtime } from "./index-Bv7U71o_.js";
-import { a as TILE_SPRITES, c as getDriver, i as SPRITE_PALETTES, l as BELT_SPEED, n as GUARDIAN_SPRITES, o as spriteToCanvas, r as SHARD_SPRITE, s as tilePalette, t as FREELOADER_FRAMES, u as phantomStateAt } from "./sprites-DPkwcO6g.js";
+import { c as portalActive, d as ROOMS, f as guardianX, l as portalFrame, n as useGameStore, p as moverX, s as drawPortal, t as require_jsx_runtime, v as require_react, x as __toESM } from "./index-COPh9UYq.js";
+import { a as TILE_SPRITES, c as getDriver, i as SPRITE_PALETTES, l as BELT_SPEED, n as GUARDIAN_SPRITES, o as spriteToCanvas, r as SHARD_SPRITE, s as tilePalette, t as FREELOADER_FRAMES, u as phantomStateAt } from "./sprites-Dta5RfQQ.js";
 //#region app/game/Canvas2D.tsx
 var import_react = /* @__PURE__ */ __toESM(require_react(), 1);
 var import_jsx_runtime = require_jsx_runtime();
@@ -27,6 +27,9 @@ function Canvas2D({ reducedMotion }) {
 		const ctx = canvas.getContext("2d");
 		if (!ctx) return;
 		const sprites = buildSprites();
+		const portalCanvas = document.createElement("canvas");
+		portalCanvas.width = portalCanvas.height = 192;
+		const portalContext = portalCanvas.getContext("2d");
 		const fit = () => {
 			const rect = canvas.getBoundingClientRect();
 			const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
@@ -49,6 +52,9 @@ function Canvas2D({ reducedMotion }) {
 			const room = ROOMS[engine.roomIndex];
 			const theme = room.theme;
 			const game = useGameStore.getState();
+			const transferring = portalActive(game);
+			const arriving = transferring && game.roomIndex !== game.portalSourceIndex;
+			const portal = transferring ? portalFrame(game.transitionRemaining, arriving, reducedMotion) : null;
 			const width = canvas.width;
 			const height = canvas.height;
 			const scale = height / VIEW_UNITS_Y;
@@ -150,20 +156,23 @@ function Canvas2D({ reducedMotion }) {
 				ctx.restore();
 			}
 			const open = room.shards.every((receipt) => game.collected.includes(receipt.id));
-			const gateColor = open ? theme.accent : "#ff1d6c";
-			const spin = reducedMotion ? 0 : engine.seconds * (open ? 1.4 : .3);
-			ctx.save();
-			ctx.translate(sx(room.exit.x), sy(room.exit.y));
-			ctx.shadowColor = gateColor;
-			ctx.shadowBlur = scale * (open ? .7 : .3);
-			for (let arm = 0; arm < 3; arm += 1) {
+			const gate = (x, y, active, unlocked) => {
+				drawPortal(portalContext, {
+					size: 192,
+					theme,
+					open: unlocked,
+					seconds: engine.seconds,
+					frame: active,
+					reducedMotion
+				});
 				ctx.save();
-				ctx.rotate(spin + arm * Math.PI / 3);
-				ctx.fillStyle = gateColor;
-				ctx.fillRect(-1.1 * scale, -.09 * scale, 2.2 * scale, .18 * scale);
+				ctx.shadowColor = unlocked ? theme.accent : "#ff1d6c";
+				ctx.shadowBlur = scale * (active ? .45 : .2);
+				ctx.drawImage(portalCanvas, sx(x - 2.2), sy(y + 2.2), scale * 4.4, scale * 4.4);
 				ctx.restore();
-			}
-			ctx.restore();
+			};
+			gate(room.exit.x, room.exit.y, arriving ? null : portal, open);
+			if (arriving) gate(room.start.x, room.start.y, portal, true);
 			room.shards.forEach((shard, index) => {
 				if (game.collected.includes(shard.id)) return;
 				const bob = reducedMotion ? 0 : Math.sin(engine.seconds * 2 + index) * .13;
@@ -194,7 +203,14 @@ function Canvas2D({ reducedMotion }) {
 			const freeloader = sprites[`freeloader:${frame}`];
 			if (freeloader) {
 				ctx.save();
-				ctx.translate(sx(engine.x), sy(engine.y + PLAYER_DRAW / 2 - .06));
+				const pull = reducedMotion ? 0 : portal?.pull ?? 0;
+				const px = engine.x + (room.exit.x - engine.x) * pull;
+				const py = engine.y + (room.exit.y - engine.y) * pull;
+				ctx.translate(sx(px), sy(py));
+				ctx.globalAlpha = portal?.playerAlpha ?? 1;
+				const shrink = portal?.playerScale ?? 1;
+				ctx.scale(shrink, shrink);
+				ctx.translate(0, -.7150000000000001 * scale);
 				if (engine.facing < 0) ctx.scale(-1, 1);
 				ctx.drawImage(freeloader, -1.55 * scale / 2, 0, PLAYER_DRAW * scale, PLAYER_DRAW * scale);
 				ctx.restore();

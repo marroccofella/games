@@ -1,4 +1,4 @@
-import { a as GUARDIAN_REASONS, c as moverX, i as LATENCY_DRAIN, l as playSfx, n as useGameStore, o as ROOMS, s as guardianX, u as controls } from "./index-Bv7U71o_.js";
+import { a as PORTAL_CUES, d as ROOMS, f as guardianX, g as controls, h as stopPortalAudio, m as playSfx, n as useGameStore, o as PORTAL_SECONDS, p as moverX, r as LATENCY_DRAIN, u as GUARDIAN_REASONS } from "./index-COPh9UYq.js";
 //#region app/game/engine.mjs
 var FIXED_STEP = 1 / 60;
 var PLAYER_HALF_WIDTH = .3;
@@ -4457,9 +4457,7 @@ function playEvent(event) {
 		case "wildcard":
 			playSfx("wildcard");
 			break;
-		case "route":
-			playSfx("route");
-			break;
+		case "route": break;
 		case "win": playSfx("win");
 	}
 }
@@ -4469,19 +4467,46 @@ function createDriver() {
 	let accumulator = 0;
 	let observedRunSerial = useGameStore.getState().runSerial;
 	let observedAutopilot = useGameStore.getState().autopilot;
+	let portalCueIndex = 0;
+	let portalKey = "";
+	let portalWasRunning = false;
 	return {
 		engine,
 		frame(frameDelta) {
-			if (typeof document !== "undefined" && document.hidden) return;
+			if (typeof document !== "undefined" && document.hidden) {
+				stopPortalAudio();
+				return;
+			}
 			const state = useGameStore.getState();
 			if (state.phase === "cleared") {
 				accumulator = 0;
-				if (state.advanceTransition(frameDelta)) {
-					const entered = useGameStore.getState();
+				const key = `${state.runSerial}:${state.portalSourceIndex}`;
+				if (portalKey !== key) {
+					portalKey = key;
+					portalCueIndex = 0;
+				}
+				portalWasRunning = true;
+				state.advanceTransition(frameDelta);
+				const entered = useGameStore.getState();
+				const elapsed = PORTAL_SECONDS - entered.transitionRemaining;
+				while (portalCueIndex < PORTAL_CUES.length && PORTAL_CUES[portalCueIndex].at <= elapsed + 1e-8) {
+					const cue = PORTAL_CUES[portalCueIndex++];
+					playSfx(cue.name, { portalLock: "lock" in cue ? cue.lock : 0 });
+				}
+				if (engine.roomIndex !== entered.roomIndex) {
 					resetEngineState(engine, entered.roomIndex);
 					observedRunSerial = entered.runSerial;
 				}
+				if (entered.phase === "won") playSfx("win");
 				return;
+			}
+			if (portalWasRunning) {
+				stopPortalAudio();
+				portalWasRunning = false;
+			}
+			if (state.phase !== "paused") {
+				portalKey = "";
+				portalCueIndex = 0;
 			}
 			const autopilotEngaged = state.autopilot && !observedAutopilot && state.phase === "playing";
 			if (state.phase === "playing" || !state.autopilot) observedAutopilot = state.autopilot;

@@ -1,0 +1,13 @@
+{
+  "revision": "2026.09.10-portal",
+  "released": "2026-09-10",
+  "portalSeconds": 2.94,
+  "assets": {
+    "play/index.html": "30cf3e66646f3af32c40e6d9e83d8c1ce9eeec367746ad1d9ab593c9ac8a13ec",
+    "play/assets/Canvas2D-BpD9-x12.js": "59f972a43ffc67abad542e48ef6e4d465a88d5f58fdbcf682265c274ecb833fd",
+    "play/assets/index-B8CayJWC.css": "2e70458badd6eac7cbf43430b56a46726eb1b4422aedc8d4a3ec7f823d55657d",
+    "play/assets/index-COPh9UYq.js": "fcf59b8572a276ac7104932f85e04848162fff1863c6b899141dc5e6e9df0bae",
+    "play/assets/sprites-Dta5RfQQ.js": "365a86c1561a5b502160c8e9a1be5b4b3c47f2514580b54e6589a1c4edfe3309",
+    "play/assets/ThreeField-BIOyth82.js": "5036d332d5b08eb6a94f4f31f087fe20588cf14b53d110a936d38f68bab836b7"
+  }
+}

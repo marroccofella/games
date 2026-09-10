@@ -1,5 +1,5 @@
-import { c as moverX, d as require_scheduler, f as require_react, h as __toESM, m as __exportAll, n as useGameStore, o as ROOMS, p as __commonJSMin, r as createStore$1, s as guardianX, t as require_jsx_runtime } from "./index-Bv7U71o_.js";
-import { c as getDriver, i as SPRITE_PALETTES, n as GUARDIAN_SPRITES, o as spriteToCanvas, t as FREELOADER_FRAMES, u as phantomStateAt } from "./sprites-DPkwcO6g.js";
+import { _ as require_scheduler, b as __exportAll, c as portalActive, d as ROOMS, f as guardianX, i as createStore$1, l as portalFrame, n as useGameStore, p as moverX, s as drawPortal, t as require_jsx_runtime, v as require_react, x as __toESM, y as __commonJSMin } from "./index-COPh9UYq.js";
+import { c as getDriver, i as SPRITE_PALETTES, n as GUARDIAN_SPRITES, o as spriteToCanvas, t as FREELOADER_FRAMES, u as phantomStateAt } from "./sprites-Dta5RfQQ.js";
 //#region node_modules/three/build/three.core.js
 var import_react = /* @__PURE__ */ __toESM(require_react(), 1);
 /**
@@ -59350,7 +59350,7 @@ function useSpriteTexture(rows, palette) {
 		return texture;
 	}, [rows, palette]);
 }
-function Caretaker({ driver }) {
+function Caretaker({ driver, reducedMotion }) {
 	const group = (0, import_react.useRef)(null);
 	const plane = (0, import_react.useRef)(null);
 	const textures = {
@@ -59359,11 +59359,17 @@ function Caretaker({ driver }) {
 		walk2: useSpriteTexture(FREELOADER_FRAMES.walk2, SPRITE_PALETTES.freeloader),
 		jump: useSpriteTexture(FREELOADER_FRAMES.jump, SPRITE_PALETTES.freeloader)
 	};
-	useFrame((_, delta) => {
-		driver.frame(delta);
+	useFrame(() => {
 		const engine = driver.engine;
 		if (!group.current || !plane.current) return;
-		group.current.position.set(engine.x, engine.y + .06, 0);
+		const game = useGameStore.getState();
+		const portal = portalActive(game) ? portalFrame(game.transitionRemaining, game.roomIndex !== game.portalSourceIndex, reducedMotion) : null;
+		const room = ROOMS[engine.roomIndex];
+		const pull = reducedMotion ? 0 : portal?.pull ?? 0;
+		group.current.position.set(engine.x + (room.exit.x - engine.x) * pull, engine.y + (room.exit.y - engine.y) * pull + .06, portal ? .15 - pull * .35 : 0);
+		group.current.scale.setScalar(portal?.playerScale ?? 1);
+		group.current.visible = !portal || portal.playerAlpha > .01;
+		plane.current.material.opacity = portal?.playerAlpha ?? 1;
 		plane.current.scale.x = MathUtils.lerp(plane.current.scale.x, engine.facing, .35);
 		const moving = Math.abs(engine.vx) > .6;
 		const frame = !engine.grounded ? "jump" : moving ? Math.floor(engine.walkCycle * 6) % 2 === 0 ? "walk1" : "walk2" : "idle";
@@ -59381,7 +59387,8 @@ function Caretaker({ driver }) {
 			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("planeGeometry", { args: [1.55, 1.55] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("meshStandardMaterial", {
 				map: textures.idle,
 				transparent: true,
-				alphaTest: .5,
+				alphaTest: .01,
+				depthWrite: false,
 				emissive: "#223322",
 				emissiveIntensity: .4
 			})]
@@ -59598,50 +59605,63 @@ function Shard({ shard, index, driver, reducedMotion }) {
 		]
 	});
 }
-function WildcardGate({ room, driver, reducedMotion }) {
-	const group = (0, import_react.useRef)(null);
-	const open = useGameStore((state) => room.shards.every((receipt) => state.collected.includes(receipt.id)));
+function PixelGate({ room, driver, reducedMotion, arrival = false }) {
+	const mesh = (0, import_react.useRef)(null);
+	const surface = (0, import_react.useMemo)(() => {
+		const canvas = document.createElement("canvas");
+		canvas.width = canvas.height = 192;
+		const texture = new CanvasTexture(canvas);
+		texture.magFilter = texture.minFilter = NearestFilter;
+		texture.colorSpace = SRGBColorSpace;
+		return {
+			canvas,
+			context: canvas.getContext("2d"),
+			texture
+		};
+	}, []);
+	(0, import_react.useEffect)(() => () => surface.texture.dispose(), [surface]);
 	useFrame(() => {
-		if (!group.current) return;
-		const seconds = driver.engine.seconds;
-		if (!reducedMotion) group.current.rotation.y = seconds * (open ? .45 : .08);
-		const pulse = open && !reducedMotion ? 1 + Math.sin(seconds * 4) * .04 : 1;
-		group.current.scale.setScalar(pulse);
+		if (!mesh.current) return;
+		const game = useGameStore.getState();
+		const active = portalActive(game);
+		const arriving = active && game.roomIndex !== game.portalSourceIndex;
+		mesh.current.visible = !arrival || arriving;
+		if (!mesh.current.visible) return;
+		const frame = active && arrival === arriving ? portalFrame(game.transitionRemaining, arriving, reducedMotion) : null;
+		const open = arrival || room.shards.every((receipt) => game.collected.includes(receipt.id));
+		drawPortal(surface.context, {
+			size: 192,
+			theme: room.theme,
+			open,
+			seconds: driver.engine.seconds,
+			frame,
+			reducedMotion
+		});
+		const map = mesh.current.material.map;
+		if (map) map.needsUpdate = true;
 	});
-	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("group", {
-		ref: group,
+	const position = arrival ? room.start : room.exit;
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("mesh", {
+		ref: mesh,
 		position: [
-			room.exit.x,
-			room.exit.y,
-			0
+			position.x,
+			position.y,
+			-.12
 		],
-		children: [[
-			0,
-			Math.PI / 3,
-			-Math.PI / 3
-		].map((rotation) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("mesh", {
-			rotation: [
-				0,
-				0,
-				rotation
-			],
-			castShadow: true,
-			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("boxGeometry", { args: [
-				2.5,
-				.2,
-				.28
-			] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("meshStandardMaterial", {
-				color: open ? "#00ff99" : "#632642",
-				emissive: open ? "#00ff99" : "#ff1d6c",
-				emissiveIntensity: open ? 2.4 : .5,
-				metalness: .5
-			})]
-		}, rotation)), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("pointLight", {
-			color: open ? "#00ff99" : "#ff1d6c",
-			intensity: open ? 18 : 4,
-			distance: 7
+		visible: !arrival,
+		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("planeGeometry", { args: [4.4, 4.4] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("meshBasicMaterial", {
+			map: surface.texture,
+			transparent: true,
+			depthWrite: false,
+			toneMapped: false
 		})]
 	});
+}
+function WildcardGate(props) {
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(PixelGate, { ...props }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(PixelGate, {
+		...props,
+		arrival: true
+	})] });
 }
 function StarField({ reducedMotion }) {
 	const ref = (0, import_react.useRef)(null);
@@ -59739,13 +59759,17 @@ function Architecture({ theme }) {
 }
 function CameraRig({ driver, reducedMotion }) {
 	const camera = useThree((state) => state.camera);
+	const observedRoom = (0, import_react.useRef)(driver.engine.roomIndex);
 	useFrame((_, delta) => {
 		const engine = driver.engine;
 		const lookAhead = reducedMotion ? 0 : MathUtils.clamp(engine.x * .025, -.35, .55);
 		const lift = MathUtils.clamp(engine.y * .25, 0, 1.4);
 		tmpCamera.set(engine.x + lookAhead, 4.5 + lift, 11.8);
 		tmpTarget.set(engine.x + lookAhead, 2 + lift * .6, 0);
-		camera.position.lerp(tmpCamera, 1 - Math.exp(-delta * (reducedMotion ? 14 : 4.8)));
+		if (observedRoom.current !== engine.roomIndex) {
+			camera.position.copy(tmpCamera);
+			observedRoom.current = engine.roomIndex;
+		} else camera.position.lerp(tmpCamera, 1 - Math.exp(-delta * (reducedMotion ? 14 : 4.8)));
 		camera.lookAt(tmpTarget);
 	});
 	return null;
@@ -59754,6 +59778,7 @@ function GameScene({ reducedMotion }) {
 	const roomIndex = useGameStore((state) => state.roomIndex);
 	const runSerial = useGameStore((state) => state.runSerial);
 	const [driver] = (0, import_react.useState)(getDriver);
+	useFrame((_, delta) => driver.frame(delta), -2);
 	const room = ROOMS[roomIndex];
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
 		/* @__PURE__ */ (0, import_jsx_runtime.jsx)("color", {
@@ -59833,7 +59858,10 @@ function GameScene({ reducedMotion }) {
 				reducedMotion
 			})
 		] }, `${runSerial}:${roomIndex}`),
-		/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Caretaker, { driver }),
+		/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Caretaker, {
+			driver,
+			reducedMotion
+		}),
 		/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CameraRig, {
 			driver,
 			reducedMotion

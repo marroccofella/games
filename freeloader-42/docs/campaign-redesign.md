@@ -6,7 +6,7 @@ The user's latest instruction supersedes the branching-route proposals below:
 **no path selection and no empty transit through certified levels**.
 
 Implemented: a linear 1–42 campaign, shared automatic progression after a
-1.8-second clear beat, a visible receipt/exit contract in every room, and five
+2.94-second 42.uk portal transfer, a visible receipt/exit contract in every room, and five
 optional mastery predicates (clean, pace, wildcard contact, moving-platform
 ride, combined clean-and-pace audit). Failure of any or all bonuses never
 blocks certification. J, or the pause-card retry action, resets only the
