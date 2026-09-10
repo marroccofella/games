@@ -21,7 +21,7 @@ Pause freezes the transfer. Physics and the latency tax remain frozen until arri
 
 ## Revision checks
 
-- 119 game tests pass, including all 42 properties, continuously contracting orbit and scale, exact sprite anchoring, reduced motion, cue timing, audio resource cleanup and the final checkpoint.
+- 125 game tests pass, including all 42 properties, continuously contracting orbit and scale, exact sprite anchoring, reduced motion, cue timing, audio resource cleanup and the final checkpoint.
 - Both game builds, lint and TypeScript checks pass.
 - Browser checks capture the spiral and confirm arrival in both renderers without page errors.
 - The browser's audio engine verifies the stereo effect, rising suction intensity, headroom and silent ending.

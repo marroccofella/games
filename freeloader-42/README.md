@@ -25,7 +25,7 @@ GUEST@42 is the unpaid caretaker of 42 digital properties, played in order. Reco
 
 ## What ships
 
-Latest update: **2026.09.10-wormhole** — [smoother spirals and layered stereo sound](docs/wormhole-release.md). The caretaker makes 4.2 full spins, follows a tightening orbit and shrinks to a point at the portal centre. The 4.2-second transfer uses the same eased movement in 2D and 3D. All 119 game tests pass, with browser captures and rendered-audio checks.
+Latest update: **2026.09.10-wormhole** — [smoother spirals and layered stereo sound](docs/wormhole-release.md). The caretaker makes 4.2 full spins, follows a tightening orbit and shrinks to a point at the portal centre. The 4.2-second transfer uses the same eased movement in 2D and 3D. All 125 game tests pass, with browser captures and rendered-audio checks.
 
 Previous update: **2026.09.10-portal** — [portal transitions, sound and revision checks](docs/portal-release.md). The exit asterisk unfolds into a six-lock ring, opens a rippling event horizon and teleports the caretaker between properties. Both views share district colours and original synchronised sounds. Pause, mute, reduced motion, bonus results and the final exit are covered by 116 game tests.
 

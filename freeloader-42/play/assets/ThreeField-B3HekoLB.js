@@ -1,5 +1,5 @@
-import { S as __toESM, b as __commonJSMin, c as moverX, g as portalPose, h as portalFrame, i as createStore$1, m as portalActive, n as useGameStore, o as ROOMS, p as drawPortal, s as guardianX, t as require_jsx_runtime, v as require_scheduler, x as __exportAll, y as require_react } from "./index-CUw6ONm3.js";
-import { c as getDriver, i as SPRITE_PALETTES, n as GUARDIAN_SPRITES, o as spriteToCanvas, t as FREELOADER_FRAMES, u as phantomStateAt } from "./sprites-_95Bzw8A.js";
+import { S as __toESM, b as __commonJSMin, c as moverX, g as portalPose, h as portalFrame, i as createStore$1, m as portalActive, n as useGameStore, o as ROOMS, p as drawPortal, s as guardianX, t as require_jsx_runtime, v as require_scheduler, x as __exportAll, y as require_react } from "./index-B3CmbAJV.js";
+import { c as getDriver, i as SPRITE_PALETTES, n as GUARDIAN_SPRITES, o as spriteToCanvas, t as FREELOADER_FRAMES, u as phantomStateAt } from "./sprites-CIY1EbIq.js";
 //#region node_modules/three/build/three.core.js
 var import_react = /* @__PURE__ */ __toESM(require_react(), 1);
 /**
@@ -59369,7 +59369,8 @@ function Caretaker({ driver, reducedMotion }) {
 			x: engine.x,
 			y: engine.y + .06
 		}, room.exit);
-		group.current.position.set(pose.x, pose.y, .15);
+		const depth = !portal || portal.reducedMotion ? 0 : portal.arriving ? .15 * (1 - portal.playerAlpha) : .15 * portal.morph - .35 * portal.pull ** 6;
+		group.current.position.set(pose.x, pose.y, depth);
 		group.current.rotation.z = pose.rotation;
 		group.current.scale.setScalar(pose.scale);
 		group.current.visible = pose.alpha > .001;

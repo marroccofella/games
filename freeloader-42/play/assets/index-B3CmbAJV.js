@@ -1,4 +1,4 @@
-const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["./Canvas2D-UouXzLLh.js","./sprites-_95Bzw8A.js","./ThreeField-4yG5PeGI.js"])))=>i.map(i=>d[i]);
+const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["./Canvas2D-DiTFoHSQ.js","./sprites-CIY1EbIq.js","./ThreeField-B3HekoLB.js"])))=>i.map(i=>d[i]);
 //#region \0rolldown/runtime.js
 var __create = Object.create;
 var __defProp = Object.defineProperty;
@@ -10235,7 +10235,7 @@ function portalFrame(remaining, arriving = false, reducedMotion = false) {
 		morph: reducedMotion ? 1 : smooth(t / .56),
 		locks: Math.min(6, Math.max(0, Math.floor((t - .56 + 1e-8) / .14) + 1)),
 		aperture: arriving ? 1 - arrival : smooth((t - 1.4) / .28),
-		pull: arriving ? 0 : entry,
+		pull: arriving || reducedMotion ? 0 : entry,
 		orbit: reducedMotion || arriving ? 0 : -Math.PI * 2 * 2.1 * entry,
 		playerRotation: reducedMotion || arriving ? 0 : -Math.PI * 2 * 4.2 * entry,
 		playerAlpha: arriving ? arrival : 1 - smooth((progress - .9) / .1),
@@ -10251,6 +10251,13 @@ function portalFrame(remaining, arriving = false, reducedMotion = false) {
 * @param {{x:number, y:number}} centre
 */
 function portalPose(frame, origin, centre) {
+	if (!frame) return {
+		x: origin.x,
+		y: origin.y,
+		rotation: 0,
+		scale: 1,
+		alpha: 1
+	};
 	const pull = frame?.reducedMotion ? 0 : frame?.pull ?? 0;
 	const angle = frame?.orbit ?? 0;
 	const dx = origin.x - centre.x;
@@ -10279,7 +10286,7 @@ var PORTAL_QUIPS = Object.freeze([
 * @param {CanvasRenderingContext2D} ctx
 * @param {{size: number, theme: {accent: string, platform: string, haze: string, bg: string}, open?: boolean, seconds?: number, frame?: ReturnType<typeof portalFrame> | null, reducedMotion?: boolean}} options
 */
-function drawPortal(ctx, { size, theme, open = true, seconds = 0, frame = null, reducedMotion = false }) {
+function drawPortal(ctx, { size, theme, open = true, seconds = 0, frame = null, reducedMotion = frame?.reducedMotion ?? false }) {
 	ctx.clearRect(0, 0, size, size);
 	ctx.save();
 	ctx.translate(size / 2, size / 2);
@@ -10499,10 +10506,16 @@ function createPortalAudio(context, destination) {
 	function release(source, voice) {
 		voices.delete(source);
 		const now = context.currentTime;
-		voice.gain.gain.cancelAndHoldAtTime(now);
+		const envelope = voice.gain.gain;
+		if (typeof envelope.cancelAndHoldAtTime === "function") envelope.cancelAndHoldAtTime(now);
+		else {
+			const held = envelope.value;
+			envelope.cancelScheduledValues(now);
+			envelope.setValueAtTime(Math.max(1e-4, held), now);
+		}
 		voice.gain.gain.setTargetAtTime(1e-4, now, .004);
 		try {
-			source.stop(now + .024);
+			source.stop(Math.min(voice.endsAt, now + .024));
 		} catch {}
 	}
 	function play(name, lock = 0) {
@@ -10542,7 +10555,10 @@ function createPortalAudio(context, destination) {
 				panner.pan.setValueCurveAtTime(curve, start, layer.seconds);
 			} else panner.pan.setValueAtTime(layer.pan ?? 0, start);
 			source.connect(filter).connect(gain).connect(panner).connect(destination);
-			voices.set(source, { gain });
+			voices.set(source, {
+				gain,
+				endsAt: end + .005
+			});
 			source.addEventListener("ended", () => {
 				voices.delete(source);
 				source.disconnect();
@@ -12475,8 +12491,8 @@ var __vitePreload = function preload(baseModule, deps, importerUrl) {
 };
 //#endregion
 //#region app/FreeloaderGame.tsx
-var Canvas2D = (0, import_react.lazy)(() => __vitePreload(() => import("./Canvas2D-UouXzLLh.js"), __vite__mapDeps([0,1]), import.meta.url));
-var ThreeField = (0, import_react.lazy)(() => __vitePreload(() => import("./ThreeField-4yG5PeGI.js"), __vite__mapDeps([2,1]), import.meta.url));
+var Canvas2D = (0, import_react.lazy)(() => __vitePreload(() => import("./Canvas2D-DiTFoHSQ.js"), __vite__mapDeps([0,1]), import.meta.url));
+var ThreeField = (0, import_react.lazy)(() => __vitePreload(() => import("./ThreeField-B3HekoLB.js"), __vite__mapDeps([2,1]), import.meta.url));
 var CONTROL_BY_CODE = {
 	ArrowLeft: "left",
 	KeyA: "left",

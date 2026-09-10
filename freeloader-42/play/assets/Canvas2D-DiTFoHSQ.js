@@ -1,5 +1,5 @@
-import { S as __toESM, c as moverX, g as portalPose, h as portalFrame, m as portalActive, n as useGameStore, o as ROOMS, p as drawPortal, s as guardianX, t as require_jsx_runtime, y as require_react } from "./index-CUw6ONm3.js";
-import { a as TILE_SPRITES, c as getDriver, i as SPRITE_PALETTES, l as BELT_SPEED, n as GUARDIAN_SPRITES, o as spriteToCanvas, r as SHARD_SPRITE, s as tilePalette, t as FREELOADER_FRAMES, u as phantomStateAt } from "./sprites-_95Bzw8A.js";
+import { S as __toESM, c as moverX, g as portalPose, h as portalFrame, m as portalActive, n as useGameStore, o as ROOMS, p as drawPortal, s as guardianX, t as require_jsx_runtime, y as require_react } from "./index-B3CmbAJV.js";
+import { a as TILE_SPRITES, c as getDriver, i as SPRITE_PALETTES, l as BELT_SPEED, n as GUARDIAN_SPRITES, o as spriteToCanvas, r as SHARD_SPRITE, s as tilePalette, t as FREELOADER_FRAMES, u as phantomStateAt } from "./sprites-CIY1EbIq.js";
 //#region app/game/Canvas2D.tsx
 var import_react = /* @__PURE__ */ __toESM(require_react(), 1);
 var import_jsx_runtime = require_jsx_runtime();
@@ -205,7 +205,7 @@ function Canvas2D({ reducedMotion }) {
 				ctx.save();
 				const pose = portalPose(portal, {
 					x: engine.x,
-					y: engine.y + .06
+					y: engine.y - .06
 				}, room.exit);
 				ctx.translate(sx(pose.x), sy(pose.y));
 				ctx.rotate(-pose.rotation);
