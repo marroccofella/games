@@ -1,4 +1,4 @@
-const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["./Canvas2D-DmokDpeG.js","./sprites-DHZSx1tZ.js","./ThreeField-Bs97oh2o.js"])))=>i.map(i=>d[i]);
+const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["./Canvas2D-CxQ-ZHDD.js","./sprites-mPPyleV0.js","./ThreeField-D1WYrAtI.js"])))=>i.map(i=>d[i]);
 //#region \0rolldown/runtime.js
 var __create = Object.create;
 var __defProp = Object.defineProperty;
@@ -10190,11 +10190,11 @@ function clearControls() {
 }
 //#endregion
 //#region app/game/portal.mjs
-var PORTAL_SECONDS = 4.2;
+var PORTAL_SECONDS = 5.42;
 var PORTAL_ARRIVAL_SECONDS = .56;
-var PORTAL_HANDOFF = 3.64;
+var PORTAL_HANDOFF = 4.859999999999999;
 var PORTAL_PULL_START = 1.54;
-var PORTAL_PULL_END = 3.5;
+var PORTAL_PULL_END = 4.72;
 var PORTAL_CUES = Object.freeze([
 	{
 		at: 0,
@@ -10225,9 +10225,11 @@ var smooth = (n) => {
 };
 function portalFrame(remaining, arriving = false, reducedMotion = false) {
 	const t = PORTAL_SECONDS - Math.max(0, Math.min(PORTAL_SECONDS, Number.isFinite(remaining) ? remaining : PORTAL_SECONDS));
-	const progress = clamp((t - PORTAL_PULL_START) / 1.96);
+	const progress = clamp((t - PORTAL_PULL_START) / 3.1799999999999997);
 	const entry = smooth(progress);
 	const arrival = smooth((t - PORTAL_HANDOFF) / PORTAL_ARRIVAL_SECONDS);
+	const bodyTurns = 4.2 * progress * progress;
+	const shrink = smooth((progress - .28) / .72);
 	return {
 		t,
 		arriving,
@@ -10237,10 +10239,10 @@ function portalFrame(remaining, arriving = false, reducedMotion = false) {
 		aperture: arriving ? 1 - arrival : smooth((t - 1.4) / .28),
 		pull: arriving || reducedMotion ? 0 : entry,
 		orbit: reducedMotion || arriving ? 0 : -Math.PI * 2 * 2.1 * entry,
-		playerRotation: reducedMotion || arriving ? 0 : -Math.PI * 2 * 4.2 * entry,
+		playerRotation: reducedMotion || arriving ? 0 : -Math.PI * 2 * bodyTurns,
 		playerAlpha: arriving ? arrival : 1 - smooth((progress - .9) / .1),
-		playerScale: reducedMotion ? 1 : arriving ? .08 + .92 * arrival : Math.pow(1 - entry, .85),
-		veil: reducedMotion ? 0 : arriving ? 1 - arrival : smooth((t - PORTAL_PULL_END) / .14000000000000012),
+		playerScale: reducedMotion ? 1 : arriving ? .08 + .92 * arrival : Math.pow(1 - shrink, .85),
+		veil: reducedMotion ? 0 : arriving ? 1 - arrival : smooth((t - PORTAL_PULL_END) / .13999999999999968),
 		ringAlpha: arriving ? 1 - arrival : 1,
 		stage: arriving ? "REASSEMBLING THE TENANT" : t < .56 ? "EXPANDING THE SMALL PRINT" : t < 1.4 ? "DIALING THE NEXT LIABILITY" : t < 2.1 ? "WORMHOLE APPROVED. WAGES PENDING." : "PLEASE KEEP ALL ATOMS INSIDE THE RIDE"
 	};
@@ -12491,7 +12493,7 @@ function PortalMotionControl({ value, onChange, reducedMotion }) {
 }
 //#endregion
 //#region app/game/release.mjs
-var RELEASE_ID = "2026.09.11-full-spin";
+var RELEASE_ID = "2026.09.11-somersault";
 //#endregion
 //#region \0vite/preload-helper.js
 var scriptRel = "modulepreload";
@@ -12561,8 +12563,8 @@ var __vitePreload = function preload(baseModule, deps, importerUrl) {
 };
 //#endregion
 //#region app/FreeloaderGame.tsx
-var Canvas2D = (0, import_react.lazy)(() => __vitePreload(() => import("./Canvas2D-DmokDpeG.js"), __vite__mapDeps([0,1]), import.meta.url));
-var ThreeField = (0, import_react.lazy)(() => __vitePreload(() => import("./ThreeField-Bs97oh2o.js"), __vite__mapDeps([2,1]), import.meta.url));
+var Canvas2D = (0, import_react.lazy)(() => __vitePreload(() => import("./Canvas2D-CxQ-ZHDD.js"), __vite__mapDeps([0,1]), import.meta.url));
+var ThreeField = (0, import_react.lazy)(() => __vitePreload(() => import("./ThreeField-D1WYrAtI.js"), __vite__mapDeps([2,1]), import.meta.url));
 var CONTROL_BY_CODE = {
 	ArrowLeft: "left",
 	KeyA: "left",

@@ -1,5 +1,5 @@
-import { S as __toESM, b as __commonJSMin, c as moverX, g as portalPose, h as portalFrame, i as createStore$1, m as portalActive, n as useGameStore, o as ROOMS, p as drawPortal, s as guardianX, t as require_jsx_runtime, v as require_scheduler, x as __exportAll, y as require_react } from "./index-BvgAgnQP.js";
-import { c as getDriver, i as SPRITE_PALETTES, n as GUARDIAN_SPRITES, o as spriteToCanvas, t as FREELOADER_FRAMES, u as phantomStateAt } from "./sprites-DHZSx1tZ.js";
+import { S as __toESM, b as __commonJSMin, c as moverX, g as portalPose, h as portalFrame, i as createStore$1, m as portalActive, n as useGameStore, o as ROOMS, p as drawPortal, s as guardianX, t as require_jsx_runtime, v as require_scheduler, x as __exportAll, y as require_react } from "./index-CdlQT-sE.js";
+import { c as getDriver, i as SPRITE_PALETTES, n as GUARDIAN_SPRITES, o as spriteToCanvas, t as FREELOADER_FRAMES, u as phantomStateAt } from "./sprites-mPPyleV0.js";
 //#region node_modules/three/build/three.core.js
 var import_react = /* @__PURE__ */ __toESM(require_react(), 1);
 /**
@@ -59369,7 +59369,7 @@ function Caretaker({ driver, reducedMotion }) {
 			x: engine.x,
 			y: engine.y + .06
 		}, room.exit);
-		const depth = !portal || portal.reducedMotion ? 0 : portal.arriving ? .15 * (1 - portal.playerAlpha) : .15 * portal.morph - .35 * portal.pull ** 6;
+		const depth = !portal || portal.reducedMotion ? 0 : portal.arriving ? .15 * (1 - portal.playerAlpha) : .15 * portal.morph - .35 * (1 - portal.playerScale) ** 6;
 		group.current.position.set(pose.x, pose.y, depth);
 		group.current.rotation.z = pose.rotation;
 		group.current.scale.setScalar(pose.scale);
@@ -59379,6 +59379,8 @@ function Caretaker({ driver, reducedMotion }) {
 		const moving = Math.abs(engine.vx) > .6;
 		const frame = !engine.grounded ? "jump" : moving ? Math.floor(engine.walkCycle * 6) % 2 === 0 ? "walk1" : "walk2" : "idle";
 		const material = plane.current.material;
+		material.depthTest = !portal || portal.reducedMotion || portal.arriving;
+		plane.current.renderOrder = material.depthTest ? 0 : 1;
 		const texture = textures[frame];
 		if (texture && material.map !== texture) {
 			material.map = texture;

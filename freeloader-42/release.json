@@ -1,7 +1,7 @@
 {
-  "revision": "2026.09.11-full-spin",
+  "revision": "2026.09.11-somersault",
   "released": "2026-09-11",
-  "portalSeconds": 4.2,
+  "portalSeconds": 5.42,
   "playerTurns": 4.2,
   "portalMotionChoices": [
     "device",
@@ -9,11 +9,11 @@
     "gentle"
   ],
   "assets": {
-    "play/index.html": "bd63cc666ef537b9baf9d1e7f3ebf494d2a189075d03bfa7bf22a64b0453405a",
-    "play/assets/Canvas2D-DmokDpeG.js": "1e30aa4e82cf2f5b8d01fd48ce86b9e5084b4d44260a43939156a0f8dba179be",
-    "play/assets/index-BvgAgnQP.js": "5215a86c13c737ff28df6d8b4d75b0ee170280a410a02d346c309e74e6f875e6",
-    "play/assets/index-oExG4R4X.css": "1c8b9b43a58c78573448e82877262e45fa26dafec5f4b68dd32a3dab7ea3dd79",
-    "play/assets/sprites-DHZSx1tZ.js": "4a714b72cf09957d473abb6c65337fef77fa9e33aa2f801729e6b8bb77b10d80",
-    "play/assets/ThreeField-Bs97oh2o.js": "d2deb89a8db2a5262dd609e866364dcc9e1068e0a755a0c56308863cf8405b3f"
+    "play/index.html": "d7e383c8b6c997b88b9a2be0524f0868ef6785102ade51de08f0e55d56812ead",
+    "play/assets/Canvas2D-CxQ-ZHDD.js": "8f740e9de038201e8475af79cd73ff95260ace6a5c125d38bfa61499e69dd9c1",
+    "play/assets/index-C0z_5zXz.css": "67af416df89cf603fdb5b221127cb32b9df8a85d48e623c0e08dc8c5cdbf2e1e",
+    "play/assets/index-CdlQT-sE.js": "ba75d2bb2335046a1b59b7fcf3434fa3d9acad261032b87158e0d77e37d8074c",
+    "play/assets/sprites-mPPyleV0.js": "ffb189d62c76819c835cce96f20427530a6e0524bcc04b1e2419f2dab78e6311",
+    "play/assets/ThreeField-D1WYrAtI.js": "c82490955dcf05b00a023a0e7041cc28c8efb306f602642d1bfbe792ff49a8ab"
   }
 }
