@@ -1,14 +1,19 @@
 {
-  "revision": "2026.09.10-wormhole",
-  "released": "2026-09-10",
+  "revision": "2026.09.11-full-spin",
+  "released": "2026-09-11",
   "portalSeconds": 4.2,
   "playerTurns": 4.2,
+  "portalMotionChoices": [
+    "device",
+    "full",
+    "gentle"
+  ],
   "assets": {
-    "play/index.html": "727b931f7d3926d0356c166849d31e576ecc99729110368ce844189878e944fe",
-    "play/assets/Canvas2D-DiTFoHSQ.js": "7f6d45f9a03d0bf12ba9d8aba097f7aaf022e2579d79eb1b7488f79d10a720f1",
-    "play/assets/ThreeField-B3HekoLB.js": "cad9c4dded70d30473b0b441f4b3ad8c92d1687e0b174b29817525454ea89e30",
-    "play/assets/index-B3CmbAJV.js": "b965e6e26db153c6acfe3bb00dbf1a9602d70ffe4fb5a51e9c25dc60ae2343b1",
-    "play/assets/index-D0wKK4E_.css": "b43904d177bee55588a5e6f658bc7f6b7a87f532d9f32628d3851cde65e7f61a",
-    "play/assets/sprites-CIY1EbIq.js": "014df76e4ccc2363e1c6807eada866ec8e5c39f6064b38da915a3bf47d0dcf56"
+    "play/index.html": "bd63cc666ef537b9baf9d1e7f3ebf494d2a189075d03bfa7bf22a64b0453405a",
+    "play/assets/Canvas2D-DmokDpeG.js": "1e30aa4e82cf2f5b8d01fd48ce86b9e5084b4d44260a43939156a0f8dba179be",
+    "play/assets/index-BvgAgnQP.js": "5215a86c13c737ff28df6d8b4d75b0ee170280a410a02d346c309e74e6f875e6",
+    "play/assets/index-oExG4R4X.css": "1c8b9b43a58c78573448e82877262e45fa26dafec5f4b68dd32a3dab7ea3dd79",
+    "play/assets/sprites-DHZSx1tZ.js": "4a714b72cf09957d473abb6c65337fef77fa9e33aa2f801729e6b8bb77b10d80",
+    "play/assets/ThreeField-Bs97oh2o.js": "d2deb89a8db2a5262dd609e866364dcc9e1068e0a755a0c56308863cf8405b3f"
   }
 }

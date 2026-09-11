@@ -5,7 +5,7 @@ Games from the [42.uk](https://42.uk) Library. Each game lives in its own self-c
 | Game | Folder | What it is |
 |------|--------|------------|
 | **🍪 CRUMBLE INVADERS** | [`crumble-invaders/`](crumble-invaders/) | Created with [Promptus.ai](https://www.promptus.ai/), open source under MIT, and powered by an original rule-based gameplay engine. Bond invaders into allies, launch kookies, and defend emergency toilets. |
-| **FREEL\*ADER 42: PROPERTY OVERFLOW** | [`freeloader-42/`](freeloader-42/) | Forty-two condemned digital properties, 126 evidence receipts, automatic 01–42 progression, visible goals, optional bonus audits, precision platforming, 2D/3D views, spiralling asterisk wormholes with layered stereo sound, and deadpan British failure. Latest: [2026.09.10-wormhole](freeloader-42/docs/wormhole-release.md). |
+| **FREEL\*ADER 42: PROPERTY OVERFLOW** | [`freeloader-42/`](freeloader-42/) | Forty-two condemned digital properties, 126 evidence receipts, automatic 01–42 progression, visible goals, optional bonus audits, precision platforming, 2D/3D views, spiralling asterisk wormholes with layered stereo sound, and deadpan British failure. Latest: [2026.09.11-full-spin](freeloader-42/docs/full-spin-release.md). |
 | **◆ MOMM-MAN** | [`momm-man/`](momm-man/) | Eat every evidence dot, dodge the four review failure statuses, and turn them fail-closed. |
 | **@TEROIDS** | [`ateroids/`](ateroids/) | An arcade word-and-number shooter. Canonical development repo: [marroccofella/ateroids](https://github.com/marroccofella/ateroids). |
 

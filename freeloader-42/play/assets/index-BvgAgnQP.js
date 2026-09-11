@@ -1,4 +1,4 @@
-const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["./Canvas2D-DiTFoHSQ.js","./sprites-CIY1EbIq.js","./ThreeField-B3HekoLB.js"])))=>i.map(i=>d[i]);
+const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["./Canvas2D-DmokDpeG.js","./sprites-DHZSx1tZ.js","./ThreeField-Bs97oh2o.js"])))=>i.map(i=>d[i]);
 //#region \0rolldown/runtime.js
 var __create = Object.create;
 var __defProp = Object.defineProperty;
@@ -12420,8 +12420,78 @@ function PortalTransfer({ reducedMotion }) {
 	});
 }
 //#endregion
+//#region app/game/PortalMotionControl.tsx
+var PORTAL_MOTION_KEY = "freeloader42-portal-motion-v1";
+function readPortalMotion(storage) {
+	try {
+		const saved = storage.getItem(PORTAL_MOTION_KEY);
+		return saved === "full" || saved === "gentle" ? saved : "device";
+	} catch {
+		return "device";
+	}
+}
+function portalMotionReduced(value, deviceReduced) {
+	return value === "device" ? deviceReduced : value === "gentle";
+}
+function usePortalMotion(deviceReduced) {
+	const [value, setValue] = (0, import_react.useState)("device");
+	(0, import_react.useEffect)(() => {
+		const sync = (event) => {
+			if (event && event.key !== null && event.key !== "freeloader42-portal-motion-v1") return;
+			try {
+				setValue(readPortalMotion(window.localStorage));
+			} catch {}
+		};
+		sync();
+		window.addEventListener("storage", sync);
+		return () => window.removeEventListener("storage", sync);
+	}, []);
+	const onChange = (next) => {
+		setValue(next);
+		try {
+			window.localStorage.setItem(PORTAL_MOTION_KEY, next);
+		} catch {}
+	};
+	return {
+		value,
+		onChange,
+		reducedMotion: portalMotionReduced(value, deviceReduced)
+	};
+}
+function PortalMotionControl({ value, onChange, reducedMotion }) {
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+		className: "portal-motion",
+		children: [
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+				className: "portal-motion-label",
+				children: "PORTAL MOTION"
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+				className: "mode-row",
+				role: "group",
+				"aria-label": "Portal motion",
+				children: [
+					["device", "DEVICE"],
+					["full", "FULL SPIN"],
+					["gentle", "GENTLE"]
+				].map(([choice, label]) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
+					type: "button",
+					"aria-pressed": value === choice,
+					className: value === choice ? "mode-active" : "",
+					onClick: () => onChange(choice),
+					children: label
+				}, choice))
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
+				className: "portal-motion-help",
+				children: [reducedMotion ? "Willie stays upright; the portal uses a gentle fade." : "Willie spins head over heels and shrinks into the portal.", value === "device" ? " Following your device preference." : ""]
+			})
+		]
+	});
+}
+//#endregion
 //#region app/game/release.mjs
-var RELEASE_ID = "2026.09.10-wormhole";
+var RELEASE_ID = "2026.09.11-full-spin";
 //#endregion
 //#region \0vite/preload-helper.js
 var scriptRel = "modulepreload";
@@ -12491,8 +12561,8 @@ var __vitePreload = function preload(baseModule, deps, importerUrl) {
 };
 //#endregion
 //#region app/FreeloaderGame.tsx
-var Canvas2D = (0, import_react.lazy)(() => __vitePreload(() => import("./Canvas2D-DiTFoHSQ.js"), __vite__mapDeps([0,1]), import.meta.url));
-var ThreeField = (0, import_react.lazy)(() => __vitePreload(() => import("./ThreeField-B3HekoLB.js"), __vite__mapDeps([2,1]), import.meta.url));
+var Canvas2D = (0, import_react.lazy)(() => __vitePreload(() => import("./Canvas2D-DmokDpeG.js"), __vite__mapDeps([0,1]), import.meta.url));
+var ThreeField = (0, import_react.lazy)(() => __vitePreload(() => import("./ThreeField-Bs97oh2o.js"), __vite__mapDeps([2,1]), import.meta.url));
 var CONTROL_BY_CODE = {
 	ArrowLeft: "left",
 	KeyA: "left",
@@ -12572,6 +12642,7 @@ function TouchButton({ control, label, className = "" }) {
 }
 function FreeloaderGame() {
 	const reducedMotion = useReducedMotion();
+	const portalMotion = usePortalMotion(reducedMotion);
 	const phase = useGameStore((state) => state.phase);
 	const latency = useGameStore((state) => state.latency);
 	const elapsed = useGameStore((state) => state.elapsed);
@@ -12775,10 +12846,16 @@ function FreeloaderGame() {
 						className: "webgl-fallback",
 						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: "NEGOTIATING 3D FIELD" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Loading the expensive geometry. The invoices have already arrived." })]
 					}),
-					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ThreeField, { reducedMotion }, runSerial)
+					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ThreeField, {
+						reducedMotion,
+						portalReducedMotion: portalMotion.reducedMotion
+					}, runSerial)
 				}) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)(import_react.Suspense, {
 					fallback: null,
-					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Canvas2D, { reducedMotion }, runSerial)
+					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Canvas2D, {
+						reducedMotion,
+						portalReducedMotion: portalMotion.reducedMotion
+					}, runSerial)
 				}) }, renderMode)
 			}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
@@ -12889,6 +12966,7 @@ function FreeloaderGame() {
 							children: "3D FIELD"
 						})]
 					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(PortalMotionControl, { ...portalMotion }),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 						className: "menu-actions",
 						children: [hasProgress && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
@@ -13057,6 +13135,7 @@ function FreeloaderGame() {
 							" PROPERTIES CERTIFIED"
 						]
 					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(PortalMotionControl, { ...portalMotion }),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
 						className: "primary-action",
 						type: "button",
@@ -13075,7 +13154,7 @@ function FreeloaderGame() {
 					})
 				]
 			}),
-			phase === "cleared" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(PortalTransfer, { reducedMotion }),
+			phase === "cleared" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(PortalTransfer, { reducedMotion: portalMotion.reducedMotion }),
 			phase === "won" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", {
 				className: "modal-card victory-card",
 				role: "dialog",

@@ -1,5 +1,5 @@
-import { S as __toESM, b as __commonJSMin, c as moverX, g as portalPose, h as portalFrame, i as createStore$1, m as portalActive, n as useGameStore, o as ROOMS, p as drawPortal, s as guardianX, t as require_jsx_runtime, v as require_scheduler, x as __exportAll, y as require_react } from "./index-B3CmbAJV.js";
-import { c as getDriver, i as SPRITE_PALETTES, n as GUARDIAN_SPRITES, o as spriteToCanvas, t as FREELOADER_FRAMES, u as phantomStateAt } from "./sprites-CIY1EbIq.js";
+import { S as __toESM, b as __commonJSMin, c as moverX, g as portalPose, h as portalFrame, i as createStore$1, m as portalActive, n as useGameStore, o as ROOMS, p as drawPortal, s as guardianX, t as require_jsx_runtime, v as require_scheduler, x as __exportAll, y as require_react } from "./index-BvgAgnQP.js";
+import { c as getDriver, i as SPRITE_PALETTES, n as GUARDIAN_SPRITES, o as spriteToCanvas, t as FREELOADER_FRAMES, u as phantomStateAt } from "./sprites-DHZSx1tZ.js";
 //#region node_modules/three/build/three.core.js
 var import_react = /* @__PURE__ */ __toESM(require_react(), 1);
 /**
@@ -59610,7 +59610,7 @@ function Shard({ shard, index, driver, reducedMotion }) {
 		]
 	});
 }
-function PixelGate({ room, driver, reducedMotion, arrival = false }) {
+function PixelGate({ room, driver, reducedMotion, portalReducedMotion = reducedMotion, arrival = false }) {
 	const mesh = (0, import_react.useRef)(null);
 	const surface = (0, import_react.useMemo)(() => {
 		const canvas = document.createElement("canvas");
@@ -59632,7 +59632,7 @@ function PixelGate({ room, driver, reducedMotion, arrival = false }) {
 		const arriving = active && game.roomIndex !== game.portalSourceIndex;
 		mesh.current.visible = !arrival || arriving;
 		if (!mesh.current.visible) return;
-		const frame = active && arrival === arriving ? portalFrame(game.transitionRemaining, arriving, reducedMotion) : null;
+		const frame = active && arrival === arriving ? portalFrame(game.transitionRemaining, arriving, portalReducedMotion) : null;
 		const open = arrival || room.shards.every((receipt) => game.collected.includes(receipt.id));
 		drawPortal(surface.context, {
 			size: 192,
@@ -59640,7 +59640,7 @@ function PixelGate({ room, driver, reducedMotion, arrival = false }) {
 			open,
 			seconds: driver.engine.seconds,
 			frame,
-			reducedMotion
+			reducedMotion: frame ? portalReducedMotion : reducedMotion
 		});
 		const map = mesh.current.material.map;
 		if (map) map.needsUpdate = true;
@@ -59779,7 +59779,7 @@ function CameraRig({ driver, reducedMotion }) {
 	});
 	return null;
 }
-function GameScene({ reducedMotion }) {
+function GameScene({ reducedMotion, portalReducedMotion = reducedMotion }) {
 	const roomIndex = useGameStore((state) => state.roomIndex);
 	const runSerial = useGameStore((state) => state.runSerial);
 	const [driver] = (0, import_react.useState)(getDriver);
@@ -59860,12 +59860,13 @@ function GameScene({ reducedMotion }) {
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(WildcardGate, {
 				room,
 				driver,
-				reducedMotion
+				reducedMotion,
+				portalReducedMotion
 			})
 		] }, `${runSerial}:${roomIndex}`),
 		/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Caretaker, {
 			driver,
-			reducedMotion
+			reducedMotion: portalReducedMotion
 		}),
 		/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CameraRig, {
 			driver,
@@ -59875,7 +59876,7 @@ function GameScene({ reducedMotion }) {
 }
 //#endregion
 //#region app/game/ThreeField.tsx
-function ThreeField({ reducedMotion }) {
+function ThreeField({ reducedMotion, portalReducedMotion = reducedMotion }) {
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Canvas, {
 		className: "game-canvas",
 		shadows: true,
@@ -59899,7 +59900,10 @@ function ThreeField({ reducedMotion }) {
 			className: "webgl-fallback",
 			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: "3D FIELD UNAVAILABLE" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "The machine has declined graphics duty. Press V for the 2D CRT — satire and liability remain with you." })]
 		}),
-		children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(GameScene, { reducedMotion })
+		children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(GameScene, {
+			reducedMotion,
+			portalReducedMotion
+		})
 	});
 }
 //#endregion

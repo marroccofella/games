@@ -1,5 +1,5 @@
-import { S as __toESM, c as moverX, g as portalPose, h as portalFrame, m as portalActive, n as useGameStore, o as ROOMS, p as drawPortal, s as guardianX, t as require_jsx_runtime, y as require_react } from "./index-B3CmbAJV.js";
-import { a as TILE_SPRITES, c as getDriver, i as SPRITE_PALETTES, l as BELT_SPEED, n as GUARDIAN_SPRITES, o as spriteToCanvas, r as SHARD_SPRITE, s as tilePalette, t as FREELOADER_FRAMES, u as phantomStateAt } from "./sprites-CIY1EbIq.js";
+import { S as __toESM, c as moverX, g as portalPose, h as portalFrame, m as portalActive, n as useGameStore, o as ROOMS, p as drawPortal, s as guardianX, t as require_jsx_runtime, y as require_react } from "./index-BvgAgnQP.js";
+import { a as TILE_SPRITES, c as getDriver, i as SPRITE_PALETTES, l as BELT_SPEED, n as GUARDIAN_SPRITES, o as spriteToCanvas, r as SHARD_SPRITE, s as tilePalette, t as FREELOADER_FRAMES, u as phantomStateAt } from "./sprites-DHZSx1tZ.js";
 //#region app/game/Canvas2D.tsx
 var import_react = /* @__PURE__ */ __toESM(require_react(), 1);
 var import_jsx_runtime = require_jsx_runtime();
@@ -18,7 +18,7 @@ function buildSprites() {
 	});
 	return cache;
 }
-function Canvas2D({ reducedMotion }) {
+function Canvas2D({ reducedMotion, portalReducedMotion = reducedMotion }) {
 	const canvasRef = (0, import_react.useRef)(null);
 	const [driver] = (0, import_react.useState)(getDriver);
 	(0, import_react.useEffect)(() => {
@@ -54,7 +54,7 @@ function Canvas2D({ reducedMotion }) {
 			const game = useGameStore.getState();
 			const transferring = portalActive(game);
 			const arriving = transferring && game.roomIndex !== game.portalSourceIndex;
-			const portal = transferring ? portalFrame(game.transitionRemaining, arriving, reducedMotion) : null;
+			const portal = transferring ? portalFrame(game.transitionRemaining, arriving, portalReducedMotion) : null;
 			const width = canvas.width;
 			const height = canvas.height;
 			const scale = height / VIEW_UNITS_Y;
@@ -163,7 +163,7 @@ function Canvas2D({ reducedMotion }) {
 					open: unlocked,
 					seconds: engine.seconds,
 					frame: active,
-					reducedMotion
+					reducedMotion: active ? portalReducedMotion : reducedMotion
 				});
 				ctx.save();
 				ctx.shadowColor = unlocked ? theme.accent : "#ff1d6c";
@@ -230,7 +230,11 @@ function Canvas2D({ reducedMotion }) {
 			window.cancelAnimationFrame(raf);
 			observer.disconnect();
 		};
-	}, [driver, reducedMotion]);
+	}, [
+		driver,
+		reducedMotion,
+		portalReducedMotion
+	]);
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("canvas", {
 		ref: canvasRef,
 		className: "canvas-2d",
