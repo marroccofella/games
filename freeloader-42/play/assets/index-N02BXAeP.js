@@ -1,4 +1,4 @@
-const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["./Canvas2D-CxQ-ZHDD.js","./sprites-mPPyleV0.js","./ThreeField-D1WYrAtI.js"])))=>i.map(i=>d[i]);
+const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["./Canvas2D-DO4MNUyM.js","./sprites-BbbTo2Hh.js","./ThreeField-DwRWhJQy.js"])))=>i.map(i=>d[i]);
 //#region \0rolldown/runtime.js
 var __create = Object.create;
 var __defProp = Object.defineProperty;
@@ -12493,7 +12493,7 @@ function PortalMotionControl({ value, onChange, reducedMotion }) {
 }
 //#endregion
 //#region app/game/release.mjs
-var RELEASE_ID = "2026.09.11-somersault";
+var RELEASE_ID = "2026.09.11-clear-portal";
 //#endregion
 //#region \0vite/preload-helper.js
 var scriptRel = "modulepreload";
@@ -12563,8 +12563,8 @@ var __vitePreload = function preload(baseModule, deps, importerUrl) {
 };
 //#endregion
 //#region app/FreeloaderGame.tsx
-var Canvas2D = (0, import_react.lazy)(() => __vitePreload(() => import("./Canvas2D-CxQ-ZHDD.js"), __vite__mapDeps([0,1]), import.meta.url));
-var ThreeField = (0, import_react.lazy)(() => __vitePreload(() => import("./ThreeField-D1WYrAtI.js"), __vite__mapDeps([2,1]), import.meta.url));
+var Canvas2D = (0, import_react.lazy)(() => __vitePreload(() => import("./Canvas2D-DO4MNUyM.js"), __vite__mapDeps([0,1]), import.meta.url));
+var ThreeField = (0, import_react.lazy)(() => __vitePreload(() => import("./ThreeField-DwRWhJQy.js"), __vite__mapDeps([2,1]), import.meta.url));
 var CONTROL_BY_CODE = {
 	ArrowLeft: "left",
 	KeyA: "left",
