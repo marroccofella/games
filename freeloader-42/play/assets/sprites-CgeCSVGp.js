@@ -1,4 +1,4 @@
-import { _ as controls, a as GUARDIAN_REASONS, c as moverX, d as PORTAL_CUES, f as PORTAL_SECONDS, l as playSfx, n as useGameStore, o as ROOMS, r as LATENCY_DRAIN, s as guardianX, u as stopPortalAudio } from "./index-N02BXAeP.js";
+import { C as controls, _ as PORTAL_CUES, c as stepRetro, d as GUARDIAN_REASONS, f as ROOMS, g as stopPortalAudio, h as playSfx, m as moverX, n as useGameStore, o as exitOutstanding, p as guardianX, r as LATENCY_DRAIN, s as retroFor, v as PORTAL_SECONDS } from "./index-f8dNltQl.js";
 //#region app/game/engine.mjs
 var FIXED_STEP = 1 / 60;
 var PLAYER_HALF_WIDTH = .3;
@@ -48,7 +48,10 @@ function createEngineState(roomIndex = 0) {
 		gateWasNear: false,
 		wildcardSteps: 0,
 		wildcardTargetId: null,
-		phantomWarnings: {}
+		phantomWarnings: {},
+		shots: [],
+		blasts: [],
+		shotCooldown: 0
 	};
 	resetEngineState(state, roomIndex);
 	return state;
@@ -78,6 +81,9 @@ function resetEngineState(state, roomIndex) {
 	state.wildcardSteps = 0;
 	state.wildcardTargetId = room.wildcardTargetId;
 	state.phantomWarnings = {};
+	state.shots = [];
+	state.blasts = [];
+	state.shotCooldown = 0;
 	for (const platform of room.platforms) if (platform.kind === "phantom") state.phantomWarnings[platform.id] = false;
 }
 var clamp = (value, low, high) => Math.min(high, Math.max(low, value));
@@ -184,7 +190,9 @@ function stepEngine(state, controls, game) {
 	for (const shard of room.shards) if (Math.hypot(nextX - shard.x, nextY - shard.y) < .82 && game.collect(shard.id)) events.push("collect");
 	if (nextY < room.bounds.killY) return die(state, game, events, "GRAVITY REMAINS LEGACY INFRASTRUCTURE");
 	for (const hazard of room.hazards) if (Math.abs(nextX - hazard.x) < hazard.width / 2 + .3 && nextY - .72 < hazard.y + .55) return die(state, game, events, "NULL POINTER UNDERFOOT");
+	stepRetro(state, controls, game, room, events, FIXED_STEP);
 	for (const guardian of room.guardians) {
+		if (game.retroState?.()?.defeated.includes(guardian.id)) continue;
 		const gx = guardianX(guardian, state.seconds);
 		const nearestX = clamp(gx, nextX - PLAYER_HALF_WIDTH, nextX + PLAYER_HALF_WIDTH);
 		const nearestY = clamp(guardian.y, nextY - PLAYER_HALF_HEIGHT, nextY + PLAYER_HALF_HEIGHT);
@@ -192,7 +200,7 @@ function stepEngine(state, controls, game) {
 	}
 	game.recordTraversal?.(Boolean(grounded && wildcardGround), grounded && ridingMoverId ? FIXED_STEP : 0);
 	const nearGate = Math.hypot(nextX - room.exit.x, nextY - room.exit.y) < GATE_RADIUS;
-	const outstanding = room.shards.length - game.roomCollectedCount();
+	const outstanding = game.exitOutstanding?.() ?? room.shards.length - game.roomCollectedCount();
 	if (nearGate && outstanding === 0) {
 		game.setPlayerX(nextX);
 		const result = game.clearRoom();
@@ -4416,6 +4424,16 @@ var LESSONS = Object.freeze({
 //#endregion
 //#region app/game/driver.ts
 var storeAdapter = {
+	retroState: () => {
+		const game = useGameStore.getState();
+		return retroFor(ROOMS[game.roomIndex], game);
+	},
+	pickupRetroWeapon: () => useGameStore.getState().pickupRetroWeapon(),
+	defeatRetroEnemy: (id) => useGameStore.getState().defeatRetroEnemy(id),
+	exitOutstanding: () => {
+		const game = useGameStore.getState();
+		return exitOutstanding(ROOMS[game.roomIndex], game);
+	},
 	collect: (id) => useGameStore.getState().collect(id),
 	die: (reason) => useGameStore.getState().die(reason),
 	denyGate: (outstanding) => useGameStore.getState().denyGate(outstanding),
@@ -4433,6 +4451,15 @@ var storeAdapter = {
 };
 function playEvent(event) {
 	switch (event) {
+		case "weapon":
+			playSfx("weapon");
+			break;
+		case "shot":
+			playSfx("shot");
+			break;
+		case "enemy":
+			playSfx("enemy");
+			break;
 		case "jump":
 			playSfx("jump");
 			break;
@@ -4477,6 +4504,7 @@ function createDriver() {
 				stopPortalAudio();
 				return;
 			}
+			useGameStore.getState().beginRevisit();
 			const state = useGameStore.getState();
 			if (state.phase === "cleared") {
 				accumulator = 0;
@@ -4521,7 +4549,10 @@ function createDriver() {
 			while (accumulator >= .016666666666666666 && steps < 5) {
 				accumulator -= FIXED_STEP;
 				steps += 1;
-				if (useGameStore.getState().autopilot) autopilotController.applyStep(engine, controls);
+				if (useGameStore.getState().autopilot) {
+					autopilotController.applyStep(engine, controls);
+					controls.fireHeld = Boolean(useGameStore.getState().retro);
+				}
 				const events = stepEngine(engine, controls, storeAdapter);
 				for (const event of events) playEvent(event);
 				if (events.includes("die") || events.includes("route") || events.includes("win")) {

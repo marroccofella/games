@@ -16,6 +16,7 @@ GUEST@42 is the unpaid caretaker of 42 digital properties, played in order. Reco
 | Arrow keys / WASD | Move and jump |
 | Space | Jump |
 | E / touch `*` | Retype the highlighted object for 4.2 seconds |
+| F / X / touch FIRE | Fire the blaster during a Bug Hunt return visit |
 | V | Switch between 2D CRT and 3D field |
 | O | Toggle the verified local autopilot |
 | P / Escape | Pause |
@@ -25,7 +26,9 @@ GUEST@42 is the unpaid caretaker of 42 digital properties, played in order. Reco
 
 ## What ships
 
-Latest update: **2026.09.11-clear-portal** — [unobstructed head-over-heels somersaults](docs/clear-portal-release.md). The status panel clears during portal transfers so high exits stay visible. The first full body turn takes about 1.55 seconds while Willie remains above 85% size, then he accelerates and shrinks into the centre. Total transfer: 5.42 seconds, with synchronized suction sound. Choose **PORTAL MOTION → FULL SPIN**. All 131 game tests pass.
+Latest update: **2026.09.11-bug-hunt** — [Bug Hunt: Terms & Exterminations](docs/bug-hunt-release.md). On an actual return to a certified property, pick up the blaster and defeat every enemy before the portal opens. Use F / X or FIRE; guided energy bolts pass through platforms with unlimited ammo. Original campaign credit stays earned. No new detours: the current linear campaign does not deliberately revisit certified rooms, and repeated layouts alone do not trigger the mode. All 138 game tests pass, including combat replays in every layout.
+
+Previous update: **2026.09.11-clear-portal** — [unobstructed head-over-heels somersaults](docs/clear-portal-release.md). The status panel clears during portal transfers so high exits stay visible. The first full body turn takes about 1.55 seconds while Willie remains above 85% size, then he accelerates and shrinks into the centre. Total transfer: 5.42 seconds, with synchronized suction sound. Choose **PORTAL MOTION → FULL SPIN**. All 131 game tests pass.
 
 Previous update: **2026.09.10-portal** — [portal transitions, sound and revision checks](docs/portal-release.md). The exit asterisk unfolds into a six-lock ring, opens a rippling event horizon and teleports the caretaker between properties. Both views share district colours and original synchronised sounds. Pause, mute, reduced motion, bonus results and the final exit are covered by 116 game tests.
 

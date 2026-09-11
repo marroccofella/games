@@ -1,5 +1,5 @@
 {
-  "revision": "2026.09.11-clear-portal",
+  "revision": "2026.09.11-bug-hunt",
   "released": "2026-09-11",
   "portalSeconds": 5.42,
   "playerTurns": 4.2,
@@ -8,12 +8,16 @@
     "full",
     "gentle"
   ],
+  "retroModes": [
+    "bug-hunt"
+  ],
+  "revisitPolicy": "certified-room-entry-only; no new detours",
   "assets": {
-    "play/index.html": "f37082e280453089947f10a101153c34968daada12093c8f8f7ad8a0797032d5",
-    "play/assets/Canvas2D-DO4MNUyM.js": "716b83ed79bde68e54864fbf61267957fb96dc62d0b1b7d545ace36abc382ee9",
-    "play/assets/ThreeField-DwRWhJQy.js": "52ea8e57e4fd433d00a07df2e4a33641d4d7e6d9d769a129373f91af49f2820a",
-    "play/assets/index-CFZHnM3_.css": "c784af65e0d630e35fa01e9a69e9a10a96e6acaab97dd5e27739d8a6f4031911",
-    "play/assets/index-N02BXAeP.js": "d1617590c2563ab25d96c659387d7b5b7ec127b2f9cc8acc148b856cefc02a86",
-    "play/assets/sprites-BbbTo2Hh.js": "662cb50c786fed8fa9df45b59ee11957d52e67be1a446b8f77b52526eab79f3c"
+    "play/index.html": "6e3d1e7f1a3b8bc7d84e9c95125ffef994dc7438c2fcd34e2e835d3ed0a8edf3",
+    "play/assets/Canvas2D-5q3DDqAe.js": "eaf76f5f98dfa3838d71a1c463c467e51368718db08a7bf96f1b50e5dfb139bf",
+    "play/assets/index-BOrjWpKx.css": "38b995da6a2985f539d4f58abc6617dcea92b4e492fccdd00702b20b3513685f",
+    "play/assets/index-f8dNltQl.js": "4f15fa63c45efd0efbdf363377fdf5a8e58e691d039bbf5a64a23741ad4034b4",
+    "play/assets/sprites-CgeCSVGp.js": "1e2cba09f6aa8fab855eb28808338f29addb011bff3bb098677dc8fae69cd5bf",
+    "play/assets/ThreeField-CxfPVPl_.js": "35b40b5f6283480eaf30710f30d86830fab119bc8f2884254b113f1fea73746c"
   }
 }

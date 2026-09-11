@@ -1,12 +1,12 @@
 # Campaign redesign — current direction and historical diagnosis
 
-## Current direction — 5 September 2026
+## Current direction — 11 September 2026
 
 The user's latest instruction supersedes the branching-route proposals below:
 **no path selection and no empty transit through certified levels**.
 
 Implemented: a linear 1–42 campaign, shared automatic progression after a
-4.2-second 42.uk portal transfer, a visible receipt/exit contract in every room, and five
+5.42-second 42.uk portal transfer, a visible receipt/exit contract in every room, and five
 optional mastery predicates (clean, pace, wildcard contact, moving-platform
 ride, combined clean-and-pace audit). Failure of any or all bonuses never
 blocks certification. J, or the pause-card retry action, resets only the
@@ -28,6 +28,15 @@ human-tested difficulty pacing remain future work; this release does not
 claim 42 newly authored layouts.
 
 See [linear-campaign.md](linear-campaign.md) for current rules and testing.
+
+The user now requests unique retro challenges **only when a completed level
+is revisited, with no new detours**. Actual playable entry into a certified
+property activates Bug Hunt: collect a blaster and defeat every guardian to
+unlock the exit. Certification and receipts remain earned, and clearing the
+challenge resumes the earliest unfinished property. The normal linear route
+is unchanged and does not deliberately produce revisits. Similar geometry
+alone never triggers the mode. The mode registry allows future retro rules;
+only Bug Hunt ships in this update. See [bug-hunt-release.md](bug-hunt-release.md).
 
 Source: the 2026-08-24 campaign design audits (momm runs `rev_20260824234641_uk5g`
 and `rev_20260824235016_7joa`), with every quantitative claim independently

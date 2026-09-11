@@ -1,5 +1,5 @@
-import { S as __toESM, b as __commonJSMin, c as moverX, g as portalPose, h as portalFrame, i as createStore$1, m as portalActive, n as useGameStore, o as ROOMS, p as drawPortal, s as guardianX, t as require_jsx_runtime, v as require_scheduler, x as __exportAll, y as require_react } from "./index-N02BXAeP.js";
-import { c as getDriver, i as SPRITE_PALETTES, n as GUARDIAN_SPRITES, o as spriteToCanvas, t as FREELOADER_FRAMES, u as phantomStateAt } from "./sprites-BbbTo2Hh.js";
+import { D as __exportAll, E as __commonJSMin, O as __toESM, S as portalPose, T as require_react, a as BLASTER_SPRITE, b as portalActive, f as ROOMS, i as BLASTER_PALETTE, l as weaponPosition, m as moverX, n as useGameStore, o as exitOutstanding, p as guardianX, s as retroFor, t as require_jsx_runtime, u as createStore$1, w as require_scheduler, x as portalFrame, y as drawPortal } from "./index-f8dNltQl.js";
+import { c as getDriver, i as SPRITE_PALETTES, n as GUARDIAN_SPRITES, o as spriteToCanvas, t as FREELOADER_FRAMES, u as phantomStateAt } from "./sprites-CgeCSVGp.js";
 //#region node_modules/three/build/three.core.js
 var import_react = /* @__PURE__ */ __toESM(require_react(), 1);
 /**
@@ -59418,6 +59418,8 @@ function Guardian({ guardian, index, driver, reducedMotion }) {
 	useFrame(() => {
 		const engine = driver.engine;
 		if (!group.current || !plane.current) return;
+		const retro = retroFor(ROOMS[engine.roomIndex], useGameStore.getState());
+		group.current.visible = !retro?.defeated.includes(guardian.id);
 		const bob = reducedMotion ? 0 : Math.sin(engine.seconds * 3 + index) * .06;
 		group.current.position.set(guardianX(guardian, engine.seconds), guardian.y + bob, 0);
 		const heading = Math.cos(engine.seconds * guardian.speed) < 0 ? -1 : 1;
@@ -59635,7 +59637,7 @@ function PixelGate({ room, driver, reducedMotion, portalReducedMotion = reducedM
 		mesh.current.visible = !arrival || arriving;
 		if (!mesh.current.visible) return;
 		const frame = active && arrival === arriving ? portalFrame(game.transitionRemaining, arriving, portalReducedMotion) : null;
-		const open = arrival || room.shards.every((receipt) => game.collected.includes(receipt.id));
+		const open = arrival || exitOutstanding(room, game) === 0;
 		drawPortal(surface.context, {
 			size: 192,
 			theme: room.theme,
@@ -59669,6 +59671,86 @@ function WildcardGate(props) {
 		...props,
 		arrival: true
 	})] });
+}
+function RetroEquipment({ driver, reducedMotion }) {
+	const weapon = (0, import_react.useRef)(null);
+	const shots = (0, import_react.useRef)(null);
+	const bursts = (0, import_react.useRef)(null);
+	const texture = useSpriteTexture(BLASTER_SPRITE, BLASTER_PALETTE);
+	useFrame(() => {
+		const engine = driver.engine, game = useGameStore.getState(), room = ROOMS[engine.roomIndex];
+		const retro = retroFor(room, game);
+		if (!weapon.current || !shots.current || !bursts.current) return;
+		weapon.current.visible = Boolean(retro);
+		shots.current.visible = bursts.current.visible = Boolean(retro) && !portalActive(game);
+		if (!retro) return;
+		const frame = portalActive(game) ? portalFrame(game.transitionRemaining, game.roomIndex !== game.portalSourceIndex, reducedMotion) : null;
+		const pose = portalPose(frame, {
+			x: engine.x,
+			y: engine.y + .06
+		}, room.exit);
+		const pickup = weaponPosition(room), facing = engine.facing;
+		const dx = .52 * facing * pose.scale, dy = -.1 * pose.scale;
+		weapon.current.position.set(retro.weapon ? pose.x + Math.cos(pose.rotation) * dx - Math.sin(pose.rotation) * dy : pickup.x, retro.weapon ? pose.y + Math.sin(pose.rotation) * dx + Math.cos(pose.rotation) * dy : pickup.y, .2);
+		weapon.current.rotation.z = retro.weapon ? pose.rotation : 0;
+		const size = retro.weapon ? .85 * pose.scale : 1.2;
+		weapon.current.scale.set(size * (retro.weapon ? facing : 1), size, 1);
+		weapon.current.material.opacity = retro.weapon ? pose.alpha : 1;
+		shots.current.children.forEach((child, i) => {
+			const shot = engine.shots[i];
+			child.visible = Boolean(shot);
+			if (shot) child.position.set(shot.x, shot.y, .25);
+		});
+		bursts.current.children.forEach((child, i) => {
+			const blast = engine.blasts[Math.floor(i / 8)];
+			child.visible = Boolean(blast);
+			if (blast) {
+				const angle = i % 8 * Math.PI / 4, radius = (1 - blast.life / .3) * .8;
+				child.position.set(blast.x + Math.cos(angle) * radius, blast.y + Math.sin(angle) * radius, .25);
+				child.material.opacity = blast.life / .3;
+			}
+		});
+	});
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+		/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("mesh", {
+			ref: weapon,
+			visible: false,
+			renderOrder: 2,
+			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("planeGeometry", { args: [1, 1] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("meshBasicMaterial", {
+				map: texture,
+				transparent: true,
+				depthTest: false,
+				depthWrite: false,
+				toneMapped: false
+			})]
+		}),
+		/* @__PURE__ */ (0, import_jsx_runtime.jsx)("group", {
+			ref: shots,
+			children: Array.from({ length: 8 }, (_, i) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("mesh", {
+				visible: false,
+				renderOrder: 2,
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("planeGeometry", { args: [.16, .12] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("meshBasicMaterial", {
+					color: "#e6ffe6",
+					depthTest: false,
+					toneMapped: false
+				})]
+			}, i))
+		}),
+		/* @__PURE__ */ (0, import_jsx_runtime.jsx)("group", {
+			ref: bursts,
+			children: Array.from({ length: 64 }, (_, i) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("mesh", {
+				visible: false,
+				renderOrder: 2,
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("planeGeometry", { args: [.08, .08] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("meshBasicMaterial", {
+					color: "#00c9ff",
+					transparent: true,
+					depthTest: false,
+					depthWrite: false,
+					toneMapped: false
+				})]
+			}, i))
+		})
+	] });
 }
 function StarField({ reducedMotion }) {
 	const ref = (0, import_react.useRef)(null);
@@ -59867,6 +59949,10 @@ function GameScene({ reducedMotion, portalReducedMotion = reducedMotion }) {
 			})
 		] }, `${runSerial}:${roomIndex}`),
 		/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Caretaker, {
+			driver,
+			reducedMotion: portalReducedMotion
+		}),
+		/* @__PURE__ */ (0, import_jsx_runtime.jsx)(RetroEquipment, {
 			driver,
 			reducedMotion: portalReducedMotion
 		}),

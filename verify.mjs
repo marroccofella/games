@@ -206,9 +206,12 @@ const entryCode = scriptText.get(entryName);
 // A 200 response can still be an old cabinet. Pin the revision and every
 // hashed asset to the release manifest before accepting a public package.
 const release = JSON.parse(await readFile(path.join(productRoot, "release.json"), "utf8"));
-assert.equal(release.revision, "2026.09.11-clear-portal");
+assert.equal(release.revision, "2026.09.11-bug-hunt");
 assert.equal(release.portalSeconds, 5.42);
 assert.equal(release.playerTurns, 4.2);
+assert.deepEqual(release.retroModes, ["bug-hunt"]);
+assert.ok(entryCode.includes("TERMS & EXTERMINATIONS") && entryCode.includes("defeatRetroEnemy"), "the actual cabinet must include the revisit challenge and combat");
+assert.ok(entryCode.includes("KeyF") && entryCode.includes("KeyX"), "the cabinet must include firing controls");
 assert.ok(cabinet.includes('name="game-revision" content="' + release.revision + '"'));
 assert.ok(entryCode.includes(release.revision), "the revision must be visible inside the running game");
 assert.ok(entryCode.includes("LIABILITY TRANSFER"), "the portal interface must be in the actual entry bundle");

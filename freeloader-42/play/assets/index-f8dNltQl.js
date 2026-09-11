@@ -1,4 +1,4 @@
-const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["./Canvas2D-DO4MNUyM.js","./sprites-BbbTo2Hh.js","./ThreeField-DwRWhJQy.js"])))=>i.map(i=>d[i]);
+const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["./Canvas2D-5q3DDqAe.js","./sprites-CgeCSVGp.js","./ThreeField-CxfPVPl_.js"])))=>i.map(i=>d[i]);
 //#region \0rolldown/runtime.js
 var __create = Object.create;
 var __defProp = Object.defineProperty;
@@ -10165,9 +10165,14 @@ var controls = {
 	jumpHeld: false,
 	jumpQueued: false,
 	wildcardHeld: false,
-	wildcardQueued: false
+	wildcardQueued: false,
+	fireHeld: false
 };
 function setControl(name, active) {
+	if (name === "fire") {
+		controls.fireHeld = active;
+		return;
+	}
 	if (name === "wildcard") {
 		if (active && !controls.wildcardHeld) controls.wildcardQueued = true;
 		controls.wildcardHeld = active;
@@ -10181,6 +10186,7 @@ function setControl(name, active) {
 	controls[name] = active;
 }
 function clearControls() {
+	controls.fireHeld = false;
 	controls.left = false;
 	controls.right = false;
 	controls.jumpHeld = false;
@@ -10829,6 +10835,36 @@ function playSfx(name, detail = {}) {
 		return;
 	}
 	switch (name) {
+		case "weapon":
+			spawnTone({
+				frequency: 420,
+				endFrequency: 840,
+				duration: .2,
+				wave: "triangle",
+				gain: .1,
+				destination: sfxBus
+			});
+			break;
+		case "shot":
+			spawnTone({
+				frequency: 1260,
+				endFrequency: 168,
+				duration: .085,
+				wave: "square",
+				gain: .045,
+				destination: sfxBus
+			});
+			break;
+		case "enemy":
+			spawnTone({
+				frequency: 252,
+				endFrequency: 42,
+				duration: .18,
+				wave: "sawtooth",
+				gain: .09,
+				destination: sfxBus
+			});
+			break;
 		case "ui":
 			spawnTone({
 				frequency: 252,
@@ -11845,6 +11881,131 @@ var createImpl = (createState) => {
 	return useBoundStore;
 };
 var create = ((createState) => createState ? createImpl(createState) : createImpl);
+//#endregion
+//#region app/game/retro.mjs
+var RETRO_MODES = Object.freeze({ "bug-hunt": Object.freeze({
+	title: "BUG HUNT",
+	subtitle: "TERMS & EXTERMINATIONS",
+	goal: "Pick up the blaster, defeat every enemy, then reach the portal.",
+	hint: "F / X or FIRE shoots guided energy bolts. Get within range; bolts pass through platforms. Unlimited ammo. Jump and move as usual."
+}) });
+var BLASTER_COOLDOWN = .25;
+var BLASTER_SPRITE = Object.freeze([
+	"................",
+	"................",
+	"................",
+	"................",
+	".......kkkkkkk..",
+	"..kkkkkkeeeeek..",
+	"..kccccceeeeek..",
+	"..kCCCCCCCCCCkk.",
+	"..kkkkkkkkkkkkk.",
+	"....kbbbk.......",
+	"....kbbbk.......",
+	"....kkkkk.......",
+	"................",
+	"................",
+	"................",
+	"................"
+]);
+var BLASTER_PALETTE = Object.freeze({
+	k: "#081614",
+	e: "#e6ffe6",
+	c: "#00c9ff",
+	C: "#00ff99",
+	b: "#ffb000"
+});
+function freshRetro(room) {
+	return {
+		roomId: room.id,
+		mode: "bug-hunt",
+		weapon: false,
+		defeated: []
+	};
+}
+function validRetro(raw, room, completed) {
+	if (!raw || raw.roomId !== room.id || raw.mode !== "bug-hunt" || !completed.includes(room.id)) return null;
+	return {
+		roomId: room.id,
+		mode: "bug-hunt",
+		weapon: raw.weapon === true,
+		defeated: raw.weapon === true && Array.isArray(raw.defeated) ? [...new Set(raw.defeated.filter((id) => room.guardians.some((g) => g.id === id)))] : []
+	};
+}
+function retroFor(room, game) {
+	return game.retro?.roomId === room.id ? game.retro : null;
+}
+function retroRemaining(room, retro) {
+	return room.guardians.filter((g) => !retro.defeated.includes(g.id)).length;
+}
+function retroReady(room, retro) {
+	return retro.weapon && retroRemaining(room, retro) === 0;
+}
+function exitOutstanding(room, game) {
+	const retro = retroFor(room, game);
+	return retro ? retro.weapon ? retroRemaining(room, retro) : Math.max(1, retroRemaining(room, retro)) : room.shards.filter((s) => !game.collected.includes(s.id)).length;
+}
+function weaponPosition(room) {
+	return {
+		x: room.start.x + Math.sign(room.exit.x - room.start.x) * .75,
+		y: room.start.y
+	};
+}
+function stepRetro(state, controls, game, room, events, dt) {
+	let retro = game.retroState?.();
+	if (!retro || retro.roomId !== room.id) return;
+	const pickup = weaponPosition(room);
+	const dx = Math.max(0, Math.abs(state.x - pickup.x) - .3), dy = Math.max(0, Math.abs(state.y - pickup.y) - .72);
+	if (!retro.weapon && Math.hypot(dx, dy) < .35 && game.pickupRetroWeapon()) {
+		events.push("weapon");
+		retro = game.retroState();
+	}
+	state.shotCooldown = Math.max(0, state.shotCooldown - dt);
+	state.blasts = state.blasts.map((b) => ({
+		...b,
+		life: b.life - dt
+	})).filter((b) => b.life > 0);
+	if (retro.weapon && controls.fireHeld && state.shotCooldown <= 1e-8) {
+		const target = room.guardians.filter((g) => !retro.defeated.includes(g.id)).map((g) => ({
+			g,
+			d: Math.hypot(guardianX(g, state.seconds) - state.x, g.y - state.y)
+		})).filter((t) => t.d <= 9).sort((a, b) => a.d - b.d)[0]?.g;
+		state.shots.push({
+			x: state.x,
+			y: state.y,
+			targetId: target?.id ?? null,
+			dir: state.facing,
+			life: 1.5
+		});
+		state.shotCooldown = BLASTER_COOLDOWN;
+		events.push("shot");
+	}
+	state.shots = state.shots.filter((shot) => {
+		shot.life -= dt;
+		if (shot.life <= 0) return false;
+		const target = room.guardians.find((g) => g.id === shot.targetId);
+		if (!target) {
+			shot.x += shot.dir * 16 * dt;
+			return true;
+		}
+		if (game.retroState().defeated.includes(target.id)) return false;
+		const tx = guardianX(target, state.seconds), ty = target.y, dx = tx - shot.x, dy = ty - shot.y, d = Math.hypot(dx, dy);
+		if (d <= 16 * dt + target.radius) {
+			if (game.defeatRetroEnemy(target.id)) {
+				state.blasts.push({
+					x: tx,
+					y: ty,
+					life: .3
+				});
+				events.push("enemy");
+			}
+			return false;
+		}
+		shot.x += dx / d * 16 * dt;
+		shot.y += dy / d * 16 * dt;
+		return true;
+	});
+}
 var LATENCY_DRAIN = 1.35;
 function respawnLatency(current) {
 	return Math.max(42, Math.min(100, current));
@@ -11945,6 +12106,7 @@ function sanitiseProgress(raw) {
 	const stats = candidate.roomStats;
 	return {
 		version: candidate.version ?? 1,
+		retro: validRetro(candidate.retro, ROOMS[ROOM_INDEX_BY_ID[candidate.roomId]], completedRooms),
 		roomId: candidate.roomId,
 		collected,
 		completedRooms,
@@ -11967,6 +12129,7 @@ function sanitiseProgress(raw) {
 function snapshotProgress(state) {
 	return {
 		version: 2,
+		retro: state.phase === "playing" || state.phase === "paused" && state.resumePhase === "playing" ? state.retro : null,
 		roomId: ROOMS[state.roomIndex].id,
 		collected: state.collected,
 		completedRooms: state.completedRooms,
@@ -11988,6 +12151,8 @@ function persistProgress(state) {
 	});
 }
 var freshRun = (assisted = false) => ({
+	retro: null,
+	portalRetro: null,
 	latency: 100,
 	resumePhase: "playing",
 	transitionRemaining: 0,
@@ -12035,12 +12200,15 @@ var useGameStore = create((set, get) => ({
 		const saved = state.savedProgress;
 		if (!saved) return false;
 		const pending = ROOMS.findIndex((room) => !saved.completedRooms.includes(room.id));
-		const roomIndex = pending < 0 ? ROOMS.length - 1 : pending;
+		const restoredRetro = saved.retro ? validRetro(saved.retro, ROOMS[ROOM_INDEX_BY_ID[saved.roomId]], saved.completedRooms) : null;
+		const roomIndex = restoredRetro ? ROOM_INDEX_BY_ID[restoredRetro.roomId] : pending < 0 ? ROOMS.length - 1 : pending;
 		const room = ROOMS[roomIndex];
 		const sameRoom = room.id === saved.roomId;
 		clearControls();
 		set({
-			phase: pending < 0 ? "won" : "playing",
+			phase: pending < 0 && !restoredRetro ? "won" : "playing",
+			retro: restoredRetro,
+			portalRetro: null,
 			resumePhase: "playing",
 			transitionRemaining: 0,
 			portalSourceIndex: null,
@@ -12060,10 +12228,10 @@ var useGameStore = create((set, get) => ({
 			deathSerial: 0,
 			playerX: room.start.x,
 			wildcard: "ready",
-			notice: pending < 0 ? "PORTFOLIO ALREADY CERTIFIED // NO EMPTY ROOMS TO REPLAY" : `CHECKPOINT RESTORED // ${saved.completedRooms.length} CERTIFICATES KEPT // NEXT UNFINISHED: PROPERTY ${String(roomIndex + 1).padStart(2, "0")}`,
+			notice: restoredRetro ? "BUG HUNT RESTORED // CERTIFICATES KEPT // CLEAR THE ENEMIES TO OPEN T'PORTAL" : pending < 0 ? "PORTFOLIO ALREADY CERTIFIED // NO EMPTY ROOMS TO REPLAY" : `CHECKPOINT RESTORED // ${saved.completedRooms.length} CERTIFICATES KEPT // NEXT UNFINISHED: PROPERTY ${String(roomIndex + 1).padStart(2, "0")}`,
 			runSerial: state.runSerial + 1
 		});
-		if (pending < 0) {
+		if (pending < 0 && !restoredRetro) {
 			if (typeof window !== "undefined") clearProgress(() => window.localStorage);
 			set({
 				hasProgress: false,
@@ -12098,6 +12266,7 @@ var useGameStore = create((set, get) => ({
 			assisted: state.assisted || !state.autopilot && state.phase !== "menu" && state.phase !== "won",
 			...!state.autopilot && (state.phase === "playing" || state.phase === "paused") ? {
 				wildcard: "ready",
+				retro: retroFor(ROOMS[state.roomIndex], state) ? freshRetro(ROOMS[state.roomIndex]) : null,
 				notice: "WATCH / ASSIST ON // ROOM REWOUND; RECEIPTS KEPT // O TO TAKE OVER"
 			} : state.autopilot && state.phase === "playing" ? { notice: "YOUR HANDS, YOUR PROBLEM // ASSISTED RECORD CATEGORY RETAINED" } : {}
 		}));
@@ -12106,6 +12275,60 @@ var useGameStore = create((set, get) => ({
 			"paused",
 			"cleared"
 		].includes(get().phase)) persistProgress(get());
+	},
+	beginRevisit: () => {
+		const state = get(), room = ROOMS[state.roomIndex];
+		if (state.phase !== "playing") return false;
+		if (!state.completedRooms.includes(room.id)) {
+			if (state.retro) {
+				clearControls();
+				set({
+					retro: null,
+					portalRetro: null,
+					runSerial: state.runSerial + 1
+				});
+				persistProgress(get());
+			}
+			return false;
+		}
+		if (state.retro?.roomId === room.id) return false;
+		clearControls();
+		set({
+			retro: freshRetro(room),
+			portalRetro: null,
+			roomStats: freshRoomStats(false),
+			runSerial: state.runSerial + 1,
+			notice: "RETURN VISIT // BUG HUNT // PICK UP T'BLASTER. OLD CERTIFICATE STILL VALID."
+		});
+		persistProgress(get());
+		return true;
+	},
+	pickupRetroWeapon: () => {
+		const state = get();
+		if (state.phase !== "playing" || !state.retro || state.retro.roomId !== ROOMS[state.roomIndex].id || state.retro.weapon) return false;
+		set({
+			retro: {
+				...state.retro,
+				weapon: true
+			},
+			notice: "BUG ZAPPER ACQUIRED // F / X TO FIRE // GUIDED BOLTS. UNLIMITED AMMO. LIMITED SYMPATHY."
+		});
+		persistProgress(get());
+		return true;
+	},
+	defeatRetroEnemy: (id) => {
+		const state = get(), room = ROOMS[state.roomIndex];
+		if (state.phase !== "playing" || !state.retro?.weapon || state.retro.roomId !== room.id || state.retro.defeated.includes(id) || !room.guardians.some((g) => g.id === id)) return false;
+		const retro = {
+			...state.retro,
+			defeated: [...state.retro.defeated, id]
+		}, remaining = retroRemaining(room, retro);
+		set({
+			retro,
+			notice: remaining ? `BUG REMOVED // ${remaining} ENEMIES REMAIN // T'WARRANTY HAS LEFT THE BUILDING` : "ALL ENEMIES CLEARED // PORTAL UNLOCKED // RETURN TO T'UNFINISHED BUSINESS"
+		});
+		persistProgress(get());
+		return true;
 	},
 	setRenderMode: (renderMode) => {
 		set({ renderMode });
@@ -12168,7 +12391,7 @@ var useGameStore = create((set, get) => ({
 	collect: (id) => {
 		const state = get();
 		const room = ROOMS[state.roomIndex];
-		if (state.phase !== "playing" || state.collected.includes(id)) return false;
+		if (state.phase !== "playing" || retroFor(room, state) || state.collected.includes(id)) return false;
 		if (!room.shards.some((shard) => shard.id === id)) return false;
 		const collected = [...state.collected, id];
 		const roomCollected = room.shards.filter((shard) => collected.includes(shard.id)).length;
@@ -12183,12 +12406,26 @@ var useGameStore = create((set, get) => ({
 		return true;
 	},
 	denyGate: (outstanding) => {
-		set({ notice: `ACCESS DENIED // ${outstanding} EVIDENCE RECEIPT${outstanding === 1 ? "" : "S"} OUTSTANDING` });
+		const retro = get().retro;
+		set({ notice: retro ? !retro.weapon ? "PORTAL SEALED // PICK UP THE BLASTER FIRST" : `PORTAL SEALED // ${outstanding} ENEMIES STILL ON THE PAYROLL` : `ACCESS DENIED // ${outstanding} EVIDENCE RECEIPT${outstanding === 1 ? "" : "S"} OUTSTANDING` });
 	},
 	clearRoom: () => {
 		const state = get();
 		const room = ROOMS[state.roomIndex];
 		const roomCollected = room.shards.filter((shard) => state.collected.includes(shard.id)).length;
+		if (state.retro?.roomId === room.id) {
+			if (state.phase !== "playing" || !retroReady(room, state.retro)) return null;
+			clearControls();
+			set({
+				phase: "cleared",
+				transitionRemaining: PORTAL_SECONDS,
+				portalSourceIndex: state.roomIndex,
+				portalRetro: state.retro.mode,
+				notice: "BUG HUNT COMPLETE // CERTIFICATE KEPT. INFESTATION TERMINATED."
+			});
+			persistProgress(get());
+			return "cleared";
+		}
 		if (state.phase !== "playing" || roomCollected !== room.shards.length || state.completedRooms.includes(room.id)) return null;
 		if (room.id === FINAL_ROOM_ID && ROOMS.some((entry) => entry.id !== FINAL_ROOM_ID && !state.completedRooms.includes(entry.id))) return null;
 		const completedRooms = state.completedRooms.includes(room.id) ? state.completedRooms : [...state.completedRooms, room.id];
@@ -12243,6 +12480,8 @@ var useGameStore = create((set, get) => ({
 				phase: nextIndex < 0 ? "won" : "playing",
 				transitionRemaining: 0,
 				portalSourceIndex: null,
+				retro: null,
+				portalRetro: null,
 				...nextIndex < 0 ? {
 					hasProgress: false,
 					savedProgress: null
@@ -12255,6 +12494,7 @@ var useGameStore = create((set, get) => ({
 		clearControls();
 		set({
 			roomIndex: nextIndex,
+			retro: null,
 			transitionRemaining: remaining,
 			roomStats: freshRoomStats(!nextRoom.shards.some((receipt) => state.collected.includes(receipt.id))),
 			wildcard: "ready",
@@ -12269,6 +12509,19 @@ var useGameStore = create((set, get) => ({
 		const state = get();
 		if (state.phase !== "playing" && !(state.phase === "paused" && state.resumePhase === "playing")) return false;
 		const room = ROOMS[state.roomIndex];
+		if (state.retro?.roomId === room.id) {
+			clearControls();
+			set({
+				phase: "playing",
+				retro: freshRetro(room),
+				wildcard: "ready",
+				latency: respawnLatency(state.latency),
+				runSerial: state.runSerial + 1,
+				notice: "BUG HUNT RETRIED // WEAPON AND ENEMIES RESET // CERTIFICATES KEPT"
+			});
+			persistProgress(get());
+			return true;
+		}
 		if (state.completedRooms.includes(room.id)) return false;
 		const roomReceipts = new Set(room.shards.map((receipt) => receipt.id));
 		const collected = state.collected.filter((id) => !roomReceipts.has(id));
@@ -12293,6 +12546,7 @@ var useGameStore = create((set, get) => ({
 		set((state) => {
 			return {
 				latency: respawnLatency(state.latency),
+				retro: retroFor(ROOMS[state.roomIndex], state) ? freshRetro(ROOMS[state.roomIndex]) : null,
 				streak: 0,
 				deaths: state.deaths + 1,
 				roomStats: {
@@ -12356,6 +12610,7 @@ function PortalTransfer({ reducedMotion }) {
 	const roomIndex = useGameStore((state) => state.roomIndex);
 	const completed = useGameStore((state) => state.completedRooms);
 	const mastered = useGameStore((state) => state.masteredRooms);
+	const retro = useGameStore((state) => state.portalRetro);
 	if (sourceIndex === null) return null;
 	const source = ROOMS[sourceIndex];
 	const next = ROOMS.find((room) => !completed.includes(room.id));
@@ -12398,9 +12653,9 @@ function PortalTransfer({ reducedMotion }) {
 					"aria-hidden": "true",
 					children: Array.from({ length: 6 }, (_, i) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("i", { className: i < frame.locks ? "locked" : "" }, i))
 				}),
-				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
 					className: "portal-result",
-					children: ["PROPERTY CERTIFIED · ", mastered.includes(source.id) ? "BONUS AUDIT EARNED" : "BONUS NOT AWARDED"]
+					children: retro ? "BUG HUNT COMPLETE · ORIGINAL CERTIFICATE KEPT" : `PROPERTY CERTIFIED · ${mastered.includes(source.id) ? "BONUS AUDIT EARNED" : "BONUS NOT AWARDED"}`
 				}),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
 					className: "portal-quip",
@@ -12411,9 +12666,8 @@ function PortalTransfer({ reducedMotion }) {
 					className: "sr-only",
 					role: "status",
 					children: [
-						"Property ",
-						source.number,
-						" certified. ",
+						retro ? `Bug Hunt in property ${source.number} complete.` : `Property ${source.number} certified.`,
+						" ",
 						next ? `Teleporting to property ${next.number}: ${next.property}.` : "Final portal. All forty-two properties complete."
 					]
 				})
@@ -12493,7 +12747,7 @@ function PortalMotionControl({ value, onChange, reducedMotion }) {
 }
 //#endregion
 //#region app/game/release.mjs
-var RELEASE_ID = "2026.09.11-clear-portal";
+var RELEASE_ID = "2026.09.11-bug-hunt";
 //#endregion
 //#region \0vite/preload-helper.js
 var scriptRel = "modulepreload";
@@ -12563,8 +12817,8 @@ var __vitePreload = function preload(baseModule, deps, importerUrl) {
 };
 //#endregion
 //#region app/FreeloaderGame.tsx
-var Canvas2D = (0, import_react.lazy)(() => __vitePreload(() => import("./Canvas2D-DO4MNUyM.js"), __vite__mapDeps([0,1]), import.meta.url));
-var ThreeField = (0, import_react.lazy)(() => __vitePreload(() => import("./ThreeField-DwRWhJQy.js"), __vite__mapDeps([2,1]), import.meta.url));
+var Canvas2D = (0, import_react.lazy)(() => __vitePreload(() => import("./Canvas2D-5q3DDqAe.js"), __vite__mapDeps([0,1]), import.meta.url));
+var ThreeField = (0, import_react.lazy)(() => __vitePreload(() => import("./ThreeField-CxfPVPl_.js"), __vite__mapDeps([2,1]), import.meta.url));
 var CONTROL_BY_CODE = {
 	ArrowLeft: "left",
 	KeyA: "left",
@@ -12573,7 +12827,9 @@ var CONTROL_BY_CODE = {
 	ArrowUp: "jump",
 	KeyW: "jump",
 	Space: "jump",
-	KeyE: "wildcard"
+	KeyE: "wildcard",
+	KeyF: "fire",
+	KeyX: "fire"
 };
 function unlockAudio(onReady) {
 	startAudio().then(onReady).catch(() => {});
@@ -12639,13 +12895,14 @@ function TouchButton({ control, label, className = "" }) {
 		onPointerUp: release,
 		onPointerCancel: release,
 		onLostPointerCapture: release,
-		children: [control === "left" ? "←" : control === "right" ? "→" : control === "jump" ? "↑" : "*", /* @__PURE__ */ (0, import_jsx_runtime.jsx)("small", { children: control === "jump" ? "JUMP" : control === "wildcard" ? "RETYPE" : "MOVE" })]
+		children: [control === "left" ? "←" : control === "right" ? "→" : control === "jump" ? "↑" : control === "fire" ? "F" : "*", /* @__PURE__ */ (0, import_jsx_runtime.jsx)("small", { children: control === "fire" ? "FIRE" : control === "jump" ? "JUMP" : control === "wildcard" ? "RETYPE" : "MOVE" })]
 	});
 }
 function FreeloaderGame() {
 	const reducedMotion = useReducedMotion();
 	const portalMotion = usePortalMotion(reducedMotion);
 	const phase = useGameStore((state) => state.phase);
+	const retro = useGameStore((state) => state.retro?.roomId === ROOMS[state.roomIndex].id ? state.retro : null);
 	const latency = useGameStore((state) => state.latency);
 	const elapsed = useGameStore((state) => state.elapsed);
 	const collected = useGameStore((state) => state.collected);
@@ -12672,6 +12929,8 @@ function FreeloaderGame() {
 	const playfieldRef = (0, import_react.useRef)(null);
 	const currentScore = scoreRun(latency, streak, banked, roomsCleared);
 	const room = ROOMS[roomIndex];
+	const retroMode = retro ? RETRO_MODES[retro.mode] : null;
+	const enemiesLeft = retro ? retroRemaining(room, retro) : 0;
 	const contract = contractFor(room);
 	const mastery = masteryStatus(contract, roomStats, phase === "cleared" || phase === "won");
 	const roomCollected = room.shards.filter((shard) => collected.includes(shard.id)).length;
@@ -12835,7 +13094,7 @@ function FreeloaderGame() {
 		useGameStore.getState().setRenderMode(renderMode === "3d" ? "2d" : "3d");
 	};
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("main", {
-		className: `game-shell phase-${phase}`,
+		className: `game-shell phase-${phase}${retro ? " retro-visit" : ""}`,
 		ref: playfieldRef,
 		tabIndex: -1,
 		children: [
@@ -12876,7 +13135,7 @@ function FreeloaderGame() {
 					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
 						className: "eyebrow",
 						children: ["42.UK // ANOMALOUS APPLICATION 0X2A // ", RELEASE_ID]
-					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: "FREEL*ADER 42: PROPERTY OVERFLOW" })]
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: retroMode ? `RETURN VISIT // ${retroMode.title}` : "FREEL*ADER 42: PROPERTY OVERFLOW" })]
 				}), phase === "menu" ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 					className: "field-status",
 					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("i", {}), " FIELD: LIVE"]
@@ -13032,11 +13291,7 @@ function FreeloaderGame() {
 					}),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 						className: "hud-metric",
-						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "RECEIPTS" }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("strong", { children: [
-							roomCollected,
-							"/",
-							room.shards.length
-						] })]
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: retro ? "ENEMIES LEFT" : "RECEIPTS" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: retro ? `${enemiesLeft}/${room.guardians.length}` : `${roomCollected}/${room.shards.length}` })]
 					}),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 						className: "hud-metric",
@@ -13048,7 +13303,7 @@ function FreeloaderGame() {
 					}),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 						className: `hud-metric wildcard-metric wildcard-${wildcard}`,
-						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "* WILDCARD" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: wildcard.toUpperCase() })]
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: retro ? "BLASTER" : "* WILDCARD" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: retro ? retro.weapon ? "F / X FIRE" : "PICK UP" : wildcard.toUpperCase() })]
 					}),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 						className: "hud-metric optional-metric",
@@ -13071,23 +13326,20 @@ function FreeloaderGame() {
 					className: "mandatory-goal",
 					children: [
 						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
-							"GOAL // ",
+							retro ? "RETURN VISIT · " + retroMode?.title : "GOAL",
+							" // ",
 							String(roomIndex + 1).padStart(2, "0"),
 							" OF 42"
 						] }),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: roomCollected < room.shards.length ? `Recover receipts: ${roomCollected} / ${room.shards.length}` : "Receipts banked — reach the exit" }),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("small", { children: [
-							"Exit ",
-							room.exit.x > room.start.x ? "→ right" : "← left",
-							" · next level opens automatically"
-						] })
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: retro ? !retro.weapon ? "Pick up the glowing blaster" : enemiesLeft ? `Defeat every enemy: ${enemiesLeft} left` : "All enemies defeated — portal unlocked" : roomCollected < room.shards.length ? `Recover receipts: ${roomCollected} / ${room.shards.length}` : "Receipts banked — reach the exit" }),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("small", { children: retro && !retroReady(room, retro) ? "Portal sealed until the hunt is complete" : `Exit ${room.exit.x > room.start.x ? "→ right" : "← left"} · ${retro ? "return to unfinished business" : "next level opens automatically"}` })
 					]
 				}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 					className: `bonus-goal bonus-${mastery.state}`,
 					children: [
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "BONUS AUDIT · OPTIONAL" }),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: contract.bonus }),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("small", { children: mastery.text })
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: retro ? retroMode?.subtitle : "BONUS AUDIT · OPTIONAL" }),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: retro ? "F / X: fire guided bolts · unlimited ammo" : contract.bonus }),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("small", { children: retro ? "Your original certificate and receipts stay banked" : mastery.text })
 					]
 				})]
 			}),
@@ -13110,12 +13362,11 @@ function FreeloaderGame() {
 					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
 						className: "pause-help",
 						children: [
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: contract.goal }),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: retroMode?.goal ?? contract.goal }),
 							/* @__PURE__ */ (0, import_jsx_runtime.jsx)("br", {}),
-							contract.hint,
+							retroMode?.hint ?? contract.hint,
 							/* @__PURE__ */ (0, import_jsx_runtime.jsx)("br", {}),
-							"Optional: ",
-							contract.bonus
+							retro ? "RETURN VISIT // ORIGINAL CERTIFICATE KEPT" : `Optional: ${contract.bonus}`
 						]
 					}),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
@@ -13123,7 +13374,8 @@ function FreeloaderGame() {
 						children: [
 							"A / D or arrows: move · SPACE: jump · E: wildcard for 4.2 seconds.",
 							/* @__PURE__ */ (0, import_jsx_runtime.jsx)("br", {}),
-							"Collect every receipt, then reach the glowing exit. O: watch AI / take over. V: swap 2D / 3D."
+							retro ? "F / X: fire. Clear every enemy, then reach the portal." : "Collect every receipt, then reach the glowing exit.",
+							" O: watch AI / take over. V: swap 2D / 3D."
 						]
 					}),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
@@ -13148,11 +13400,11 @@ function FreeloaderGame() {
 						className: "secondary-action retry-room",
 						type: "button",
 						onClick: () => useGameStore.getState().retryRoom(),
-						children: "[ RETRY THIS ROOM + RESET BONUS ]"
+						children: retro ? "[ RETRY BUG HUNT ]" : "[ RETRY THIS ROOM + RESET BONUS ]"
 					}),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
 						className: "retry-note",
-						children: "J retries only this room and its receipts. Earlier certificates stay banked."
+						children: retro ? "J resets the blaster and enemies. Original receipts and certificates stay banked." : "J retries only this room and its receipts. Earlier certificates stay banked."
 					})
 				]
 			}),
@@ -13217,15 +13469,23 @@ function FreeloaderGame() {
 				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TouchButton, {
 					control: "right",
 					label: "Move right"
-				})] }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TouchButton, {
-					control: "wildcard",
-					label: "Retype the highlighted platform for 4.2 seconds",
-					className: "wildcard-control"
-				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TouchButton, {
-					control: "jump",
-					label: "Jump",
-					className: "jump-control"
-				})] })]
+				})] }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+					retro && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TouchButton, {
+						control: "fire",
+						label: "Fire blaster",
+						className: "fire-control"
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TouchButton, {
+						control: "wildcard",
+						label: "Retype the highlighted platform for 4.2 seconds",
+						className: "wildcard-control"
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TouchButton, {
+						control: "jump",
+						label: "Jump",
+						className: "jump-control"
+					})
+				] })]
 			}),
 			phase !== "menu" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("footer", {
 				className: "game-footer",
@@ -13258,4 +13518,4 @@ var root = document.getElementById("root");
 if (!root) throw new Error("FREEL*ADER 42 could not find its arcade cabinet.");
 (0, import_client.createRoot)(root).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(import_react.StrictMode, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(FreeloaderGame, {}) }));
 //#endregion
-export { __toESM as S, controls as _, GUARDIAN_REASONS as a, __commonJSMin as b, moverX as c, PORTAL_CUES as d, PORTAL_SECONDS as f, portalPose as g, portalFrame as h, createStore as i, playSfx as l, portalActive as m, useGameStore as n, ROOMS as o, drawPortal as p, LATENCY_DRAIN as r, guardianX as s, require_jsx_runtime as t, stopPortalAudio as u, require_scheduler as v, __exportAll as x, require_react as y };
+export { controls as C, __exportAll as D, __commonJSMin as E, __toESM as O, portalPose as S, require_react as T, PORTAL_CUES as _, BLASTER_SPRITE as a, portalActive as b, stepRetro as c, GUARDIAN_REASONS as d, ROOMS as f, stopPortalAudio as g, playSfx as h, BLASTER_PALETTE as i, weaponPosition as l, moverX as m, useGameStore as n, exitOutstanding as o, guardianX as p, LATENCY_DRAIN as r, retroFor as s, require_jsx_runtime as t, createStore as u, PORTAL_SECONDS as v, require_scheduler as w, portalFrame as x, drawPortal as y };
