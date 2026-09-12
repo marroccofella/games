@@ -1,5 +1,5 @@
-import { O as __toESM, S as portalPose, T as require_react, a as BLASTER_SPRITE, b as portalActive, f as ROOMS, i as BLASTER_PALETTE, l as weaponPosition, m as moverX, n as useGameStore, o as exitOutstanding, p as guardianX, s as retroFor, t as require_jsx_runtime, x as portalFrame, y as drawPortal } from "./index-f8dNltQl.js";
-import { a as TILE_SPRITES, c as getDriver, i as SPRITE_PALETTES, l as BELT_SPEED, n as GUARDIAN_SPRITES, o as spriteToCanvas, r as SHARD_SPRITE, s as tilePalette, t as FREELOADER_FRAMES, u as phantomStateAt } from "./sprites-CgeCSVGp.js";
+import { A as __toESM, C as portalFrame, D as require_react, S as portalActive, a as BLASTER_SPRITE, c as retroFor, f as ROOMS, i as BLASTER_PALETTE, m as moverX, n as useGameStore, o as exitOutstanding, p as guardianX, s as receiptVisible, t as require_jsx_runtime, u as weaponPosition, w as portalPose, x as drawPortal } from "./index-Des0fWDS.js";
+import { a as SPRITE_PALETTES, c as tilePalette, d as phantomStateAt, i as SHARD_SPRITE, l as getDriver, n as FREELOADER_FRAMES, o as TILE_SPRITES, r as GUARDIAN_SPRITES, s as spriteToCanvas, t as drawSymbolField, u as BELT_SPEED } from "./symbol-field-D770hWfj.js";
 //#region app/game/Canvas2D.tsx
 var import_react = /* @__PURE__ */ __toESM(require_react(), 1);
 var import_jsx_runtime = require_jsx_runtime();
@@ -68,23 +68,15 @@ function Canvas2D({ reducedMotion, portalReducedMotion = reducedMotion }) {
 				flashFrames = 10;
 			}
 			ctx.imageSmoothingEnabled = false;
-			ctx.fillStyle = theme.bg;
-			ctx.fillRect(0, 0, width, height);
-			const glow = ctx.createLinearGradient(0, 0, 0, height);
-			glow.addColorStop(0, `${theme.haze}55`);
-			glow.addColorStop(.55, "transparent");
-			glow.addColorStop(1, `${theme.haze}33`);
-			ctx.fillStyle = glow;
-			ctx.fillRect(0, 0, width, height);
-			ctx.strokeStyle = `${theme.accent}22`;
-			ctx.lineWidth = Math.max(1, scale * .03);
-			for (let ribX = Math.floor((camX - halfViewUnits) / 1.9) * 1.9; ribX < camX + halfViewUnits + 2; ribX += 1.9) {
-				const px = (ribX - camX) * .55 * scale + width / 2;
-				ctx.beginPath();
-				ctx.moveTo(px, 0);
-				ctx.lineTo(px, height);
-				ctx.stroke();
-			}
+			drawSymbolField(ctx, {
+				width,
+				height,
+				time: driver.visualSeconds,
+				cameraX: camX,
+				cameraY: engine.y,
+				theme,
+				reducedMotion
+			});
 			for (const platform of room.platforms) {
 				const tile = sprites[`tile:${engine.roomIndex}:${platform.kind === "conveyor" ? "conveyor" : platform.kind === "crumble" ? "crumble" : platform.kind === "phantom" ? "phantom" : "solid"}`];
 				if (!tile) continue;
@@ -176,7 +168,7 @@ function Canvas2D({ reducedMotion, portalReducedMotion = reducedMotion }) {
 			gate(room.exit.x, room.exit.y, arriving ? null : portal, open);
 			if (arriving) gate(room.start.x, room.start.y, portal, true);
 			room.shards.forEach((shard, index) => {
-				if (game.collected.includes(shard.id)) return;
+				if (!receiptVisible(room, game, shard.id)) return;
 				const bob = reducedMotion ? 0 : Math.sin(engine.seconds * 2 + index) * .13;
 				const sprite = sprites.shard;
 				if (!sprite) return;
@@ -187,7 +179,7 @@ function Canvas2D({ reducedMotion, portalReducedMotion = reducedMotion }) {
 				ctx.restore();
 			});
 			room.guardians.forEach((guardian, index) => {
-				if (retro?.defeated.includes(guardian.id)) return;
+				if (retro?.mode === "bug-hunt" && retro.defeated.includes(guardian.id)) return;
 				const sprite = sprites[`guardian:${guardian.kind}`];
 				if (!sprite) return;
 				const gx = guardianX(guardian, engine.seconds);
@@ -201,7 +193,7 @@ function Canvas2D({ reducedMotion, portalReducedMotion = reducedMotion }) {
 				ctx.drawImage(sprite, -1.15 * scale / 2, 0, GUARDIAN_DRAW * scale, GUARDIAN_DRAW * scale);
 				ctx.restore();
 			});
-			if (retro && !portal) {
+			if (retro?.mode === "bug-hunt" && !portal) {
 				if (!retro.weapon && sprites.blaster) {
 					const pickup = weaponPosition(room);
 					ctx.save();
@@ -243,7 +235,7 @@ function Canvas2D({ reducedMotion, portalReducedMotion = reducedMotion }) {
 				ctx.scale(pose.scale, pose.scale);
 				if (engine.facing < 0) ctx.scale(-1, 1);
 				ctx.drawImage(freeloader, -1.55 * scale / 2, -1.55 * scale / 2, PLAYER_DRAW * scale, PLAYER_DRAW * scale);
-				if (retro?.weapon && sprites.blaster) ctx.drawImage(sprites.blaster, scale * .12, -scale * .25, scale * .85, scale * .85);
+				if (retro?.mode === "bug-hunt" && retro.weapon && sprites.blaster) ctx.drawImage(sprites.blaster, scale * .12, -scale * .25, scale * .85, scale * .85);
 				ctx.restore();
 			}
 			if (flashFrames > 0) {

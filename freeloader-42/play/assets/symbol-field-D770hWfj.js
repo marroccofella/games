@@ -1,4 +1,4 @@
-import { C as controls, _ as PORTAL_CUES, c as stepRetro, d as GUARDIAN_REASONS, f as ROOMS, g as stopPortalAudio, h as playSfx, m as moverX, n as useGameStore, o as exitOutstanding, p as guardianX, r as LATENCY_DRAIN, s as retroFor, v as PORTAL_SECONDS } from "./index-f8dNltQl.js";
+import { T as controls, _ as playSfx, b as PORTAL_SECONDS, c as retroFor, d as GUARDIAN_REASONS, f as ROOMS, h as announceQuip, l as stepRetro, m as moverX, n as useGameStore, o as exitOutstanding, p as guardianX, r as LATENCY_DRAIN, v as stopPortalAudio, y as PORTAL_CUES } from "./index-Des0fWDS.js";
 //#region app/game/engine.mjs
 var FIXED_STEP = 1 / 60;
 var PLAYER_HALF_WIDTH = .3;
@@ -192,7 +192,8 @@ function stepEngine(state, controls, game) {
 	for (const hazard of room.hazards) if (Math.abs(nextX - hazard.x) < hazard.width / 2 + .3 && nextY - .72 < hazard.y + .55) return die(state, game, events, "NULL POINTER UNDERFOOT");
 	stepRetro(state, controls, game, room, events, FIXED_STEP);
 	for (const guardian of room.guardians) {
-		if (game.retroState?.()?.defeated.includes(guardian.id)) continue;
+		const encounter = game.retroState?.();
+		if (encounter?.mode === "bug-hunt" && encounter.defeated.includes(guardian.id)) continue;
 		const gx = guardianX(guardian, state.seconds);
 		const nearestX = clamp(gx, nextX - PLAYER_HALF_WIDTH, nextX + PLAYER_HALF_WIDTH);
 		const nearestY = clamp(guardian.y, nextY - PLAYER_HALF_HEIGHT, nextY + PLAYER_HALF_HEIGHT);
@@ -217,6 +218,8 @@ function stepEngine(state, controls, game) {
 	if (state.subSteps >= 6) {
 		state.subSteps = 0;
 		game.tick(.1);
+		const retro = game.retroState?.();
+		if (retro?.mode === "byte-dash" && retro.remaining <= 0) return die(state, game, events, "CACHE EXPIRED // T'CLOCK DOESN'T ACCEPT EXCUSES");
 		game.setPlayerX(nextX);
 		if (game.latency() <= .01) return die(state, game, events, "LATENCY BUDGET LIQUIDATED");
 	}
@@ -4471,6 +4474,7 @@ function playEvent(event) {
 			break;
 		case "die":
 			playSfx("death");
+			announceQuip("death", useGameStore.getState().retro?.mode ?? null);
 			break;
 		case "denied":
 			playSfx("denied");
@@ -4484,7 +4488,9 @@ function playEvent(event) {
 		case "wildcard":
 			playSfx("wildcard");
 			break;
-		case "route": break;
+		case "route":
+			announceQuip("clear", useGameStore.getState().portalRetro);
+			break;
 		case "win": playSfx("win");
 	}
 }
@@ -4497,8 +4503,12 @@ function createDriver() {
 	let portalCueIndex = 0;
 	let portalKey = "";
 	let portalWasRunning = false;
+	let visualSeconds = 0;
 	return {
 		engine,
+		get visualSeconds() {
+			return visualSeconds;
+		},
 		frame(frameDelta) {
 			if (typeof document !== "undefined" && document.hidden) {
 				stopPortalAudio();
@@ -4506,6 +4516,7 @@ function createDriver() {
 			}
 			useGameStore.getState().beginRevisit();
 			const state = useGameStore.getState();
+			if (state.phase === "playing" || state.phase === "cleared") visualSeconds += Number.isFinite(frameDelta) ? Math.max(0, Math.min(frameDelta, .05)) : 0;
 			if (state.phase === "cleared") {
 				accumulator = 0;
 				const key = `${state.runSerial}:${state.portalSourceIndex}`;
@@ -4551,7 +4562,7 @@ function createDriver() {
 				steps += 1;
 				if (useGameStore.getState().autopilot) {
 					autopilotController.applyStep(engine, controls);
-					controls.fireHeld = Boolean(useGameStore.getState().retro);
+					controls.fireHeld = useGameStore.getState().retro?.mode === "bug-hunt";
 				}
 				const events = stepEngine(engine, controls, storeAdapter);
 				for (const event of events) playEvent(event);
@@ -4886,4 +4897,171 @@ function spriteToCanvas(rows, palette) {
 	return canvas;
 }
 //#endregion
-export { TILE_SPRITES as a, getDriver as c, SPRITE_PALETTES as i, BELT_SPEED as l, GUARDIAN_SPRITES as n, spriteToCanvas as o, SHARD_SPRITE as r, tilePalette as s, FREELOADER_FRAMES as t, phantomStateAt as u };
+//#region app/game/symbol-field.mjs
+var TAU = Math.PI * 2;
+var GLYPHS = [
+	"42",
+	"*",
+	"[",
+	"]",
+	"{",
+	"}",
+	"0",
+	"1",
+	"∞",
+	"◌",
+	"⌁",
+	"∆",
+	"◊",
+	"⟡"
+];
+var PALETTE = [
+	"#54d3a1",
+	"#65cbd3",
+	"#819daa",
+	"#cfa64f",
+	"#c97182",
+	"#e4ece7"
+];
+var DEPTHS = [
+	.1,
+	.25,
+	.48
+];
+var hash = (n) => {
+	let x = Math.imul(n + 23, 73244475);
+	x = Math.imul(x ^ x >>> 16, 73244475);
+	return ((x ^ x >>> 16) >>> 0) / 4294967296;
+};
+var wrap = (n, period) => (n % period + period) % period;
+var EMBLEMS = Object.freeze(Array.from({ length: 96 }, (_, i) => Object.freeze({
+	x: hash(i * 7),
+	y: hash(i * 7 + 1),
+	phase: hash(i * 7 + 2) * TAU,
+	speed: 4 + hash(i * 7 + 3) * 12,
+	layer: i % 3,
+	shape: i % 6,
+	spin: (hash(i * 7 + 4) - .5) * .36,
+	reverse: hash(i * 7 + 5) < .08 ? -1 : 1,
+	cycle: 3.5 + hash(i * 7 + 6) * 5
+})));
+function emblem(ctx, shape, radius) {
+	ctx.beginPath();
+	if (shape === 0) for (let i = 0; i < 3; i++) {
+		const a = -Math.PI / 2 + i * Math.PI / 3;
+		ctx.moveTo(Math.cos(a) * radius, Math.sin(a) * radius);
+		ctx.lineTo(-Math.cos(a) * radius, -Math.sin(a) * radius);
+	}
+	else if (shape === 1) for (let i = 0; i < 3; i++) ctx.arc(0, 0, radius, i * TAU / 3 + .18, (i + 1) * TAU / 3 - .25);
+	else if (shape === 2) {
+		ctx.moveTo(-radius * .35, -radius);
+		ctx.lineTo(-radius, -radius);
+		ctx.lineTo(-radius, radius);
+		ctx.lineTo(-radius * .35, radius);
+		ctx.moveTo(radius * .35, -radius);
+		ctx.lineTo(radius, -radius);
+		ctx.lineTo(radius, radius);
+		ctx.lineTo(radius * .35, radius);
+	} else if (shape === 3) {
+		ctx.moveTo(0, -radius);
+		ctx.lineTo(radius * .85, radius * .7);
+		ctx.lineTo(-radius * .85, radius * .7);
+		ctx.closePath();
+		ctx.moveTo(0, -radius * .25);
+		ctx.lineTo(0, radius * .45);
+	} else if (shape === 4) {
+		for (let i = 0; i < 6; i++) {
+			const a = i * TAU / 6;
+			const x = Math.sin(a) * radius, y = Math.cos(a) * radius;
+			if (i === 0) ctx.moveTo(x, y);
+			else ctx.lineTo(x, y);
+		}
+		ctx.closePath();
+		for (let i = 0; i < 3; i++) {
+			const a = i * TAU / 3;
+			ctx.moveTo(0, 0);
+			ctx.lineTo(Math.sin(a) * radius, Math.cos(a) * radius);
+		}
+	} else for (let i = 0; i < 3; i++) {
+		const y = (i - 1) * radius * .65;
+		ctx.moveTo(-radius * .7, y - radius * .3);
+		ctx.lineTo(0, y + radius * .3);
+		ctx.lineTo(radius * .7, y - radius * .3);
+	}
+	ctx.stroke();
+	if (shape === 0) {
+		ctx.beginPath();
+		ctx.arc(0, 0, radius * .15, 0, TAU);
+		ctx.fill();
+	}
+}
+function fieldPose(index, { time = 0, cameraX = 0, cameraY = 0, width = 960, height = 640, reducedMotion = false } = {}) {
+	const p = EMBLEMS[index % EMBLEMS.length], depth = DEPTHS[p.layer];
+	const t = reducedMotion ? 0 : time, cx = reducedMotion ? 0 : cameraX, cy = reducedMotion ? 0 : cameraY;
+	const angle = 1.28 + Math.sin(t * .12 + p.phase) * .24;
+	const travel = t * p.speed * p.reverse;
+	return {
+		x: wrap(p.x * (width + 120) + Math.cos(angle) * travel + Math.sin(t * .3 + p.phase) * 12 - cx * 18 * depth, width + 120) - 60,
+		y: wrap(p.y * (height + 120) + Math.sin(angle) * travel + cy * 18 * depth, height + 120) - 60,
+		rotation: p.phase + t * p.spin,
+		size: 6 + p.layer * 4 + hash(index + 811) * 6,
+		mix: Math.max(0, (wrap(t + p.phase, p.cycle) / p.cycle - .72) / .28),
+		shape: (p.shape + Math.floor((t + p.phase) / p.cycle)) % 6,
+		layer: p.layer
+	};
+}
+function drawSymbolField(ctx, { width, height, time = 0, cameraX = 0, cameraY = 0, theme, reducedMotion = false }) {
+	if (width <= 0 || height <= 0) return;
+	ctx.save();
+	ctx.globalAlpha = 1;
+	ctx.fillStyle = theme.bg;
+	ctx.fillRect(0, 0, width, height);
+	const glow = ctx.createRadialGradient(width * .52, height * .2, 0, width * .5, height * .5, Math.max(width, height) * .8);
+	glow.addColorStop(0, theme.haze + "38");
+	glow.addColorStop(1, theme.bg);
+	ctx.fillStyle = glow;
+	ctx.fillRect(0, 0, width, height);
+	const t = reducedMotion ? 0 : time, cx = reducedMotion ? 0 : cameraX, cy = reducedMotion ? 0 : cameraY;
+	const count = Math.min(96, Math.max(36, Math.round(width * height / 7e3)));
+	for (let i = 0; i < count; i++) {
+		const p = fieldPose(i, {
+			time: t,
+			cameraX: cx,
+			cameraY: cy,
+			width,
+			height,
+			reducedMotion
+		});
+		const alpha = .08 + p.layer * .035;
+		ctx.save();
+		ctx.translate(p.x, p.y);
+		ctx.rotate(p.rotation);
+		ctx.lineWidth = .8 + p.layer * .2;
+		ctx.strokeStyle = ctx.fillStyle = i % 4 === 0 ? theme.accent : PALETTE[i % PALETTE.length];
+		const blend = (1 - Math.cos(p.mix * Math.PI)) / 2;
+		ctx.globalAlpha = alpha * (1 - blend);
+		emblem(ctx, p.shape, p.size);
+		if (blend > 0) {
+			ctx.globalAlpha = alpha * blend;
+			emblem(ctx, (p.shape + 1) % 6, p.size);
+		}
+		ctx.restore();
+	}
+	const columns = Math.min(14, Math.max(6, Math.round(width / 90)));
+	for (let i = 0; i < columns; i++) {
+		const depth = DEPTHS[i % 3], reverse = i % 11 === 0 ? -1 : 1, speed = 18 + hash(i + 200) * 30;
+		const x = wrap(hash(i + 100) * width - cx * 18 * depth + Math.sin(t * .18 + i) * 9, width);
+		const y = wrap(hash(i + 300) * height + t * speed * reverse + cy * 18 * depth, height + 170) - 85;
+		const size = 10 + i % 3 * 2;
+		ctx.font = `${size}px monospace`;
+		ctx.textAlign = "center";
+		for (let j = 0; j < 5 + i % 3; j++) {
+			ctx.globalAlpha = (j === 0 ? .22 : .12) * (1 - j / 8);
+			ctx.fillStyle = j === 0 ? theme.accent : PALETTE[i % PALETTE.length];
+			ctx.fillText(GLYPHS[(i * 3 + j) % GLYPHS.length], x - j * 2.8 * reverse, y - j * size * 1.45 * reverse);
+		}
+	}
+	ctx.restore();
+}
+//#endregion
+export { SPRITE_PALETTES as a, tilePalette as c, phantomStateAt as d, SHARD_SPRITE as i, getDriver as l, FREELOADER_FRAMES as n, TILE_SPRITES as o, GUARDIAN_SPRITES as r, spriteToCanvas as s, drawSymbolField as t, BELT_SPEED as u };

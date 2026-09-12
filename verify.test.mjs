@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { controlContracts, javascriptStringLiterals } from "./verify.mjs";
+import { controlContracts, javascriptStringLiterals, approvedVoiceReference } from "./verify.mjs";
 
 test("control contracts cannot confuse Space with a library identifier", () => {
   const withBinding = 'const SRGBColorSpace=3001;const CONTROL_BY_CODE={Space:"jump"};';
@@ -20,4 +20,10 @@ test("audio strings remain visible when comment markers occur inside strings", (
 test("third-party documentation comments do not become runtime audio references", () => {
   const source = "/** loader.load('example.ogg') */ const mode='silent';";
   assert.deepEqual(javascriptStringLiterals(source), ["silent"]);
+});
+
+test("voice allowlist rejects external URLs, unapproved takes and traversal",()=>{
+ const names=new Set(['clear-001-abc123.flac']);
+ assert.equal(approvedVoiceReference('./clear-001-abc123.flac',names),true);
+ for(const source of ['https://example.test/clear-001-abc123.flac','../clear-001-abc123.flac','clear-001-other.flac','freeloader-intro.mp3','data:audio/flac;base64,AAAA'])assert.equal(approvedVoiceReference(source,names),false,source);
 });

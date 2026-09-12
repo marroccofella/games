@@ -2,6 +2,10 @@
 
 Release: **2026.09.05-linear**
 
+Historical release notes. The current [archive campaign](archive-rain-release.md)
+adds seven required remixes to this ordered property route; the former
+incidental-only revisit policy no longer describes the current release.
+
 [Play](https://marroccofella.github.io/games/freeloader-42/play/) · [Product page](https://marroccofella.github.io/games/freeloader-42/)
 
 ## The flow

@@ -1,5 +1,5 @@
-import { D as __exportAll, E as __commonJSMin, O as __toESM, S as portalPose, T as require_react, a as BLASTER_SPRITE, b as portalActive, f as ROOMS, i as BLASTER_PALETTE, l as weaponPosition, m as moverX, n as useGameStore, o as exitOutstanding, p as guardianX, s as retroFor, t as require_jsx_runtime, u as createStore$1, w as require_scheduler, x as portalFrame, y as drawPortal } from "./index-f8dNltQl.js";
-import { c as getDriver, i as SPRITE_PALETTES, n as GUARDIAN_SPRITES, o as spriteToCanvas, t as FREELOADER_FRAMES, u as phantomStateAt } from "./sprites-CgeCSVGp.js";
+import { A as __toESM, C as portalFrame, D as require_react, E as require_scheduler, O as __commonJSMin, S as portalActive, a as BLASTER_SPRITE, c as retroFor, f as ROOMS, g as createStore$1, i as BLASTER_PALETTE, k as __exportAll, m as moverX, n as useGameStore, o as exitOutstanding, p as guardianX, s as receiptVisible, t as require_jsx_runtime, u as weaponPosition, w as portalPose, x as drawPortal } from "./index-Des0fWDS.js";
+import { a as SPRITE_PALETTES, d as phantomStateAt, l as getDriver, n as FREELOADER_FRAMES, r as GUARDIAN_SPRITES, s as spriteToCanvas, t as drawSymbolField } from "./symbol-field-D770hWfj.js";
 //#region node_modules/three/build/three.core.js
 var import_react = /* @__PURE__ */ __toESM(require_react(), 1);
 /**
@@ -59419,7 +59419,7 @@ function Guardian({ guardian, index, driver, reducedMotion }) {
 		const engine = driver.engine;
 		if (!group.current || !plane.current) return;
 		const retro = retroFor(ROOMS[engine.roomIndex], useGameStore.getState());
-		group.current.visible = !retro?.defeated.includes(guardian.id);
+		group.current.visible = retro?.mode !== "bug-hunt" || !retro.defeated.includes(guardian.id);
 		const bob = reducedMotion ? 0 : Math.sin(engine.seconds * 3 + index) * .06;
 		group.current.position.set(guardianX(guardian, engine.seconds), guardian.y + bob, 0);
 		const heading = Math.cos(engine.seconds * guardian.speed) < 0 ? -1 : 1;
@@ -59554,7 +59554,7 @@ function Hazard({ hazard }) {
 }
 function Shard({ shard, index, driver, reducedMotion }) {
 	const ref = (0, import_react.useRef)(null);
-	const collected = useGameStore((state) => state.collected.includes(shard.id));
+	const collected = useGameStore((state) => !receiptVisible(ROOMS[state.roomIndex], state, shard.id));
 	useFrame((_, delta) => {
 		if (!ref.current || collected || reducedMotion) return;
 		ref.current.rotation.y += delta * (1.1 + index * .12);
@@ -59679,7 +59679,8 @@ function RetroEquipment({ driver, reducedMotion }) {
 	const texture = useSpriteTexture(BLASTER_SPRITE, BLASTER_PALETTE);
 	useFrame(() => {
 		const engine = driver.engine, game = useGameStore.getState(), room = ROOMS[engine.roomIndex];
-		const retro = retroFor(room, game);
+		const active = retroFor(room, game);
+		const retro = active?.mode === "bug-hunt" ? active : null;
 		if (!weapon.current || !shots.current || !bursts.current) return;
 		weapon.current.visible = Boolean(retro);
 		shots.current.visible = bursts.current.visible = Boolean(retro) && !portalActive(game);
@@ -59752,99 +59753,49 @@ function RetroEquipment({ driver, reducedMotion }) {
 		})
 	] });
 }
-function StarField({ reducedMotion }) {
-	const ref = (0, import_react.useRef)(null);
-	const positions = (0, import_react.useMemo)(() => {
-		const values = /* @__PURE__ */ new Float32Array(540);
-		for (let i = 0; i < values.length / 3; i += 1) {
-			values[i * 3] = -18 + i * 47 % 700 / 10;
-			values[i * 3 + 1] = -2 + i * 83 % 150 / 10;
-			values[i * 3 + 2] = -4 - i * 29 % 90 / 10;
+function SymbolField({ driver, theme, reducedMotion }) {
+	const size = useThree((state) => state.size);
+	const canvas = (0, import_react.useMemo)(() => document.createElement("canvas"), []);
+	const texture = (0, import_react.useRef)(null);
+	const drawn = (0, import_react.useRef)({
+		lastTime: -1,
+		key: ""
+	});
+	useFrame(() => {
+		const map = texture.current;
+		if (!map) return;
+		const surface = map.image;
+		const scale = Math.min(1, 960 / Math.max(1, size.width), 720 / Math.max(1, size.height));
+		const width = Math.max(1, Math.round(size.width * scale));
+		const height = Math.max(1, Math.round(size.height * scale));
+		const time = reducedMotion ? 0 : driver.visualSeconds;
+		const key = `${width}:${height}:${theme.bg}:${reducedMotion}`;
+		if (key === drawn.current.key && time - drawn.current.lastTime < 1 / 24) return;
+		if (surface.width !== width || surface.height !== height) {
+			surface.width = width;
+			surface.height = height;
 		}
-		return values;
-	}, []);
-	useFrame((_, delta) => {
-		if (ref.current && !reducedMotion) ref.current.rotation.z += delta * .004;
+		drawSymbolField(surface.getContext("2d"), {
+			width,
+			height,
+			time,
+			cameraX: driver.engine.x,
+			cameraY: driver.engine.y,
+			theme,
+			reducedMotion
+		});
+		map.needsUpdate = true;
+		drawn.current.lastTime = time;
+		drawn.current.key = key;
 	});
-	return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("group", {
-		ref,
-		children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("points", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("bufferGeometry", { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("bufferAttribute", {
-			attach: "attributes-position",
-			args: [positions, 3]
-		}) }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("pointsMaterial", {
-			color: "#76ffbd",
-			size: .035,
-			transparent: true,
-			opacity: .6,
-			blending: 2,
-			depthWrite: false
-		})] })
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("canvasTexture", {
+		ref: texture,
+		attach: "background",
+		args: [canvas],
+		colorSpace: SRGBColorSpace,
+		generateMipmaps: false,
+		minFilter: LinearFilter
 	});
-}
-function Architecture({ theme }) {
-	const ribs = (0, import_react.useMemo)(() => Array.from({ length: 17 }, (_, index) => -8 + index * 1.9), []);
-	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("group", { children: [
-		ribs.map((x) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("group", {
-			position: [
-				x,
-				3.2,
-				-2.4
-			],
-			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("mesh", {
-				castShadow: true,
-				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("boxGeometry", { args: [
-					.08,
-					6.8,
-					.12
-				] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("meshStandardMaterial", {
-					color: theme.platform,
-					metalness: .7,
-					roughness: .4
-				})]
-			}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("mesh", {
-				position: [
-					0,
-					3.35,
-					1.8
-				],
-				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("boxGeometry", { args: [
-					.08,
-					.08,
-					3.6
-				] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("meshBasicMaterial", { color: theme.accent })]
-			})]
-		}, x)),
-		/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("mesh", {
-			position: [
-				7,
-				2.8,
-				-3.25
-			],
-			receiveShadow: true,
-			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("boxGeometry", { args: [
-				34,
-				8,
-				.4
-			] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("meshStandardMaterial", {
-				color: "#050b09",
-				roughness: .85,
-				metalness: .1
-			})]
-		}),
-		/* @__PURE__ */ (0, import_jsx_runtime.jsx)("gridHelper", {
-			args: [
-				56,
-				56,
-				theme.accent,
-				theme.haze
-			],
-			position: [
-				7,
-				-.27,
-				0
-			]
-		})
-	] });
 }
 function CameraRig({ driver, reducedMotion }) {
 	const camera = useThree((state) => state.camera);
@@ -59870,9 +59821,10 @@ function GameScene({ reducedMotion, portalReducedMotion = reducedMotion }) {
 	useFrame((_, delta) => driver.frame(delta), -2);
 	const room = ROOMS[roomIndex];
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
-		/* @__PURE__ */ (0, import_jsx_runtime.jsx)("color", {
-			attach: "background",
-			args: [room.theme.bg]
+		/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SymbolField, {
+			driver,
+			theme: room.theme,
+			reducedMotion
 		}),
 		/* @__PURE__ */ (0, import_jsx_runtime.jsx)("fog", {
 			attach: "fog",
@@ -59916,8 +59868,19 @@ function GameScene({ reducedMotion, portalReducedMotion = reducedMotion }) {
 			color: room.theme.accent,
 			distance: 18
 		}),
-		/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Architecture, { theme: room.theme }),
-		/* @__PURE__ */ (0, import_jsx_runtime.jsx)(StarField, { reducedMotion }),
+		/* @__PURE__ */ (0, import_jsx_runtime.jsx)("gridHelper", {
+			args: [
+				56,
+				56,
+				room.theme.accent,
+				room.theme.haze
+			],
+			position: [
+				7,
+				-.27,
+				0
+			]
+		}),
 		/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("group", { children: [
 			room.platforms.map((platform) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Platform, {
 				platform,

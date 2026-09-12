@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import {javascriptStringLiterals,approvedVoiceReference,mediaReferenceViolations} from "./media-policy.mjs";
+export {javascriptStringLiterals,approvedVoiceReference};
 import { createHash } from "node:crypto";
 import { readFile, readdir, stat } from "node:fs/promises";
 import path from "node:path";
@@ -10,7 +12,6 @@ const failures = [];
 const directoryEntries = new Map();
 const audioExtensions = "aac|flac|m4a|mp3|ogg|opus|wav|webm";
 const audioExtension = new RegExp(`\\.(?:${audioExtensions})$`, "i");
-const audioReference = new RegExp(`\\.(?:${audioExtensions})(?:[?#\"')\\s]|$)`, "i");
 
 async function collectFiles(directory) {
   const entries = await readdir(directory, { withFileTypes: true });
@@ -53,46 +54,6 @@ function collectReferences(html) {
 function collectMarkdownReferences(markdown) {
   return [...markdown.matchAll(/!?\[[^\]]*\]\(\s*(?:<([^>]+)>|([^\s)]+))/g)]
     .map((match) => ({ kind: "href", value: match[1] ?? match[2] }));
-}
-
-export function javascriptStringLiterals(source) {
-  const literals = [];
-  for (let index = 0; index < source.length;) {
-    const character = source[index];
-    const next = source[index + 1];
-    if (character === "/" && next === "*") {
-      const close = source.indexOf("*/", index + 2);
-      index = close === -1 ? source.length : close + 2;
-      continue;
-    }
-    if (character === "/" && next === "/") {
-      const newline = source.indexOf("\n", index + 2);
-      index = newline === -1 ? source.length : newline + 1;
-      continue;
-    }
-    if (character !== '"' && character !== "'" && character !== "`") {
-      index += 1;
-      continue;
-    }
-    const quote = character;
-    let literal = "";
-    index += 1;
-    while (index < source.length) {
-      const current = source[index];
-      if (current === "\\") {
-        literal += current + (source[index + 1] ?? "");
-        index += 2;
-      } else if (current === quote) {
-        literals.push(literal);
-        index += 1;
-        break;
-      } else {
-        literal += current;
-        index += 1;
-      }
-    }
-  }
-  return literals;
 }
 
 async function entriesFor(directory) {
@@ -191,7 +152,28 @@ assert.ok(scripts.length > 0, "FREEL*ADER 42 play assets must contain JavaScript
 assert.ok(scripts.some((name) => /^ThreeField-[\w-]+\.js$/.test(name)), "3D field must remain a lazy-loaded chunk");
 const productFiles = allFiles.filter((file) => file.startsWith(`${productRoot}${path.sep}`));
 const audioFiles = productFiles.filter((file) => audioExtension.test(file));
-assert.deepEqual(audioFiles, [], `unaccepted audio must not ship anywhere in FREEL*ADER 42: ${audioFiles.map((file) => path.relative(productRoot, file)).join(", ")}`);
+const voiceManifest = JSON.parse(await readFile(path.join(productRoot,"voice-manifest.json"),"utf8"));
+assert.equal(voiceManifest.synthetic,true);
+assert.equal(voiceManifest.profileListeningVerdict,"approved");
+assert.equal(voiceManifest.individualListeningVerdicts,false,"Profile approval must not imply individual human listening");
+assert.equal(voiceManifest.tempo,1.5);
+assert.ok(voiceManifest.clipCount>=126);
+assert.equal(voiceManifest.clips.length,voiceManifest.clipCount);
+assert.equal(new Set(voiceManifest.clips.map(clip=>clip.id)).size,voiceManifest.clipCount);
+const allowedAudio = new Set();
+for(const clip of voiceManifest.clips){
+  assert.match(clip.file,/^play\/assets\/(?:clear|death)-\d{3}-[\w-]+\.flac$/);
+  assert.match(clip.sha256,/^[a-f0-9]{64}$/);
+  assert.ok(Number.isFinite(clip.durationSeconds)&&clip.durationSeconds>0&&clip.durationSeconds*1000+350<15000);
+  assert.ok(Number.isInteger(clip.wordErrors)&&clip.wordErrors>=0&&Number.isInteger(clip.referenceWords)&&clip.referenceWords>0&&20*clip.wordErrors<=clip.referenceWords);
+  assert.equal(createHash("sha256").update(await readFile(path.join(productRoot,clip.file))).digest("hex"),clip.sha256);
+  allowedAudio.add(path.basename(clip.file));
+}
+assert.deepEqual(audioFiles.map(file=>path.relative(productRoot,file).replaceAll(path.sep,"/")).sort(),voiceManifest.clips.map(clip=>clip.file).sort(),"Only manifest-approved voice files may ship");
+for(const event of ["clear","death"]){
+  assert.ok(voiceManifest.clips.filter(clip=>clip.event===event&&clip.tag==="general").length>=42);
+  for(const tag of ["bug-hunt","byte-dash"])assert.ok(voiceManifest.clips.filter(clip=>clip.event===event&&clip.tag===tag).length>=7);
+}
 
 const cabinetRoot = path.join(productRoot, "play");
 const cabinet = await readFile(path.join(cabinetRoot, "index.html"), "utf8");
@@ -206,10 +188,13 @@ const entryCode = scriptText.get(entryName);
 // A 200 response can still be an old cabinet. Pin the revision and every
 // hashed asset to the release manifest before accepting a public package.
 const release = JSON.parse(await readFile(path.join(productRoot, "release.json"), "utf8"));
-assert.equal(release.revision, "2026.09.11-bug-hunt");
+assert.equal(release.revision, "2026.09.12-arcade-rain");
 assert.equal(release.portalSeconds, 5.42);
 assert.equal(release.playerTurns, 4.2);
-assert.deepEqual(release.retroModes, ["bug-hunt"]);
+assert.deepEqual(release.retroModes, ["bug-hunt","byte-dash"]);
+assert.equal(release.campaignEncounters,49);
+assert.equal(release.voice.clipCount,voiceManifest.clipCount);
+assert.equal(release.archivePlan.length,7);
 assert.ok(entryCode.includes("TERMS & EXTERMINATIONS") && entryCode.includes("defeatRetroEnemy"), "the actual cabinet must include the revisit challenge and combat");
 assert.ok(entryCode.includes("KeyF") && entryCode.includes("KeyX"), "the cabinet must include firing controls");
 assert.ok(cabinet.includes('name="game-revision" content="' + release.revision + '"'));
@@ -239,15 +224,12 @@ export const controlContracts = [
 for (const [key, contract] of controlContracts) {
   assert.match(entryCode, contract, `cabinet entry must ship the ${key} control contract`);
 }
-assert.match(entryCode, /WITHHELD[^\n]{0,80}LISTENING VERDICT/i, "cabinet entry must visibly disclose that the voice candidate is withheld");
-const textualProductFiles = productFiles.filter((file) => /\.(?:css|html?|js|json|md|txt)$/i.test(file));
-for (const file of textualProductFiles) {
-  const source = await readFile(file, "utf8");
-  const auditableSource = file.endsWith(".js")
-    ? javascriptStringLiterals(source).join("\n")
-    : source;
-  assert.doesNotMatch(auditableSource, audioReference, `${path.relative(productRoot, file)} must not reference unaccepted audio`);
+assert.match(entryCode,/SYNTHETIC YORKSHIRE CABINET COMMENTARY/,"The game must label synthetic speech");
+for(const file of productFiles.filter(file=>/\.(?:css|html?|js|json|md|txt)$/i.test(file))){
+  const relative=path.relative(productRoot,file).replaceAll(path.sep,"/");
+  assert.deepEqual(mediaReferenceViolations(relative,await readFile(file,"utf8"),allowedAudio),[],`${relative} references unapproved or external audio`);
 }
+assert.doesNotMatch(entryCode,/freeloader-intro|speechSynthesis|SpeechSynthesisUtterance/,"Old unapproved intro and browser TTS must remain excluded");
 
 const dynamicImports = [...entryCode.matchAll(/import\(\s*["']\.\/([^"']+)["']\s*\)/g)].map((match) => match[1]);
 assert.ok(dynamicImports.some((name) => /^ThreeField-[\w-]+\.js$/.test(name)), "entry chunk must dynamically import the 3D field");

@@ -5,38 +5,40 @@
 The user's latest instruction supersedes the branching-route proposals below:
 **no path selection and no empty transit through certified levels**.
 
-Implemented: a linear 1–42 campaign, shared automatic progression after a
+Implemented: a49-encounter campaign, shared automatic progression after a
 5.42-second 42.uk portal transfer, a visible receipt/exit contract in every room, and five
 optional mastery predicates (clean, pace, wildcard contact, moving-platform
 ride, combined clean-and-pace audit). Failure of any or all bonuses never
 blocks certification. J, or the pause-card retry action, resets only the
 current room and its bonus attempt; earlier certificates remain earned.
 
-Legacy saves retain valid earned credit and resume at the earliest unfinished
-property. Already-certified properties are skipped automatically. Completion
-requires receipts and an exit certificate for every room, not bonus awards.
+After each six ordinary properties, the portal opens one archived property
+with a distinct challenge. Four Bug Hunts require a blaster and every enemy;
+three Byte Dashes require fresh archive tokens and an exit within24 seconds.
+The seven encounters supplement the42 properties. Completion requires all
+42 certificates and all seven archive clears; optional bonuses never gate it.
+Legacy saves retain their receipts, certificates and existing records. An
+eligible unplayed archive takes precedence over the next unfinished property.
 
 Both renderers and Watch/Assist use the same progression in the shared driver.
-The campaign replay test exercises that live driver, proves 42 ordered visits
-with no repeats and no deaths, and separately verifies every room trace from
+The campaign replay test exercises that live driver, proves all49 ordered visits
+with no skipped archives and no deaths, and separately verifies every room trace from
 the post-death latency floor. This proves mechanical completion, not human fun.
 
-Do not reintroduce directory choices, mandatory mastery detours or certified
-transit rooms from the historical proposals below without a new user request.
+Do not reintroduce directory choices, mandatory mastery detours or empty
+certified transit rooms from the historical proposals below.
 The 28+14 branching plan is superseded. New mechanics, bespoke geometry and
 human-tested difficulty pacing remain future work; this release does not
 claim 42 newly authored layouts.
 
 See [linear-campaign.md](linear-campaign.md) for current rules and testing.
 
-The user now requests unique retro challenges **only when a completed level
-is revisited, with no new detours**. Actual playable entry into a certified
-property activates Bug Hunt: collect a blaster and defeat every guardian to
-unlock the exit. Certification and receipts remain earned, and clearing the
-challenge resumes the earliest unfinished property. The normal linear route
-is unchanged and does not deliberately produce revisits. Similar geometry
-alone never triggers the mode. The mode registry allows future retro rules;
-only Bug Hunt ships in this update. See [bug-hunt-release.md](bug-hunt-release.md).
+The earlier incidental-only Bug Hunt release left these challenges undiscovered
+in a normal campaign. The user's subsequent complete AI playthrough and request
+for guaranteed discovery supersede that routing restriction. Archives always
+revisit a previously certified property, and explicitly explain their new rules.
+Similar geometry alone never activates a challenge. See
+[archive-rain-release.md](archive-rain-release.md) for the exact encounter order.
 
 Source: the 2026-08-24 campaign design audits (momm runs `rev_20260824234641_uk5g`
 and `rev_20260824235016_7joa`), with every quantitative claim independently

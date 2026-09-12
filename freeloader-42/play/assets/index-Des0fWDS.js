@@ -1,4 +1,4 @@
-const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["./Canvas2D-5q3DDqAe.js","./sprites-CgeCSVGp.js","./ThreeField-CxfPVPl_.js"])))=>i.map(i=>d[i]);
+const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["./Canvas2D-BLsCB5gD.js","./symbol-field-D770hWfj.js","./ThreeField-BzLvX_D-.js"])))=>i.map(i=>d[i]);
 //#region \0rolldown/runtime.js
 var __create = Object.create;
 var __defProp = Object.defineProperty;
@@ -10281,7 +10281,7 @@ function portalPose(frame, origin, centre) {
 function portalActive(game) {
 	return game.portalSourceIndex !== null && (game.phase === "cleared" || game.phase === "paused" && game.resumePhase === "cleared");
 }
-var PORTAL_QUIPS = Object.freeze([
+Object.freeze([
 	"T'UNIVERSE IS VAST. YOUR ALLOCATION IS A SEMI.",
 	"TRAVEL EXPENSES: REJECTED. YOU WERE ALREADY AT WORK.",
 	"YOUR ATOMS ARE IMPORTANT TO US. PLEASE HOLD.",
@@ -10585,6 +10585,96 @@ function createPortalAudio(context, destination) {
 		}
 	};
 }
+//#endregion
+//#region app/game/voice-deck.mjs
+function createVoiceDeck(lines, { read = () => null, write = () => {}, random = Math.random } = {}) {
+	const ids = new Set(lines.map((line) => line.id));
+	let history;
+	try {
+		history = read();
+	} catch {}
+	let seen = Array.isArray(history?.seen) ? [...new Set(history.seen.filter((id) => ids.has(id)))] : [];
+	let last = ids.has(history?.last) ? history.last : null;
+	if (last && !seen.includes(last)) seen.push(last);
+	return { next(event, tag = "general") {
+		const eligible = lines.filter((line) => line.event === event && (line.tag === tag || line.tag === "general"));
+		if (!eligible.length) return null;
+		let pool = eligible.filter((line) => !seen.includes(line.id));
+		if (!pool.length) {
+			const eligibleIds = new Set(eligible.map((line) => line.id));
+			seen = seen.filter((id) => !eligibleIds.has(id));
+			pool = eligible.filter((line) => line.id !== last);
+			if (!pool.length) pool = eligible;
+		}
+		const contextual = pool.filter((line) => line.tag === tag);
+		if (contextual.length) pool = contextual;
+		const sample = random();
+		const index = Math.min(pool.length - 1, Math.floor((Number.isFinite(sample) ? Math.max(0, sample) : 0) * pool.length));
+		const line = pool[index];
+		seen.push(line.id);
+		last = line.id;
+		try {
+			write({
+				seen,
+				last
+			});
+		} catch {}
+		return line;
+	} };
+}
+function createVoicePlayback({ create, duck, restore, schedule = setTimeout, unschedule = clearTimeout }) {
+	let current = null;
+	function stop() {
+		current?.finish();
+	}
+	return {
+		get active() {
+			return current !== null;
+		},
+		stop,
+		play(url) {
+			stop();
+			let media;
+			try {
+				media = create(url);
+			} catch {
+				return false;
+			}
+			const entry = {
+				timer: null,
+				done: false,
+				finish: () => {
+					if (entry.done) return;
+					entry.done = true;
+					if (entry.timer !== null) unschedule(entry.timer);
+					media.audio.removeEventListener("ended", entry.finish);
+					media.audio.removeEventListener("error", entry.finish);
+					try {
+						media.audio.pause();
+					} catch {}
+					try {
+						media.dispose();
+					} catch {}
+					if (current === entry) {
+						current = null;
+						restore();
+					}
+				}
+			};
+			current = entry;
+			media.audio.addEventListener("ended", entry.finish);
+			media.audio.addEventListener("error", entry.finish);
+			entry.timer = schedule(entry.finish, 15e3);
+			duck();
+			try {
+				Promise.resolve(media.audio.play()).catch(entry.finish);
+			} catch {
+				entry.finish();
+			}
+			return !entry.done;
+		}
+	};
+}
 var MUSIC_STEP_SECONDS = 60 / 84 / 3;
 var MUSIC_PATTERN = Object.freeze([
 	0,
@@ -10727,8 +10817,10 @@ var desiredMusic = {
 var appliedMusic = desiredMusic;
 var activeOscillators = /* @__PURE__ */ new Set();
 var portalAudio = null;
+var commentary = null;
 var MAX_OSCILLATORS = 8;
 var MUSIC_GAIN = .12;
+var DUCKED_MUSIC_GAIN = MUSIC_GAIN * 10 ** (-8 / 20);
 function createIntroVoice() {
 	return null;
 }
@@ -11045,8 +11137,38 @@ function setMusicState(state) {
 	}
 	startMusicScheduler();
 }
+function duckMusicForVoice() {
+	if (context && musicBus) musicBus.gain.setTargetAtTime(DUCKED_MUSIC_GAIN, context.currentTime, .08);
+}
 function restoreMusicAfterVoice() {
+	if (commentary?.active) return;
 	if (context && musicBus) musicBus.gain.setTargetAtTime(MUSIC_GAIN, context.currentTime, .16);
+}
+function stopCommentary() {
+	commentary?.stop();
+}
+function playCommentary(url) {
+	if (!context || !voiceBus || muted || typeof window === "undefined") return;
+	stopIntroVoice();
+	commentary ??= createVoicePlayback({
+		create: (source) => {
+			const audio = new Audio(source);
+			audio.preload = "auto";
+			const node = context.createMediaElementSource(audio);
+			node.connect(voiceBus);
+			return {
+				audio,
+				dispose: () => {
+					node.disconnect();
+					audio.removeAttribute("src");
+					audio.load();
+				}
+			};
+		},
+		duck: duckMusicForVoice,
+		restore: restoreMusicAfterVoice
+	});
+	commentary.play(url);
 }
 function stopPortalAudio() {
 	portalAudio?.stop();
@@ -11055,6 +11177,7 @@ function setAudioMuted(value) {
 	muted = value;
 	if (context && master) master.gain.setTargetAtTime(value ? 0 : .72, context.currentTime, .025);
 	if (value) {
+		stopCommentary();
 		stopPortalAudio();
 		stopIntroVoice();
 		stopMusicScheduler();
@@ -11069,6 +11192,7 @@ function stopIntroVoice() {
 	restoreMusicAfterVoice();
 }
 function stopAudio() {
+	stopCommentary();
 	stopPortalAudio();
 	setMusicState({
 		...desiredMusic,
@@ -11080,6 +11204,694 @@ function stopAudio() {
 	} catch {}
 	activeOscillators.clear();
 	if (context?.state === "running") context.suspend().catch(() => {});
+}
+//#endregion
+//#region node_modules/zustand/esm/vanilla.mjs
+var createStoreImpl = (createState) => {
+	let state;
+	const listeners = /* @__PURE__ */ new Set();
+	const setState = (partial, replace) => {
+		const nextState = typeof partial === "function" ? partial(state) : partial;
+		if (!Object.is(nextState, state)) {
+			const previousState = state;
+			state = (replace != null ? replace : typeof nextState !== "object" || nextState === null) ? nextState : Object.assign({}, state, nextState);
+			listeners.forEach((listener) => listener(state, previousState));
+		}
+	};
+	const getState = () => state;
+	const getInitialState = () => initialState;
+	const subscribe = (listener) => {
+		listeners.add(listener);
+		return () => listeners.delete(listener);
+	};
+	const api = {
+		setState,
+		getState,
+		getInitialState,
+		subscribe
+	};
+	const initialState = state = createState(setState, getState, api);
+	return api;
+};
+var createStore = ((createState) => createState ? createStoreImpl(createState) : createStoreImpl);
+//#endregion
+//#region node_modules/zustand/esm/react.mjs
+var identity = (arg) => arg;
+function useStore(api, selector = identity) {
+	const slice = import_react.useSyncExternalStore(api.subscribe, import_react.useCallback(() => selector(api.getState()), [api, selector]), import_react.useCallback(() => selector(api.getInitialState()), [api, selector]));
+	import_react.useDebugValue(slice);
+	return slice;
+}
+var createImpl = (createState) => {
+	const api = createStore(createState);
+	const useBoundStore = (selector) => useStore(api, selector);
+	Object.assign(useBoundStore, api);
+	return useBoundStore;
+};
+var create = ((createState) => createState ? createImpl(createState) : createImpl);
+//#endregion
+//#region app/game/voice-library.mjs
+var records = [];
+function group(event, tag, script) {
+	for (const row of script.trim().split("\n")) {
+		const [number, text] = row.split("|");
+		records.push(Object.freeze({
+			id: `${event}-${number}`,
+			event,
+			tag,
+			text: text.trim()
+		}));
+	}
+}
+group("clear", "general", `
+001|Champion! Another dimension cleared. Still waiting on the plumber.
+002|Portal conquered! They can keep the deposit. I'm chuffed!
+003|Aye, reality's mended. The landlord will claim he did it.
+004|Receipts collected! Forty-two properties, and nowt in the fridge.
+005|Grand! The impossible staircase finally passed its inspection.
+006|Universe rescued! Just pop your signature here, love.
+007|Rent-free across eternity! Heating's extra. Course it is.
+008|Champion! Everything fits. That's planning permission sorted, apparently.
+009|Evidence vanished into storage. Even the clutter's learnt discretion!
+010|Aye, stack that high and call it cloud storage.
+011|Ey up, trouble's cancelled! Someone's found the return tickets.
+012|Grand ambitions! You sent the whole lot home for tea.
+013|Peace at last! Keep the kettle under defensive cover.
+014|The ghosts have cleared off. Must've seen the cleaning rota!
+015|Champion navigation! Even the haunted ginnel knows who's in charge.
+016|All them corridors, and you found summat resembling an exit!
+017|The world kept rollin'. You kept your dignity. Roughly speaking.
+018|Up the property ladder! That's vertical integration, lad.
+019|Aye, gravity appealed. Your excellent jump overruled it!
+020|Stars behind, trouble ahead. Grand, the scenery's makin' an effort.
+021|You crossed reality without directions! Don't tell the satnav.
+022|The obstacles missed. Their confidence scores were apparently overstated!
+023|That platform existed just long enough. Very considerate, really.
+024|Through the daft door, out the other side! Textbook nonsense.
+025|The floor vanished, you didn't! Put that in the bug report.
+026|Property cleared! The asterisk's promoted you to another fine predicament.
+027|Forty-two says you've done summat right. Suspicious, but welcome!
+028|Evidence banked, limbs counted! Off you go, you splendid little marvel.
+029|Ha! You bent the rules without creasin' your trousers.
+030|Another impossible job done! Put the invoice through the wormhole.
+031|Beautiful landing! Even the floor looked pleasantly surprised.
+032|Wheee! Round the portal, past reason, straight into overtime!
+033|Now then! Who ordered a hero with excellent filing skills?
+034|Lovely work! The safety inspector's fainted with admiration. Probably.
+035|Receipts secured! This adventure is now tax-deductible in theory.
+036|You little marvel! Reality's had to update its excuses.
+037|That'll do nicely! The universe owes you a biscuit.
+038|Look at you go! All sparkle and questionable job security.
+039|Aye, portal express! Mind the gap between possible and daft.
+040|Excellent! We've successfully moved the problem to another dimension.
+041|Hop, skip, cosmic paperwork! You make it look almost sensible.
+042|Forty-two cheers! The remaining applause is stuck in procurement.
+043|Fancy that! The exit actually goes somewhere. Standards are slipping.
+044|Cracking run! Somebody polish this caretaker's imaginary medal.
+045|Sorted! The laws of physics can take it up with reception.
+046|Ey up, gravity! You're talkin' to the assistant manager now.
+047|A triumph! And all without readin' the laminated instructions.
+048|Grand entrance, grand exit! Middlin' wages, mind.
+049|Hooray! Another room successfully persuaded to stop being difficult.
+050|There we go! A clean escape and a thoroughly bewildered ceiling.
+051|Portal's open! Tuck your elbows in. Eternity's a narrow fit.
+052|Champion footwork! Even your shadow wants lessons.
+053|You did it! The computer's pretending that were its idea.
+054|Splendid! That's one less room for the universe to worry about.
+055|Aye, all accounted for! Apart from the accountancy department.
+056|Off we pop! Next stop, somewhere with equally peculiar plumbing.
+057|Bravo, Willie! You've put the why back into why bother.
+058|What a finish! The clock's asked for your autograph.
+059|Proper job! The inspection form has spontaneously grown a smile.
+060|That's the spirit! We'll invoice the enthusiasm separately.
+061|Wonderful! Another successful demonstration of ignoring sensible advice.
+062|Upward mobility! Sideways reality! Entirely stationary salary!
+063|You beauty! The portal's blushing. Or overheating. Hard to tell.
+064|Well played! Your reward is a fresh set of unreasonable expectations.
+065|Behold! A caretaker boldly goin' where the mop won't fit.
+066|Lovely! The receipts are safe. The filing cabinet's terrified.
+067|Whoosh! Another dimension, same stubborn bit of fluff on your jumper.
+068|Improbable? Aye. Completed? Also aye! Put the kettle on.
+069|You absolute wonder! We've run out of official congratulation stamps.
+070|All clear! Somebody tell the ominous music it can sit down.
+071|That's how it's done! Please don't ask us to explain how.
+072|Nice one! The universe has reluctantly ticked your little box.
+073|Hurrah! That floor's someone else's problem for a minute.
+074|Portal ready! Remember, dizziness is included in your benefits package.
+075|Fine work! The council's already claimin' a successful partnership.
+076|Wormhole boarding! Have your receipts and improbable optimism ready.
+077|You flew through that! The broomstick department is deeply concerned.
+078|Aye, that's progress! We've moved from bewildered to professionally bewildered.
+079|Magnificent! The landlord's raised the rent on your sense of achievement.
+080|Another victory! We'll hang it next to the emergency exit diagram.
+081|Champion! You've earned a breather. The air's on subscription, naturally.
+082|Ta-da! Forty-two's finest unpaid problem solver strikes again.
+083|Round of applause! Mind the loose floorboard during the standing ovation.
+084|Yes! Receipts in, Willie out! That's our kind of bookkeeping.
+`);
+group("clear", "bug-hunt", `
+085|Infestation sorted! The bugs have requested a reference. Cheeky lot!
+086|Champion! All that scuttlin', and still couldn't keep up.
+087|Patrol cleared! I've billed every tenant. Including the management.
+088|Aye, that's pest control! Fancy stamp costs extra.
+089|Swarm defeated! Someone fetch a dustpan. A proper big one!
+090|Grand! The creepy crawlies have surrendered their spare keys.
+091|Bugs evicted! All that activity, and nobody paid rent.
+092|Zap! Sorted! The complaints department has suddenly gone very quiet.
+093|Blaster inspection passed! It definitely makes things reconsider their tenancy.
+094|Pew, pew, paperwork! You brought order to the disorderly cupboard.
+095|No bugs left! That's a software promise you can actually trust.
+096|What a clear-out! Even the dust has booked a taxi.
+097|Champion aim! The nuisance register's just become a blank page.
+098|Job done! Pest control with a small side order of thunder.
+099|Glorious! Every unwanted guest has discovered the check-out procedure.
+100|Ha! The patrols have requested a quieter line of work.
+101|All enemies cleared! The blaster would like its tea break now.
+102|Marvellous! You've debugged the property from a very sensible distance.
+103|That's the lot! We'll sweep up the ominous glowing bits later.
+104|Brilliant shooting! The portal's finally stopped asking for references.
+105|Victory! Unlimited ammunition, limited patience. A winning business model!
+`);
+group("clear", "byte-dash", `
+106|Packet delivered! Faster than the post. Proper suspicious, that.
+107|Champion! We outran the paperwork. It knows where we live.
+108|Bits gathered! The system's happy. Makes one of us, love.
+109|Aye, queue cleared! We've accidentally invented public service.
+110|Clock beaten! Tell it to put a complaint in, love.
+111|Data rescued! Nowt missing except the warranty and me lunch.
+112|Grand! All that speed, and still time for a biscuit.
+113|Whoosh! Those bytes never stood a chance of being late.
+114|Cache delivered! The clock's sulkin'. Leave it to it.
+115|Beautiful! A deadline met without even one committee meeting.
+116|Quick as owt! Your shadow's still queuing for the first byte.
+117|Every diamond! Every second counts! Except the ones we borrowed.
+118|Yes! You made the data dash look positively leisurely.
+119|Clockwork! Although the clock would prefer a different description.
+120|A sparkling collection! Diamonds are a caretaker's deductible expense.
+121|Faster than a rumour! And considerably better documented.
+122|Beat the clock! It had a head start and everything.
+123|Magnificent dash! We've upgraded your job title to urgent caretaker.
+124|Catch me if you can! Turns out you very much can.
+125|What a sprint! The stopwatch has requested annual leave.
+126|Bytes home, clock beaten! Have a breath before reality notices.
+`);
+group("death", "general", `
+001|By heck! That portal's got a very strict returns policy.
+002|Gravity won! Again. Must know someone on the council.
+003|Aye, we're temporarily unavailable. Please hold for a miracle.
+004|Grand entrance! Shame about the floor. Up you get, love.
+005|The landlord calls that fall an additional viewing, love.
+006|Reality collapsed! Must've used the cheapest quote. Daft business!
+007|Small setback! Big crater. We'll call it a cellar, love.
+008|Oh! The useful bit arrived. Your master plan had already left.
+009|Everything were goin' nicely, right up to the architectural incident!
+010|Never mind, lad. That gap were more ambitious than practical.
+011|Trouble brought reinforcements. You brought a wonderfully optimistic expression!
+012|Tiny obstacle, enormous cheek! Back you come, love.
+013|Aye, duckin' would've helped. Difficult business, hindsight.
+014|The ghost took a shortcut! Being transparent has unfair advantages.
+015|That ginnel's haunted, love. The brochure were rather quiet about it.
+016|You offered trouble a hug. Trouble filed a collision report!
+017|Gravity won that argument. It's had considerable falling experience.
+018|Lovely leap, unfortunate landing! The judges award points for enthusiasm.
+019|You mistook support for scenery. Easy done, spectacularly expensive!
+020|Space is vast. You found the one bit already occupied.
+021|That obstacle weren't impressed by your claim to right of way.
+022|Your landing's now abstract art! Critics are properly flummoxed.
+023|That platform were theoretical. Your fall supplied excellent evidence.
+024|The door opened beautifully! Shame about what came through it.
+025|You jumped into the unknown. The unknown had sharp edges, apparently.
+026|Never mind, Willie! The next version comes with another go.
+027|Core dumped, spirit intact! We'll sweep up the confidence later.
+028|A small setback! The machine's called it valuable training data.
+029|Oof! That were a shortcut straight to the complaints desk.
+030|Whoops-a-daisy! We appear to have misplaced the upright position.
+031|A dramatic exit! Completely wrong exit, but full marks for commitment.
+032|Steady on! You can't expense the entire laws of motion.
+033|Well! That floor's got a rather abrupt way of saying hello.
+034|Down we go! Up we get! No need to pack twice.
+035|Oops! Your confidence arrived several seconds before the platform.
+036|Now then! That weren't failure. That were extremely thorough reconnaissance.
+037|Crikey! Someone's put the scenery in the way again.
+038|You're back! The afterlife said our account weren't set up.
+039|Aye, small wobble! We'll edit that bit out of the brochure.
+040|Spectacular! Unfortunately, the safety committee has marked it spectacularly wrong.
+041|Mind your head! Ah. Slightly late with that one, sorry.
+042|Don't fret! Your receipts have better survival instincts than your knees.
+043|Who put that there? Oh, the architect. We'll have words!
+044|Almost graceful! The almost is doing considerable work there.
+045|Back for more! That's either courage or a very confusing contract.
+046|What a tumble! The stairs have asked you to calm down.
+047|A setback! Nothing a fresh Willie and a brew won't mend.
+048|Right! We've established where the floor isn't. Useful information!
+049|That looked expensive! Good job your warranty's entirely imaginary.
+050|Oh, crumbs! And several other pieces we'd best gather up.
+051|Gravity strikes again! Still refusing to provide a written quotation.
+052|The universe says try again! It says it rather loudly.
+053|Nice enthusiasm! Let's add a tiny bit of landing next time.
+054|Your plan had legs! Shame about where they ended up.
+055|Boing! Slightly less boing than advertised, to be perfectly honest.
+056|Chin up! Preferably above the dangerous bits this time.
+057|An unexpected descent! Estate agents call that a lower-ground opportunity.
+058|Well caught, floor! Bit much on the follow-through, mind.
+059|You've discovered a hazard! By becoming its most recent customer.
+060|Ouch! That's the deluxe sightseeing tour of the underside.
+061|Aye, technical difficulties! The technique were chiefly being in pieces.
+062|No harm done! Apart from the obvious harm. Back you come!
+063|Another go! The machine's very keen on repeat business.
+064|You brave daft thing! That gap needed a jump, not a speech.
+065|Reality's rejected your application! We'll resubmit with better footwork.
+066|Well, hello again! That were the express route back to reception.
+067|Floor inspection complete! Findings include hard, sudden, and rather rude.
+068|Cheer up! Nobody remembers the first seventeen attempts. Usually.
+069|An excellent lesson! Shame the tuition fees are paid in elbows.
+070|That platform's notice period were shorter than we expected!
+071|Up you pop! Eternity's no excuse to miss your shift.
+072|Aye, bold move! Reality has responded with a firm objection.
+073|We meant break a leg figuratively! The paperwork's enormous now.
+074|What a performance! Next time, let's keep the leading actor upright.
+075|Oof! The insurance form simply asks whether you enjoyed the view.
+076|Come on, love! The floor can't win every argument.
+077|Marvellous commitment! We'll work on the survival bit in rehearsals.
+078|You've found the edge! Sadly, from the less convenient side.
+079|That went sideways! Then downwards. Quite the range, really.
+080|Back in one piece! Assembly instructions remain a trade secret.
+081|Whoops! Somebody set the difficulty to architectural opinion.
+082|A brave experiment! Let's adjust the bit where everything hurts.
+083|You nearly had it! Nearly's filed under encouraging, not invoicable.
+084|Reset and onward! The universe hasn't beaten your stubbornness yet.
+`);
+group("death", "bug-hunt", `
+085|Ey up! The bugs have eaten the eviction notice.
+086|All them legs, no manners! We'll have words after tea, love.
+087|Aye, that pest's taken possession. Without a proper inventory!
+088|Squashed! On the bright side, the ceiling looks further away.
+089|The swarm won! They've still got nowt for a deposit.
+090|Pest inspection failed! Inspector eaten. Paperwork survives. Typical, love!
+091|Give over! That nuisance is claiming overtime. Every leg's worth!
+092|Oof! The opposition's interpreted pest control as controlling you.
+093|Small reversal! The bugs have started writing their victory speech.
+094|Blaster's fine! Operator needs a brief sit-down and another body.
+095|They got cheeky! Let's remind them whose name's on the mop.
+096|Zap first, negotiate later! A policy worth remembering, apparently.
+097|Ah! That patrol's customer service needs considerable improvement.
+098|No worries! The blaster's got plenty more opinions to share.
+099|Unwelcome contact! We'll put a strongly glowing complaint in shortly.
+100|Pest control pause! The pests seem worryingly pleased with themselves.
+101|Oops! You got within range of their sense of humour.
+102|One to the bugs! We're still ahead on filing qualifications.
+103|A tactical retreat! With unusually enthusiastic disassembly.
+104|Back you come! There's unfinished business and no ammunition bill.
+105|They've won a round! Let's not offer them a long lease.
+`);
+group("death", "byte-dash", `
+106|Packet lost! Have you checked down the sofa, love?
+107|Champion speed! Shame the wall had right of way.
+108|Aye, buffering! That's what we're calling that spectacular collision.
+109|System crash! The tea survived. We've had worse, love.
+110|Outrun by a spreadsheet! Keep that quiet at the pub.
+111|Data scattered! Looks like me filing system. Carry on!
+112|Clock's still rude! You'll fit right in at the council.
+113|Whoops! All that hurry, and the floor still got there first.
+114|Cache collision! Your bytes have returned to the department of again.
+115|A hurried departure! Shall we try a less literal deadline?
+116|Little setback! We've reset the clock and politely ignored the noise.
+117|Quick off the mark! Unfortunately, also quick off the platform.
+118|The diamonds can wait! Actually, twenty-four seconds. Best get moving!
+119|Speedy work! The accuracy department would like a brief word.
+120|Ah, a dropped packet! Never mind, we've got another Willie.
+121|Time for another dash! Less crash in the dash, ideally.
+122|Almost delivered! The last bit needs a little less floor.
+123|Keep your sparkle! The diamonds are still rooting for you.
+124|Fast enough for applause! Slightly too fast for that corner.
+125|Clock reset! Let's make the next attempt wonderfully inconvenient for it.
+126|Off we go again! This time, keep the caretaker attached.
+`);
+var VOICE_LINES = Object.freeze(records);
+//#endregion
+//#region app/game/voice-assets.ts
+var VOICE_ASSETS = {
+	"clear-001": new URL("" + new URL("clear-001-CmzN8C23.flac", import.meta.url).href, "" + import.meta.url).href,
+	"clear-002": new URL("" + new URL("clear-002-BEIwwIUo.flac", import.meta.url).href, "" + import.meta.url).href,
+	"clear-003": new URL("" + new URL("clear-003-CkfeoGkn.flac", import.meta.url).href, "" + import.meta.url).href,
+	"clear-005": new URL("" + new URL("clear-005-C8Xx6gD6.flac", import.meta.url).href, "" + import.meta.url).href,
+	"clear-006": new URL("" + new URL("clear-006-Clw4PuMW.flac", import.meta.url).href, "" + import.meta.url).href,
+	"clear-008": new URL("" + new URL("clear-008-Ci9FjuXF.flac", import.meta.url).href, "" + import.meta.url).href,
+	"clear-009": new URL("" + new URL("clear-009-aancmsO4.flac", import.meta.url).href, "" + import.meta.url).href,
+	"clear-012": new URL("" + new URL("clear-012-CrFzahX_.flac", import.meta.url).href, "" + import.meta.url).href,
+	"clear-013": new URL("" + new URL("clear-013-BM-fNKDB.flac", import.meta.url).href, "" + import.meta.url).href,
+	"clear-015": new URL("" + new URL("clear-015-B84tQpMy.flac", import.meta.url).href, "" + import.meta.url).href,
+	"clear-023": new URL("" + new URL("clear-023-D-j_UFZT.flac", import.meta.url).href, "" + import.meta.url).href,
+	"clear-025": new URL("" + new URL("clear-025-BTNJeaeX.flac", import.meta.url).href, "" + import.meta.url).href,
+	"clear-028": new URL("" + new URL("clear-028-ByecyIDw.flac", import.meta.url).href, "" + import.meta.url).href,
+	"clear-030": new URL("" + new URL("clear-030-DMnEoXs3.flac", import.meta.url).href, "" + import.meta.url).href,
+	"clear-033": new URL("" + new URL("clear-033-CH8_MdM5.flac", import.meta.url).href, "" + import.meta.url).href,
+	"clear-036": new URL("" + new URL("clear-036-CUwxOkTJ.flac", import.meta.url).href, "" + import.meta.url).href,
+	"clear-037": new URL("" + new URL("clear-037-DOlNjVpm.flac", import.meta.url).href, "" + import.meta.url).href,
+	"clear-038": new URL("" + new URL("clear-038-AP8veCb4.flac", import.meta.url).href, "" + import.meta.url).href,
+	"clear-040": new URL("" + new URL("clear-040-BKDiYBE3.flac", import.meta.url).href, "" + import.meta.url).href,
+	"clear-041": new URL("" + new URL("clear-041-D9STbREd.flac", import.meta.url).href, "" + import.meta.url).href,
+	"clear-043": new URL("" + new URL("clear-043-DCIR4B06.flac", import.meta.url).href, "" + import.meta.url).href,
+	"clear-045": new URL("" + new URL("clear-045-DJADJ0SX.flac", import.meta.url).href, "" + import.meta.url).href,
+	"clear-049": new URL("" + new URL("clear-049-D3BNGfG6.flac", import.meta.url).href, "" + import.meta.url).href,
+	"clear-050": new URL("" + new URL("clear-050-B49z-M9L.flac", import.meta.url).href, "" + import.meta.url).href,
+	"clear-052": new URL("" + new URL("clear-052-DM6Ck53s.flac", import.meta.url).href, "" + import.meta.url).href,
+	"clear-053": new URL("" + new URL("clear-053-DDBhL6iK.flac", import.meta.url).href, "" + import.meta.url).href,
+	"clear-054": new URL("" + new URL("clear-054-D7dXENHp.flac", import.meta.url).href, "" + import.meta.url).href,
+	"clear-056": new URL("" + new URL("clear-056-DmR_EYyL.flac", import.meta.url).href, "" + import.meta.url).href,
+	"clear-058": new URL("" + new URL("clear-058-D7FeYHIa.flac", import.meta.url).href, "" + import.meta.url).href,
+	"clear-059": new URL("" + new URL("clear-059-DJd6Pigx.flac", import.meta.url).href, "" + import.meta.url).href,
+	"clear-060": new URL("" + new URL("clear-060-CivgefBB.flac", import.meta.url).href, "" + import.meta.url).href,
+	"clear-061": new URL("" + new URL("clear-061-Bn14YiUz.flac", import.meta.url).href, "" + import.meta.url).href,
+	"clear-063": new URL("" + new URL("clear-063-Cevy3VdN.flac", import.meta.url).href, "" + import.meta.url).href,
+	"clear-066": new URL("" + new URL("clear-066-CB4csgYt.flac", import.meta.url).href, "" + import.meta.url).href,
+	"clear-067": new URL("" + new URL("clear-067-BI8e5mJX.flac", import.meta.url).href, "" + import.meta.url).href,
+	"clear-070": new URL("" + new URL("clear-070-05sdlDLm.flac", import.meta.url).href, "" + import.meta.url).href,
+	"clear-071": new URL("" + new URL("clear-071-C8SSagGC.flac", import.meta.url).href, "" + import.meta.url).href,
+	"clear-072": new URL("" + new URL("clear-072-DbLPufwF.flac", import.meta.url).href, "" + import.meta.url).href,
+	"clear-074": new URL("" + new URL("clear-074-DSv1rUZ7.flac", import.meta.url).href, "" + import.meta.url).href,
+	"clear-077": new URL("" + new URL("clear-077-CnD7ObGu.flac", import.meta.url).href, "" + import.meta.url).href,
+	"clear-078": new URL("" + new URL("clear-078-CcKGQrND.flac", import.meta.url).href, "" + import.meta.url).href,
+	"clear-080": new URL("" + new URL("clear-080-DGZhKGIK.flac", import.meta.url).href, "" + import.meta.url).href,
+	"clear-083": new URL("" + new URL("clear-083-wAJbNfRe.flac", import.meta.url).href, "" + import.meta.url).href,
+	"clear-085": new URL("" + new URL("clear-085-B5J5G8JJ.flac", import.meta.url).href, "" + import.meta.url).href,
+	"clear-087": new URL("" + new URL("clear-087-xwHOlMei.flac", import.meta.url).href, "" + import.meta.url).href,
+	"clear-090": new URL("" + new URL("clear-090-feOX-ojO.flac", import.meta.url).href, "" + import.meta.url).href,
+	"clear-091": new URL("" + new URL("clear-091-CVdLjZmp.flac", import.meta.url).href, "" + import.meta.url).href,
+	"clear-092": new URL("" + new URL("clear-092-Kb9ZUmmC.flac", import.meta.url).href, "" + import.meta.url).href,
+	"clear-093": new URL("" + new URL("clear-093-bffYLRiF.flac", import.meta.url).href, "" + import.meta.url).href,
+	"clear-094": new URL("" + new URL("clear-094-Ccnu3RTz.flac", import.meta.url).href, "" + import.meta.url).href,
+	"clear-095": new URL("" + new URL("clear-095-Chju_0Ua.flac", import.meta.url).href, "" + import.meta.url).href,
+	"clear-098": new URL("" + new URL("clear-098-CoCnq_ZC.flac", import.meta.url).href, "" + import.meta.url).href,
+	"clear-100": new URL("" + new URL("clear-100-Dw7-_9F7.flac", import.meta.url).href, "" + import.meta.url).href,
+	"clear-101": new URL("" + new URL("clear-101-rf7gMYty.flac", import.meta.url).href, "" + import.meta.url).href,
+	"clear-102": new URL("" + new URL("clear-102-BA2G4S3h.flac", import.meta.url).href, "" + import.meta.url).href,
+	"clear-103": new URL("" + new URL("clear-103-rdDDmdJe.flac", import.meta.url).href, "" + import.meta.url).href,
+	"clear-105": new URL("" + new URL("clear-105-xnFZfBNG.flac", import.meta.url).href, "" + import.meta.url).href,
+	"clear-106": new URL("" + new URL("clear-106-Bs-aIDYK.flac", import.meta.url).href, "" + import.meta.url).href,
+	"clear-107": new URL("" + new URL("clear-107-i9KBQ61g.flac", import.meta.url).href, "" + import.meta.url).href,
+	"clear-108": new URL("" + new URL("clear-108-B3xx7vbi.flac", import.meta.url).href, "" + import.meta.url).href,
+	"clear-110": new URL("" + new URL("clear-110-Dm-1uyed.flac", import.meta.url).href, "" + import.meta.url).href,
+	"clear-112": new URL("" + new URL("clear-112-Gk9huzrZ.flac", import.meta.url).href, "" + import.meta.url).href,
+	"clear-115": new URL("" + new URL("clear-115-Mv0En93i.flac", import.meta.url).href, "" + import.meta.url).href,
+	"clear-118": new URL("" + new URL("clear-118-Ba9k7174.flac", import.meta.url).href, "" + import.meta.url).href,
+	"clear-119": new URL("" + new URL("clear-119-Dm9eHSpu.flac", import.meta.url).href, "" + import.meta.url).href,
+	"clear-120": new URL("" + new URL("clear-120-DADWIE11.flac", import.meta.url).href, "" + import.meta.url).href,
+	"clear-121": new URL("" + new URL("clear-121-B6B627eR.flac", import.meta.url).href, "" + import.meta.url).href,
+	"clear-122": new URL("" + new URL("clear-122-DAzwmndK.flac", import.meta.url).href, "" + import.meta.url).href,
+	"clear-123": new URL("" + new URL("clear-123-BHFgbxAD.flac", import.meta.url).href, "" + import.meta.url).href,
+	"clear-124": new URL("" + new URL("clear-124-C2BgKQmA.flac", import.meta.url).href, "" + import.meta.url).href,
+	"clear-125": new URL("" + new URL("clear-125-BGClX4Xh.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-001": new URL("" + new URL("death-001-DNGozqnT.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-004": new URL("" + new URL("death-004-CGuvLrgO.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-008": new URL("" + new URL("death-008-BDpX9cm5.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-010": new URL("" + new URL("death-010-B-QpKvNg.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-011": new URL("" + new URL("death-011-Ds2Ax0Ai.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-012": new URL("" + new URL("death-012-j1rfYqhm.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-014": new URL("" + new URL("death-014-k1z87DU3.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-016": new URL("" + new URL("death-016-CO_2w-n5.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-017": new URL("" + new URL("death-017-BQv_zvYL.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-018": new URL("" + new URL("death-018-CP2_BweL.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-019": new URL("" + new URL("death-019-ysUXH4r_.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-020": new URL("" + new URL("death-020-COf7oxg1.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-021": new URL("" + new URL("death-021-CAQ_KUX7.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-023": new URL("" + new URL("death-023-Cpqss_ZS.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-024": new URL("" + new URL("death-024-koD2JwUx.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-025": new URL("" + new URL("death-025-CdBl6fff.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-027": new URL("" + new URL("death-027-BxQPkWJ5.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-028": new URL("" + new URL("death-028-OaGR_RW3.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-029": new URL("" + new URL("death-029-DN0o6AiF.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-030": new URL("" + new URL("death-030-DoIlEOLt.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-031": new URL("" + new URL("death-031-BeR5ZGfW.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-032": new URL("" + new URL("death-032-CRe5PNmr.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-033": new URL("" + new URL("death-033-D1ynxRsC.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-034": new URL("" + new URL("death-034-Dlu8x0uU.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-035": new URL("" + new URL("death-035-B4HMLoTH.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-036": new URL("" + new URL("death-036-Cuiqb2Cc.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-038": new URL("" + new URL("death-038-DX-U7yYi.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-040": new URL("" + new URL("death-040-DGvqPjob.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-042": new URL("" + new URL("death-042-D6bFCJT3.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-043": new URL("" + new URL("death-043-D0egLOKQ.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-044": new URL("" + new URL("death-044-CE8lGERq.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-045": new URL("" + new URL("death-045-C8C3nNrc.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-050": new URL("" + new URL("death-050-PDo0i4BS.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-051": new URL("" + new URL("death-051-BGqzratX.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-052": new URL("" + new URL("death-052-SeZbIFVH.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-053": new URL("" + new URL("death-053-D7i9Jk2u.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-054": new URL("" + new URL("death-054-B14rT69L.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-056": new URL("" + new URL("death-056-BmtigB83.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-057": new URL("" + new URL("death-057-BB7oh5VN.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-058": new URL("" + new URL("death-058-DtyfbWHe.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-062": new URL("" + new URL("death-062-fl54l_P5.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-063": new URL("" + new URL("death-063-BqIu_PYF.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-064": new URL("" + new URL("death-064-DuYs9y6A.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-066": new URL("" + new URL("death-066-OtJbC6qB.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-067": new URL("" + new URL("death-067-Brn42zYR.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-068": new URL("" + new URL("death-068-D-two0g0.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-069": new URL("" + new URL("death-069-BE6v794-.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-070": new URL("" + new URL("death-070-CVdPorqE.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-071": new URL("" + new URL("death-071-B0Qj8lEE.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-072": new URL("" + new URL("death-072-Cmfwdzu0.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-073": new URL("" + new URL("death-073-DIB0Jgvh.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-074": new URL("" + new URL("death-074-CgA5MXA7.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-075": new URL("" + new URL("death-075-Bm7UX8PH.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-076": new URL("" + new URL("death-076-JgDadUkb.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-078": new URL("" + new URL("death-078-XdG9bXh4.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-079": new URL("" + new URL("death-079-BZrpRtes.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-080": new URL("" + new URL("death-080-dn9NoMxu.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-081": new URL("" + new URL("death-081-PA8AsDcQ.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-082": new URL("" + new URL("death-082-CkW5aES0.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-084": new URL("" + new URL("death-084-ChzvPcTD.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-087": new URL("" + new URL("death-087-Blk01str.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-088": new URL("" + new URL("death-088-C2D1en-s.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-091": new URL("" + new URL("death-091-Xo1c7los.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-095": new URL("" + new URL("death-095-C66eRTNt.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-097": new URL("" + new URL("death-097-FsbUVKz1.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-098": new URL("" + new URL("death-098-Cvo2ZRo5.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-099": new URL("" + new URL("death-099-CCukN-cC.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-100": new URL("" + new URL("death-100-DHbeYXn0.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-101": new URL("" + new URL("death-101-C1rUnuIz.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-102": new URL("" + new URL("death-102-YHJW3bMX.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-103": new URL("" + new URL("death-103-B9GWt44-.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-105": new URL("" + new URL("death-105-C4ZJzh0J.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-106": new URL("" + new URL("death-106-DMg-L-Oi.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-107": new URL("" + new URL("death-107-D3OIjja5.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-108": new URL("" + new URL("death-108-qUFyVNcr.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-110": new URL("" + new URL("death-110-C-vlkS1b.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-112": new URL("" + new URL("death-112-B5MAoX_A.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-113": new URL("" + new URL("death-113-CdSb_ddG.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-115": new URL("" + new URL("death-115-RYTFiTVV.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-116": new URL("" + new URL("death-116-DgBSFcYH.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-117": new URL("" + new URL("death-117-BR-DNeiV.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-119": new URL("" + new URL("death-119-BuW2wDUc.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-121": new URL("" + new URL("death-121-BrpoT7K5.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-122": new URL("" + new URL("death-122-Dqqsjdh4.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-123": new URL("" + new URL("death-123-jirM70Ny.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-124": new URL("" + new URL("death-124-D_I-OjFw.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-125": new URL("" + new URL("death-125-DkCxABzz.flac", import.meta.url).href, "" + import.meta.url).href,
+	"death-126": new URL("" + new URL("death-126-30qtOnXA.flac", import.meta.url).href, "" + import.meta.url).href
+};
+var VOICE_DURATIONS = {
+	"clear-001": 4.048,
+	"clear-002": 3.489,
+	"clear-003": 3.456,
+	"clear-005": 3.619,
+	"clear-006": 3.303,
+	"clear-008": 4.603,
+	"clear-009": 4.065,
+	"clear-012": 3.261,
+	"clear-013": 3.092,
+	"clear-015": 3.978,
+	"clear-023": 3.89,
+	"clear-025": 3.28,
+	"clear-028": 4.061,
+	"clear-030": 3.788,
+	"clear-033": 3.554,
+	"clear-036": 3.286,
+	"clear-037": 3.066,
+	"clear-038": 3.442,
+	"clear-040": 4.031,
+	"clear-041": 3.903,
+	"clear-043": 4.343,
+	"clear-045": 3.496,
+	"clear-049": 4.029,
+	"clear-050": 3.889,
+	"clear-052": 2.751,
+	"clear-053": 3.286,
+	"clear-054": 3.622,
+	"clear-056": 3.919,
+	"clear-058": 3.08,
+	"clear-059": 3.825,
+	"clear-060": 3.409,
+	"clear-061": 4.266,
+	"clear-063": 4.113,
+	"clear-066": 3.907,
+	"clear-067": 4.282,
+	"clear-070": 3.539,
+	"clear-071": 3.412,
+	"clear-072": 3.356,
+	"clear-074": 4.508,
+	"clear-077": 4.306,
+	"clear-078": 4.855,
+	"clear-080": 3.946,
+	"clear-083": 4.163,
+	"clear-085": 4.348,
+	"clear-087": 4.17,
+	"clear-090": 3.354,
+	"clear-091": 3.211,
+	"clear-092": 4.374,
+	"clear-093": 4.734,
+	"clear-094": 3.851,
+	"clear-095": 3.746,
+	"clear-098": 3.497,
+	"clear-100": 3.283,
+	"clear-101": 3.902,
+	"clear-102": 4.23,
+	"clear-103": 3.737,
+	"clear-105": 4.777,
+	"clear-106": 3.779,
+	"clear-107": 3.514,
+	"clear-108": 3.491,
+	"clear-110": 2.986,
+	"clear-112": 3.295,
+	"clear-115": 3.579,
+	"clear-118": 3.098,
+	"clear-119": 3.984,
+	"clear-120": 4.164,
+	"clear-121": 3.49,
+	"clear-122": 2.868,
+	"clear-123": 3.933,
+	"clear-124": 2.748,
+	"clear-125": 3.246,
+	"death-001": 3.525,
+	"death-004": 3.557,
+	"death-008": 3.73,
+	"death-010": 3.549,
+	"death-011": 4.329,
+	"death-012": 3.035,
+	"death-014": 3.829,
+	"death-016": 3.627,
+	"death-017": 3.823,
+	"death-018": 4.417,
+	"death-019": 3.965,
+	"death-020": 2.982,
+	"death-021": 3.29,
+	"death-023": 4.113,
+	"death-024": 3.226,
+	"death-025": 3.967,
+	"death-027": 3.946,
+	"death-028": 3.851,
+	"death-029": 3.473,
+	"death-030": 3.891,
+	"death-031": 4.218,
+	"death-032": 3.245,
+	"death-033": 3.443,
+	"death-034": 2.718,
+	"death-035": 3.548,
+	"death-036": 4.519,
+	"death-038": 3.398,
+	"death-040": 5.022,
+	"death-042": 4.119,
+	"death-043": 3.185,
+	"death-044": 3.625,
+	"death-045": 3.848,
+	"death-050": 3.363,
+	"death-051": 4.139,
+	"death-052": 3.172,
+	"death-053": 3.69,
+	"death-054": 2.995,
+	"death-056": 3.069,
+	"death-057": 4.681,
+	"death-058": 3.549,
+	"death-062": 3.629,
+	"death-063": 3.261,
+	"death-064": 3.556,
+	"death-066": 3.645,
+	"death-067": 4.411,
+	"death-068": 4.003,
+	"death-069": 3.872,
+	"death-070": 3.281,
+	"death-071": 3.277,
+	"death-072": 3.547,
+	"death-073": 3.868,
+	"death-074": 4.257,
+	"death-075": 3.887,
+	"death-076": 3.148,
+	"death-078": 3.62,
+	"death-079": 3.773,
+	"death-080": 3.909,
+	"death-081": 3.539,
+	"death-082": 3.73,
+	"death-084": 3.726,
+	"death-087": 3.732,
+	"death-088": 3.512,
+	"death-091": 4.118,
+	"death-095": 3.556,
+	"death-097": 3.837,
+	"death-098": 3.768,
+	"death-099": 3.987,
+	"death-100": 4.078,
+	"death-101": 2.674,
+	"death-102": 3.6,
+	"death-103": 3.889,
+	"death-105": 3.315,
+	"death-106": 2.975,
+	"death-107": 2.834,
+	"death-108": 4.097,
+	"death-110": 3.204,
+	"death-112": 3.113,
+	"death-113": 3.751,
+	"death-115": 3.429,
+	"death-116": 4.257,
+	"death-117": 3.757,
+	"death-119": 3.749,
+	"death-121": 3.517,
+	"death-122": 3.394,
+	"death-123": 3.258,
+	"death-124": 3.776,
+	"death-125": 4.197,
+	"death-126": 3.361
+};
+//#endregion
+//#region app/game/narrator.ts
+var useNarrator = create(() => ({
+	line: null,
+	serial: 0
+}));
+var deck = null;
+var timer = null;
+function bindNarratorLifecycle(store) {
+	return store.subscribe((state, previous) => {
+		if (state.phase === "menu" || state.runSerial !== previous.runSerial && state.phase === "playing" && state.deathSerial <= previous.deathSerial) clearNarrator();
+		if (state.phase === "paused") clearNarrator();
+	});
+}
+function clearNarrator() {
+	if (timer !== null) clearTimeout(timer);
+	timer = null;
+	stopCommentary();
+	useNarrator.setState({ line: null });
+}
+function announceQuip(event, mode) {
+	if (typeof window === "undefined") return;
+	const recorded = VOICE_LINES.filter((line) => VOICE_ASSETS[line.id]);
+	deck ??= createVoiceDeck(recorded.length ? recorded : VOICE_LINES, {
+		read: () => JSON.parse(window.localStorage.getItem("freeloader42-voice-history-v1") ?? "null"),
+		write: (history) => window.localStorage.setItem("freeloader42-voice-history-v1", JSON.stringify(history))
+	});
+	const line = deck.next(event, mode === "bug-hunt" || mode === "byte-dash" ? mode : "general");
+	if (!line) return;
+	if (timer !== null) clearTimeout(timer);
+	useNarrator.setState((state) => ({
+		line,
+		serial: state.serial + 1
+	}));
+	if (VOICE_ASSETS[line.id]) playCommentary(VOICE_ASSETS[line.id]);
+	else stopCommentary();
+	timer = setTimeout(() => {
+		useNarrator.setState({ line: null });
+		timer = null;
+	}, Math.max(5e3, line.text.split(/\s+/).length * 330, (VOICE_DURATIONS[line.id] ?? 0) * 1e3 + 350));
 }
 //#endregion
 //#region app/game/level-data.mjs
@@ -11838,57 +12650,57 @@ function masteryStatus(contract, stats, finished = false) {
 	};
 }
 //#endregion
-//#region node_modules/zustand/esm/vanilla.mjs
-var createStoreImpl = (createState) => {
-	let state;
-	const listeners = /* @__PURE__ */ new Set();
-	const setState = (partial, replace) => {
-		const nextState = typeof partial === "function" ? partial(state) : partial;
-		if (!Object.is(nextState, state)) {
-			const previousState = state;
-			state = (replace != null ? replace : typeof nextState !== "object" || nextState === null) ? nextState : Object.assign({}, state, nextState);
-			listeners.forEach((listener) => listener(state, previousState));
-		}
-	};
-	const getState = () => state;
-	const getInitialState = () => initialState;
-	const subscribe = (listener) => {
-		listeners.add(listener);
-		return () => listeners.delete(listener);
-	};
-	const api = {
-		setState,
-		getState,
-		getInitialState,
-		subscribe
-	};
-	const initialState = state = createState(setState, getState, api);
-	return api;
-};
-var createStore = ((createState) => createState ? createStoreImpl(createState) : createStoreImpl);
-//#endregion
-//#region node_modules/zustand/esm/react.mjs
-var identity = (arg) => arg;
-function useStore(api, selector = identity) {
-	const slice = import_react.useSyncExternalStore(api.subscribe, import_react.useCallback(() => selector(api.getState()), [api, selector]), import_react.useCallback(() => selector(api.getInitialState()), [api, selector]));
-	import_react.useDebugValue(slice);
-	return slice;
+//#region app/game/archive.mjs
+var ARCHIVE_PLAN = Object.freeze([
+	0,
+	7,
+	14,
+	21,
+	28,
+	33,
+	38
+].map((roomIndex, index) => Object.freeze({
+	id: `archive-${index + 1}`,
+	number: index + 1,
+	after: (index + 1) * 6,
+	roomIndex,
+	roomId: ROOMS[roomIndex].id,
+	mode: index % 2 ? "byte-dash" : "bug-hunt"
+})));
+function archiveEligible(entry, completed) {
+	return ROOMS.slice(0, entry.after).every((room) => completed.includes(room.id));
 }
-var createImpl = (createState) => {
-	const api = createStore(createState);
-	const useBoundStore = (selector) => useStore(api, selector);
-	Object.assign(useBoundStore, api);
-	return useBoundStore;
-};
-var create = ((createState) => createState ? createImpl(createState) : createImpl);
+function validArchiveIds(raw, completed) {
+	return Array.isArray(raw) ? ARCHIVE_PLAN.filter((entry) => raw.includes(entry.id) && archiveEligible(entry, completed)).map((entry) => entry.id) : [];
+}
+function nextDestination(completed, archives = []) {
+	const archive = ARCHIVE_PLAN.find((entry) => !archives.includes(entry.id) && archiveEligible(entry, completed));
+	if (archive) return {
+		roomIndex: archive.roomIndex,
+		archive
+	};
+	const roomIndex = ROOMS.findIndex((room) => !completed.includes(room.id));
+	return roomIndex < 0 ? null : {
+		roomIndex,
+		archive: null
+	};
+}
 //#endregion
 //#region app/game/retro.mjs
-var RETRO_MODES = Object.freeze({ "bug-hunt": Object.freeze({
-	title: "BUG HUNT",
-	subtitle: "TERMS & EXTERMINATIONS",
-	goal: "Pick up the blaster, defeat every enemy, then reach the portal.",
-	hint: "F / X or FIRE shoots guided energy bolts. Get within range; bolts pass through platforms. Unlimited ammo. Jump and move as usual."
-}) });
+var RETRO_MODES = Object.freeze({
+	"bug-hunt": Object.freeze({
+		title: "BUG HUNT",
+		subtitle: "TERMS & EXTERMINATIONS",
+		goal: "Pick up the blaster, defeat every enemy, then reach the portal.",
+		hint: "F / X or FIRE shoots guided energy bolts. Get within range; bolts pass through platforms. Unlimited ammo. Jump and move as usual."
+	}),
+	"byte-dash": Object.freeze({
+		title: "BYTE DASH",
+		subtitle: "CACHE ME IF YOU CAN",
+		goal: "Gather every archive byte, then reach the portal before the 24-second clock runs out.",
+		hint: "Dodge the patrols and grab the glowing diamonds. A / D: move. SPACE: jump. E: retype. No blaster on this shift."
+	})
+});
 var BLASTER_COOLDOWN = .25;
 var BLASTER_SPRITE = Object.freeze([
 	"................",
@@ -11915,35 +12727,47 @@ var BLASTER_PALETTE = Object.freeze({
 	C: "#00ff99",
 	b: "#ffb000"
 });
-function freshRetro(room) {
+function freshRetro(room, encounter = null) {
 	return {
 		roomId: room.id,
-		mode: "bug-hunt",
+		mode: encounter?.mode ?? "bug-hunt",
+		archiveId: encounter?.id ?? encounter?.archiveId ?? null,
 		weapon: false,
-		defeated: []
+		defeated: [],
+		tokens: [],
+		remaining: 24
 	};
 }
-function validRetro(raw, room, completed) {
-	if (!raw || raw.roomId !== room.id || raw.mode !== "bug-hunt" || !completed.includes(room.id)) return null;
+function validRetro(raw, room, completed, archives = []) {
+	if (!raw || raw.roomId !== room.id || !["bug-hunt", "byte-dash"].includes(raw.mode) || !completed.includes(room.id)) return null;
+	const entry = raw.archiveId ? ARCHIVE_PLAN.find((a) => a.id === raw.archiveId && a.roomId === room.id && a.mode === raw.mode && archiveEligible(a, completed) && !archives.includes(a.id)) : null;
+	if (raw.archiveId && !entry) return null;
+	if (raw.mode === "byte-dash" && !entry) return null;
+	const weapon = raw.mode === "bug-hunt" && raw.weapon === true;
 	return {
-		roomId: room.id,
-		mode: "bug-hunt",
-		weapon: raw.weapon === true,
-		defeated: raw.weapon === true && Array.isArray(raw.defeated) ? [...new Set(raw.defeated.filter((id) => room.guardians.some((g) => g.id === id)))] : []
+		...freshRetro(room, entry),
+		weapon,
+		defeated: weapon && Array.isArray(raw.defeated) ? [...new Set(raw.defeated.filter((id) => room.guardians.some((g) => g.id === id)))] : [],
+		tokens: Array.isArray(raw.tokens) ? [...new Set(raw.tokens.filter((id) => room.shards.some((s) => s.id === id)))] : [],
+		remaining: Number.isFinite(raw.remaining) ? Math.max(0, Math.min(24, raw.remaining)) : 24
 	};
 }
 function retroFor(room, game) {
 	return game.retro?.roomId === room.id ? game.retro : null;
 }
 function retroRemaining(room, retro) {
-	return room.guardians.filter((g) => !retro.defeated.includes(g.id)).length;
+	return retro.mode === "byte-dash" ? room.shards.filter((s) => !retro.tokens.includes(s.id)).length : room.guardians.filter((g) => !retro.defeated.includes(g.id)).length;
 }
 function retroReady(room, retro) {
-	return retro.weapon && retroRemaining(room, retro) === 0;
+	return retro.mode === "byte-dash" ? retro.remaining > 0 && retroRemaining(room, retro) === 0 : retro.weapon && retroRemaining(room, retro) === 0;
+}
+function receiptVisible(room, game, id) {
+	const retro = retroFor(room, game);
+	return retro?.mode === "byte-dash" ? !retro.tokens.includes(id) : !game.collected.includes(id);
 }
 function exitOutstanding(room, game) {
 	const retro = retroFor(room, game);
-	return retro ? retro.weapon ? retroRemaining(room, retro) : Math.max(1, retroRemaining(room, retro)) : room.shards.filter((s) => !game.collected.includes(s.id)).length;
+	return retro ? retro.mode === "byte-dash" ? Math.max(retro.remaining > 0 ? 0 : 1, retroRemaining(room, retro)) : retro.weapon ? retroRemaining(room, retro) : Math.max(1, retroRemaining(room, retro)) : room.shards.filter((s) => !game.collected.includes(s.id)).length;
 }
 function weaponPosition(room) {
 	return {
@@ -11953,7 +12777,7 @@ function weaponPosition(room) {
 }
 function stepRetro(state, controls, game, room, events, dt) {
 	let retro = game.retroState?.();
-	if (!retro || retro.roomId !== room.id) return;
+	if (!retro || retro.roomId !== room.id || retro.mode !== "bug-hunt") return;
 	const pickup = weaponPosition(room);
 	const dx = Math.max(0, Math.abs(state.x - pickup.x) - .3), dy = Math.max(0, Math.abs(state.y - pickup.y) - .72);
 	if (!retro.weapon && Math.hypot(dx, dy) < .35 && game.pickupRetroWeapon()) {
@@ -11985,8 +12809,30 @@ function stepRetro(state, controls, game, room, events, dt) {
 		if (shot.life <= 0) return false;
 		const target = room.guardians.find((g) => g.id === shot.targetId);
 		if (!target) {
-			shot.x += shot.dir * 16 * dt;
-			return true;
+			const start = shot.x, end = start + shot.dir * 16 * dt;
+			const defeated = game.retroState().defeated;
+			const hit = room.guardians.filter((g) => !defeated.includes(g.id)).map((g) => {
+				const x = guardianX(g, state.seconds), nearest = Math.max(Math.min(start, end), Math.min(Math.max(start, end), x));
+				const halfWidth = Math.sqrt(Math.max(0, g.radius * g.radius - (g.y - shot.y) ** 2));
+				const contact = x - shot.dir * halfWidth;
+				return {
+					g,
+					x,
+					distance: Math.max(0, (contact - start) * shot.dir),
+					intersects: Math.hypot(x - nearest, g.y - shot.y) <= g.radius
+				};
+			}).filter((g) => g.intersects).sort((a, b) => a.distance - b.distance)[0];
+			shot.x = end;
+			if (!hit) return true;
+			if (game.defeatRetroEnemy(hit.g.id)) {
+				state.blasts.push({
+					x: hit.x,
+					y: hit.g.y,
+					life: .3
+				});
+				events.push("enemy");
+			}
+			return false;
 		}
 		if (game.retroState().defeated.includes(target.id)) return false;
 		const tx = guardianX(target, state.seconds), ty = target.y, dx = tx - shot.x, dy = ty - shot.y, d = Math.hypot(dx, dy);
@@ -12092,6 +12938,13 @@ var roomIds = new Set(ROOMS.map((room) => room.id));
 var receiptIds = new Set(ROOMS.flatMap((room) => room.shards.map((receipt) => receipt.id)));
 var finiteOr = (value, fallback) => Number.isFinite(Number(value)) ? Number(value) : fallback;
 var wholeOr = (value, fallback) => Math.max(0, Math.floor(finiteOr(value, fallback)));
+function encounterNotice(retro) {
+	const entry = ARCHIVE_PLAN.find((item) => item.id === retro.archiveId);
+	const label = entry ? `ARCHIVE ${entry.number} OF ${ARCHIVE_PLAN.length}` : "RETURN VISIT";
+	const remaining = retroRemaining(ROOMS[ROOM_INDEX_BY_ID[retro.roomId]], retro);
+	const objective = retro.mode === "byte-dash" ? `${remaining} BYTES LEFT // ${Math.ceil(retro.remaining)} SECONDS // THEN THE PORTAL` : retro.weapon ? `${remaining} ENEMIES LEFT // THEN THE PORTAL` : "PICK UP T'BLASTER AND CLEAR THE ENEMIES";
+	return `${label} // ${RETRO_MODES[retro.mode].title} // ${objective} // CERTIFICATES KEPT`;
+}
 function sanitiseProgress(raw) {
 	if (!raw || typeof raw !== "object") return null;
 	const candidate = raw;
@@ -12104,14 +12957,17 @@ function sanitiseProgress(raw) {
 		...(Array.isArray(candidate.visitedRooms) ? candidate.visitedRooms : []).filter((id) => typeof id === "string" && roomIds.has(id))
 	]));
 	const stats = candidate.roomStats;
+	const completedArchives = validArchiveIds(candidate.completedArchives, completedRooms);
+	const retro = validRetro(candidate.retro, ROOMS[ROOM_INDEX_BY_ID[candidate.roomId]], completedRooms, completedArchives);
 	return {
 		version: candidate.version ?? 1,
-		retro: validRetro(candidate.retro, ROOMS[ROOM_INDEX_BY_ID[candidate.roomId]], completedRooms),
+		retro,
 		roomId: candidate.roomId,
 		collected,
 		completedRooms,
+		completedArchives,
 		visitedRooms,
-		latency: Math.max(42, Math.min(100, finiteOr(candidate.latency, 100))),
+		latency: Math.max(retro || nextDestination(completedRooms, completedArchives) ? 42 : 0, Math.min(100, finiteOr(candidate.latency, 100))),
 		elapsed: Math.max(0, finiteOr(candidate.elapsed, 0)),
 		streak: wholeOr(candidate.streak, 0),
 		deaths: wholeOr(candidate.deaths, 0),
@@ -12133,6 +12989,7 @@ function snapshotProgress(state) {
 		roomId: ROOMS[state.roomIndex].id,
 		collected: state.collected,
 		completedRooms: state.completedRooms,
+		completedArchives: state.completedArchives,
 		visitedRooms: state.visitedRooms,
 		latency: state.latency,
 		elapsed: state.elapsed,
@@ -12165,6 +13022,7 @@ var freshRun = (assisted = false) => ({
 	roomsCleared: 0,
 	collected: [],
 	completedRooms: [],
+	completedArchives: [],
 	visitedRooms: [ROOMS[0].id],
 	banked: 0,
 	streak: 0,
@@ -12197,17 +13055,18 @@ var useGameStore = create((set, get) => ({
 	},
 	continueRun: () => {
 		const state = get();
-		const saved = state.savedProgress;
+		const saved = sanitiseProgress(state.savedProgress);
 		if (!saved) return false;
-		const pending = ROOMS.findIndex((room) => !saved.completedRooms.includes(room.id));
-		const restoredRetro = saved.retro ? validRetro(saved.retro, ROOMS[ROOM_INDEX_BY_ID[saved.roomId]], saved.completedRooms) : null;
-		const roomIndex = restoredRetro ? ROOM_INDEX_BY_ID[restoredRetro.roomId] : pending < 0 ? ROOMS.length - 1 : pending;
+		const destination = nextDestination(saved.completedRooms, saved.completedArchives);
+		const restoredRetro = saved.retro ? validRetro(saved.retro, ROOMS[ROOM_INDEX_BY_ID[saved.roomId]], saved.completedRooms, saved.completedArchives) : null;
+		const roomIndex = restoredRetro ? ROOM_INDEX_BY_ID[restoredRetro.roomId] : destination?.roomIndex ?? ROOMS.length - 1;
 		const room = ROOMS[roomIndex];
+		const retro = restoredRetro ?? (destination?.archive ? freshRetro(room, destination.archive) : null);
 		const sameRoom = room.id === saved.roomId;
 		clearControls();
 		set({
-			phase: pending < 0 && !restoredRetro ? "won" : "playing",
-			retro: restoredRetro,
+			phase: !destination && !retro ? "won" : "playing",
+			retro,
 			portalRetro: null,
 			resumePhase: "playing",
 			transitionRemaining: 0,
@@ -12215,6 +13074,7 @@ var useGameStore = create((set, get) => ({
 			roomIndex,
 			collected: saved.collected,
 			completedRooms: saved.completedRooms,
+			completedArchives: saved.completedArchives,
 			visitedRooms: saved.visitedRooms.includes(room.id) ? saved.visitedRooms : [...saved.visitedRooms, room.id],
 			roomsCleared: saved.completedRooms.length,
 			banked: saved.collected.length,
@@ -12228,10 +13088,14 @@ var useGameStore = create((set, get) => ({
 			deathSerial: 0,
 			playerX: room.start.x,
 			wildcard: "ready",
-			notice: restoredRetro ? "BUG HUNT RESTORED // CERTIFICATES KEPT // CLEAR THE ENEMIES TO OPEN T'PORTAL" : pending < 0 ? "PORTFOLIO ALREADY CERTIFIED // NO EMPTY ROOMS TO REPLAY" : `CHECKPOINT RESTORED // ${saved.completedRooms.length} CERTIFICATES KEPT // NEXT UNFINISHED: PROPERTY ${String(roomIndex + 1).padStart(2, "0")}`,
+			notice: retro ? encounterNotice(retro) : !destination ? "PORTFOLIO AND ALL SEVEN ARCHIVES COMPLETE" : `CHECKPOINT RESTORED // ${saved.completedRooms.length} CERTIFICATES KEPT // NEXT UNFINISHED: PROPERTY ${String(roomIndex + 1).padStart(2, "0")}`,
 			runSerial: state.runSerial + 1
 		});
-		if (pending < 0 && !restoredRetro) {
+		if (!destination && !retro) {
+			const score = scoreRun(saved.latency, saved.streak, saved.collected.length, saved.completedRooms.length);
+			const best = Math.max(score, (get().assisted ? get().bestAssistedScore : get().bestScore) ?? 0);
+			if (typeof window !== "undefined") writeBestScore(() => window.localStorage, best, get().assisted);
+			set(get().assisted ? { bestAssistedScore: best } : { bestScore: best });
 			if (typeof window !== "undefined") clearProgress(() => window.localStorage);
 			set({
 				hasProgress: false,
@@ -12266,7 +13130,7 @@ var useGameStore = create((set, get) => ({
 			assisted: state.assisted || !state.autopilot && state.phase !== "menu" && state.phase !== "won",
 			...!state.autopilot && (state.phase === "playing" || state.phase === "paused") ? {
 				wildcard: "ready",
-				retro: retroFor(ROOMS[state.roomIndex], state) ? freshRetro(ROOMS[state.roomIndex]) : null,
+				retro: retroFor(ROOMS[state.roomIndex], state) ? freshRetro(ROOMS[state.roomIndex], state.retro) : null,
 				notice: "WATCH / ASSIST ON // ROOM REWOUND; RECEIPTS KEPT // O TO TAKE OVER"
 			} : state.autopilot && state.phase === "playing" ? { notice: "YOUR HANDS, YOUR PROBLEM // ASSISTED RECORD CATEGORY RETAINED" } : {}
 		}));
@@ -12293,19 +13157,21 @@ var useGameStore = create((set, get) => ({
 		}
 		if (state.retro?.roomId === room.id) return false;
 		clearControls();
+		const destination = nextDestination(state.completedRooms, state.completedArchives);
+		const retro = freshRetro(room, destination?.roomIndex === state.roomIndex ? destination.archive : null);
 		set({
-			retro: freshRetro(room),
+			retro,
 			portalRetro: null,
 			roomStats: freshRoomStats(false),
 			runSerial: state.runSerial + 1,
-			notice: "RETURN VISIT // BUG HUNT // PICK UP T'BLASTER. OLD CERTIFICATE STILL VALID."
+			notice: encounterNotice(retro)
 		});
 		persistProgress(get());
 		return true;
 	},
 	pickupRetroWeapon: () => {
 		const state = get();
-		if (state.phase !== "playing" || !state.retro || state.retro.roomId !== ROOMS[state.roomIndex].id || state.retro.weapon) return false;
+		if (state.phase !== "playing" || state.retro?.mode !== "bug-hunt" || state.retro.roomId !== ROOMS[state.roomIndex].id || state.retro.weapon) return false;
 		set({
 			retro: {
 				...state.retro,
@@ -12363,18 +13229,24 @@ var useGameStore = create((set, get) => ({
 		wildcard: "spent",
 		notice: "* WILDCARD SPENT // ORIGINAL TERMS HAVE RESUMED"
 	} : state),
-	tick: (seconds) => set((state) => {
-		if (state.phase !== "playing") return state;
-		if (!Number.isFinite(seconds) || seconds <= 0) return state;
-		return {
+	tick: (seconds) => {
+		const state = get();
+		if (state.phase !== "playing" || !Number.isFinite(seconds) || seconds <= 0) return;
+		const retro = state.retro?.mode === "byte-dash" ? {
+			...state.retro,
+			remaining: Math.max(0, state.retro.remaining - seconds)
+		} : state.retro;
+		set({
+			retro,
 			elapsed: state.elapsed + seconds,
 			roomStats: {
 				...state.roomStats,
 				elapsed: state.roomStats.elapsed + seconds
 			},
 			latency: Math.max(0, state.latency - seconds * LATENCY_DRAIN)
-		};
-	}),
+		});
+		if (retro?.mode === "byte-dash" && Math.floor(retro.remaining * 4) !== Math.floor(state.retro.remaining * 4)) persistProgress(get());
+	},
 	recordTraversal: (stabilised, rideSeconds) => {
 		const state = get();
 		if (state.phase !== "playing") return;
@@ -12391,7 +13263,22 @@ var useGameStore = create((set, get) => ({
 	collect: (id) => {
 		const state = get();
 		const room = ROOMS[state.roomIndex];
-		if (state.phase !== "playing" || retroFor(room, state) || state.collected.includes(id)) return false;
+		if (state.phase !== "playing") return false;
+		const retro = retroFor(room, state);
+		if (retro?.mode === "byte-dash") {
+			if (retro.remaining <= 0 || retro.tokens.includes(id) || !room.shards.some((s) => s.id === id)) return false;
+			const nextRetro = {
+				...retro,
+				tokens: [...retro.tokens, id]
+			};
+			set({
+				retro: nextRetro,
+				notice: retroRemaining(room, nextRetro) ? `BYTE RECOVERED // ${retroRemaining(room, nextRetro)} LEFT // MIND T'CLOCK` : "ALL BYTES RECOVERED // REACH T'PORTAL BEFORE THE CACHE EXPIRES"
+			});
+			persistProgress(get());
+			return true;
+		}
+		if (retro || state.collected.includes(id)) return false;
 		if (!room.shards.some((shard) => shard.id === id)) return false;
 		const collected = [...state.collected, id];
 		const roomCollected = room.shards.filter((shard) => collected.includes(shard.id)).length;
@@ -12407,7 +13294,7 @@ var useGameStore = create((set, get) => ({
 	},
 	denyGate: (outstanding) => {
 		const retro = get().retro;
-		set({ notice: retro ? !retro.weapon ? "PORTAL SEALED // PICK UP THE BLASTER FIRST" : `PORTAL SEALED // ${outstanding} ENEMIES STILL ON THE PAYROLL` : `ACCESS DENIED // ${outstanding} EVIDENCE RECEIPT${outstanding === 1 ? "" : "S"} OUTSTANDING` });
+		set({ notice: retro ? retro.mode === "byte-dash" ? `PORTAL SEALED // ${outstanding} ARCHIVE BYTES STILL MISSING` : !retro.weapon ? "PORTAL SEALED // PICK UP THE BLASTER FIRST" : `PORTAL SEALED // ${outstanding} ENEMIES STILL ON THE PAYROLL` : `ACCESS DENIED // ${outstanding} EVIDENCE RECEIPT${outstanding === 1 ? "" : "S"} OUTSTANDING` });
 	},
 	clearRoom: () => {
 		const state = get();
@@ -12421,7 +13308,8 @@ var useGameStore = create((set, get) => ({
 				transitionRemaining: PORTAL_SECONDS,
 				portalSourceIndex: state.roomIndex,
 				portalRetro: state.retro.mode,
-				notice: "BUG HUNT COMPLETE // CERTIFICATE KEPT. INFESTATION TERMINATED."
+				completedArchives: state.retro.archiveId && !state.completedArchives.includes(state.retro.archiveId) ? [...state.completedArchives, state.retro.archiveId] : state.completedArchives,
+				notice: "ARCHIVE CLEARED // CERTIFICATE KEPT // BACK TO T'UNFINISHED BUSINESS"
 			});
 			persistProgress(get());
 			return "cleared";
@@ -12432,25 +13320,6 @@ var useGameStore = create((set, get) => ({
 		const roomsCleared = completedRooms.length;
 		const masteredRooms = masteryStatus(contractFor(room), state.roomStats, true).passed ? [...state.masteredRooms, room.id] : state.masteredRooms;
 		clearControls();
-		if (roomsCleared === ROOMS.length && state.collected.length === TOTAL_SHARDS) {
-			const score = scoreRun(state.latency, state.streak, state.banked, roomsCleared);
-			const best = Math.max(score, (state.assisted ? state.bestAssistedScore : state.bestScore) ?? 0);
-			if (typeof window !== "undefined") writeBestScore(() => window.localStorage, best, state.assisted);
-			if (typeof window !== "undefined") clearProgress(() => window.localStorage);
-			set({
-				phase: "cleared",
-				transitionRemaining: PORTAL_SECONDS,
-				portalSourceIndex: state.roomIndex,
-				completedRooms,
-				roomsCleared,
-				masteredRooms,
-				...state.assisted ? { bestAssistedScore: best } : { bestScore: best },
-				hasProgress: false,
-				savedProgress: null,
-				notice: "FORTY-TWO PROPERTIES CERTIFIED. LOOKS REET SUSPICIOUS."
-			});
-			return "cleared";
-		}
 		set({
 			phase: "cleared",
 			transitionRemaining: PORTAL_SECONDS,
@@ -12468,25 +13337,34 @@ var useGameStore = create((set, get) => ({
 		const state = get();
 		if (state.phase !== "cleared" || !Number.isFinite(seconds) || seconds <= 0) return false;
 		const remaining = Math.max(0, state.transitionRemaining - Math.min(seconds, .05));
-		const nextIndex = ROOMS.findIndex((room) => !state.completedRooms.includes(room.id));
+		const destination = nextDestination(state.completedRooms, state.completedArchives);
+		const nextIndex = destination?.roomIndex ?? -1;
 		if (remaining > .56 + 1e-8 || remaining > 1e-8 && (state.roomIndex !== state.portalSourceIndex || nextIndex < 0)) {
 			set({ transitionRemaining: remaining });
 			return false;
 		}
 		if (remaining <= 1e-8) {
 			clearControls();
-			if (nextIndex < 0 && typeof window !== "undefined") clearProgress(() => window.localStorage);
+			if (nextIndex < 0) {
+				const score = scoreRun(state.latency, state.streak, state.banked, state.roomsCleared);
+				const best = Math.max(score, (state.assisted ? state.bestAssistedScore : state.bestScore) ?? 0);
+				if (typeof window !== "undefined") {
+					writeBestScore(() => window.localStorage, best, state.assisted);
+					clearProgress(() => window.localStorage);
+				}
+				set(state.assisted ? { bestAssistedScore: best } : { bestScore: best });
+			}
 			set({
 				phase: nextIndex < 0 ? "won" : "playing",
 				transitionRemaining: 0,
 				portalSourceIndex: null,
-				retro: null,
+				retro: nextIndex < 0 ? null : state.retro,
 				portalRetro: null,
 				...nextIndex < 0 ? {
 					hasProgress: false,
 					savedProgress: null
 				} : {},
-				notice: nextIndex < 0 ? "FORTY-TWO PROPERTIES CERTIFIED. LOOKS REET SUSPICIOUS." : ROOMS[state.roomIndex].intro
+				notice: nextIndex < 0 ? "FORTY-TWO PROPERTIES. SEVEN ARCHIVES. STILL NO WAGES." : state.retro ? encounterNotice(state.retro) : ROOMS[state.roomIndex].intro
 			});
 			return true;
 		}
@@ -12494,7 +13372,7 @@ var useGameStore = create((set, get) => ({
 		clearControls();
 		set({
 			roomIndex: nextIndex,
-			retro: null,
+			retro: destination?.archive ? freshRetro(nextRoom, destination.archive) : null,
 			transitionRemaining: remaining,
 			roomStats: freshRoomStats(!nextRoom.shards.some((receipt) => state.collected.includes(receipt.id))),
 			wildcard: "ready",
@@ -12513,11 +13391,11 @@ var useGameStore = create((set, get) => ({
 			clearControls();
 			set({
 				phase: "playing",
-				retro: freshRetro(room),
+				retro: freshRetro(room, state.retro),
 				wildcard: "ready",
 				latency: respawnLatency(state.latency),
 				runSerial: state.runSerial + 1,
-				notice: "BUG HUNT RETRIED // WEAPON AND ENEMIES RESET // CERTIFICATES KEPT"
+				notice: "ARCHIVE RETRIED // CHALLENGE RESET // CERTIFICATES KEPT"
 			});
 			persistProgress(get());
 			return true;
@@ -12546,7 +13424,7 @@ var useGameStore = create((set, get) => ({
 		set((state) => {
 			return {
 				latency: respawnLatency(state.latency),
-				retro: retroFor(ROOMS[state.roomIndex], state) ? freshRetro(ROOMS[state.roomIndex]) : null,
+				retro: retroFor(ROOMS[state.roomIndex], state) ? freshRetro(ROOMS[state.roomIndex], state.retro) : null,
 				streak: 0,
 				deaths: state.deaths + 1,
 				roomStats: {
@@ -12609,11 +13487,16 @@ function PortalTransfer({ reducedMotion }) {
 	const sourceIndex = useGameStore((state) => state.portalSourceIndex);
 	const roomIndex = useGameStore((state) => state.roomIndex);
 	const completed = useGameStore((state) => state.completedRooms);
+	const archives = useGameStore((state) => state.completedArchives);
 	const mastered = useGameStore((state) => state.masteredRooms);
 	const retro = useGameStore((state) => state.portalRetro);
+	const quip = useNarrator((state) => state.line);
 	if (sourceIndex === null) return null;
 	const source = ROOMS[sourceIndex];
-	const next = ROOMS.find((room) => !completed.includes(room.id));
+	const destination = nextDestination(completed, archives);
+	const next = destination ? ROOMS[destination.roomIndex] : null;
+	const archive = destination?.archive;
+	const resultName = retro ? RETRO_MODES[retro].title : null;
 	const frame = portalFrame(remaining, roomIndex !== sourceIndex, reducedMotion);
 	const style = { "--portal-accent": ROOMS[roomIndex].theme.accent };
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
@@ -12637,7 +13520,7 @@ function PortalTransfer({ reducedMotion }) {
 						"42.UK // LIABILITY TRANSFER // ",
 						String(source.number).padStart(2, "0"),
 						" → ",
-						next ? String(next.number).padStart(2, "0") : "FREEHOLD"
+						archive ? `ARCHIVE ${archive.number} OF 7` : next ? String(next.number).padStart(2, "0") : "FREEHOLD"
 					]
 				}),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", {
@@ -12646,7 +13529,7 @@ function PortalTransfer({ reducedMotion }) {
 				}),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
 					className: "portal-destination",
-					children: next ? next.property : "LARGELY YOUR PROPERTY NOW"
+					children: archive ? `${RETRO_MODES[archive.mode].title} · ${next?.property}` : next ? next.property : "LARGELY YOUR PROPERTY NOW"
 				}),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 					className: "portal-locks",
@@ -12655,20 +13538,21 @@ function PortalTransfer({ reducedMotion }) {
 				}),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
 					className: "portal-result",
-					children: retro ? "BUG HUNT COMPLETE · ORIGINAL CERTIFICATE KEPT" : `PROPERTY CERTIFIED · ${mastered.includes(source.id) ? "BONUS AUDIT EARNED" : "BONUS NOT AWARDED"}`
+					children: resultName ? `${resultName} COMPLETE · ORIGINAL CERTIFICATE KEPT` : `PROPERTY CERTIFIED · ${mastered.includes(source.id) ? "BONUS AUDIT EARNED" : "BONUS NOT AWARDED"}`
 				}),
-				/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+				quip?.event === "clear" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
 					className: "portal-quip",
-					children: PORTAL_QUIPS[Math.floor(sourceIndex / 6)]
+					role: "status",
+					children: quip.text
 				}),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)("small", { children: "P: breather · M: mute · latency tax suspended" }),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
 					className: "sr-only",
 					role: "status",
 					children: [
-						retro ? `Bug Hunt in property ${source.number} complete.` : `Property ${source.number} certified.`,
+						resultName ? `${resultName} in property ${source.number} complete.` : `Property ${source.number} certified.`,
 						" ",
-						next ? `Teleporting to property ${next.number}: ${next.property}.` : "Final portal. All forty-two properties complete."
+						archive ? `Archive ${archive.number}: ${RETRO_MODES[archive.mode].goal}` : next ? `Teleporting to property ${next.number}: ${next.property}.` : "Final portal. All forty-two properties and seven archives complete."
 					]
 				})
 			]
@@ -12747,7 +13631,7 @@ function PortalMotionControl({ value, onChange, reducedMotion }) {
 }
 //#endregion
 //#region app/game/release.mjs
-var RELEASE_ID = "2026.09.11-bug-hunt";
+var RELEASE_ID = "2026.09.12-arcade-rain";
 //#endregion
 //#region \0vite/preload-helper.js
 var scriptRel = "modulepreload";
@@ -12817,8 +13701,8 @@ var __vitePreload = function preload(baseModule, deps, importerUrl) {
 };
 //#endregion
 //#region app/FreeloaderGame.tsx
-var Canvas2D = (0, import_react.lazy)(() => __vitePreload(() => import("./Canvas2D-5q3DDqAe.js"), __vite__mapDeps([0,1]), import.meta.url));
-var ThreeField = (0, import_react.lazy)(() => __vitePreload(() => import("./ThreeField-CxfPVPl_.js"), __vite__mapDeps([2,1]), import.meta.url));
+var Canvas2D = (0, import_react.lazy)(() => __vitePreload(() => import("./Canvas2D-BLsCB5gD.js"), __vite__mapDeps([0,1]), import.meta.url));
+var ThreeField = (0, import_react.lazy)(() => __vitePreload(() => import("./ThreeField-BzLvX_D-.js"), __vite__mapDeps([2,1]), import.meta.url));
 var CONTROL_BY_CODE = {
 	ArrowLeft: "left",
 	KeyA: "left",
@@ -12902,7 +13786,9 @@ function FreeloaderGame() {
 	const reducedMotion = useReducedMotion();
 	const portalMotion = usePortalMotion(reducedMotion);
 	const phase = useGameStore((state) => state.phase);
+	const quip = useNarrator((state) => state.line);
 	const retro = useGameStore((state) => state.retro?.roomId === ROOMS[state.roomIndex].id ? state.retro : null);
+	const archivesCleared = useGameStore((state) => state.completedArchives.length);
 	const latency = useGameStore((state) => state.latency);
 	const elapsed = useGameStore((state) => state.elapsed);
 	const collected = useGameStore((state) => state.collected);
@@ -12930,6 +13816,8 @@ function FreeloaderGame() {
 	const currentScore = scoreRun(latency, streak, banked, roomsCleared);
 	const room = ROOMS[roomIndex];
 	const retroMode = retro ? RETRO_MODES[retro.mode] : null;
+	const activeArchive = ARCHIVE_PLAN.find((entry) => entry.id === retro?.archiveId);
+	const isDash = retro?.mode === "byte-dash";
 	const enemiesLeft = retro ? retroRemaining(room, retro) : 0;
 	const contract = contractFor(room);
 	const mastery = masteryStatus(contract, roomStats, phase === "cleared" || phase === "won");
@@ -12939,6 +13827,17 @@ function FreeloaderGame() {
 		useGameStore.getState().hydrateBest();
 	}, []);
 	(0, import_react.useEffect)(() => () => stopAudio(), []);
+	(0, import_react.useEffect)(() => {
+		const unbind = bindNarratorLifecycle(useGameStore);
+		return () => {
+			unbind();
+			clearNarrator();
+		};
+	}, []);
+	(0, import_react.useEffect)(() => {
+		if (phase === "paused") stopCommentary();
+		if (phase === "menu") clearNarrator();
+	}, [phase]);
 	(0, import_react.useEffect)(() => {
 		if (phase !== "cleared") stopPortalAudio();
 	}, [phase, runSerial]);
@@ -13207,7 +14106,7 @@ function FreeloaderGame() {
 					}),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
 						className: "briefing",
-						children: "You're GUEST@42, unpaid caretaker of forty-two condemned digital properties. Clear them in order: collect each room's receipts and reach its exit. The next property opens automatically. Aim for optional bonus audits as you learn each room's daft little rules. Every failure is data. Wages remain speculative."
+						children: "You're GUEST@42, unpaid caretaker of forty-two condemned digital properties. Recover the receipts and reach each exit. After every six properties, the wormhole opens a forgotten arcade archive: zap the bugs or race the byte clock. Forty-two properties. Seven arcade remixes. Wages remain speculative."
 					}),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 						className: "mode-row",
@@ -13265,7 +14164,7 @@ function FreeloaderGame() {
 					}),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
 						className: "voice-label",
-						children: "INTRO VOICE // WITHHELD PENDING HUMAN LISTENING VERDICT"
+						children: "42 SAYS // SYNTHETIC YORKSHIRE CABINET COMMENTARY"
 					}),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
 						className: "unofficial",
@@ -13291,7 +14190,7 @@ function FreeloaderGame() {
 					}),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 						className: "hud-metric",
-						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: retro ? "ENEMIES LEFT" : "RECEIPTS" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: retro ? `${enemiesLeft}/${room.guardians.length}` : `${roomCollected}/${room.shards.length}` })]
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: isDash ? "BYTES LEFT" : retro ? "ENEMIES LEFT" : "RECEIPTS" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: retro ? `${enemiesLeft}/${isDash ? room.shards.length : room.guardians.length}` : `${roomCollected}/${room.shards.length}` })]
 					}),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 						className: "hud-metric",
@@ -13303,7 +14202,7 @@ function FreeloaderGame() {
 					}),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 						className: `hud-metric wildcard-metric wildcard-${wildcard}`,
-						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: retro ? "BLASTER" : "* WILDCARD" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: retro ? retro.weapon ? "F / X FIRE" : "PICK UP" : wildcard.toUpperCase() })]
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: isDash ? "CACHE CLOCK" : retro ? "BLASTER" : "ARCHIVES" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: isDash ? `${Math.max(0, retro.remaining).toFixed(1)}s` : retro ? retro.weapon ? "F / X FIRE" : "PICK UP" : `${archivesCleared}/7` })]
 					}),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 						className: "hud-metric optional-metric",
@@ -13326,19 +14225,19 @@ function FreeloaderGame() {
 					className: "mandatory-goal",
 					children: [
 						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
-							retro ? "RETURN VISIT · " + retroMode?.title : "GOAL",
+							retro ? `${activeArchive ? `ARCHIVE ${activeArchive.number} OF 7` : "RETURN VISIT"} · ${retroMode?.title}` : "GOAL",
 							" // ",
-							String(roomIndex + 1).padStart(2, "0"),
-							" OF 42"
+							"PROPERTY ",
+							String(roomIndex + 1).padStart(2, "0")
 						] }),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: retro ? !retro.weapon ? "Pick up the glowing blaster" : enemiesLeft ? `Defeat every enemy: ${enemiesLeft} left` : "All enemies defeated — portal unlocked" : roomCollected < room.shards.length ? `Recover receipts: ${roomCollected} / ${room.shards.length}` : "Receipts banked — reach the exit" }),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("small", { children: retro && !retroReady(room, retro) ? "Portal sealed until the hunt is complete" : `Exit ${room.exit.x > room.start.x ? "→ right" : "← left"} · ${retro ? "return to unfinished business" : "next level opens automatically"}` })
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: isDash ? enemiesLeft ? `Gather every byte: ${enemiesLeft} left` : "Every byte found — race to the portal!" : retro ? !retro.weapon ? "Pick up the glowing blaster" : enemiesLeft ? `Defeat every enemy: ${enemiesLeft} left` : "All enemies defeated — portal unlocked" : roomCollected < room.shards.length ? `Recover receipts: ${roomCollected} / ${room.shards.length}` : "Receipts banked — reach the exit" }),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("small", { children: isDash ? "24 seconds · expiry restarts this archive" : retro && !retroReady(room, retro) ? "Portal sealed until the hunt is complete" : `Exit ${room.exit.x > room.start.x ? "→ right" : "← left"} · ${retro ? "return to unfinished business" : (roomIndex + 1) % 6 === 0 ? "arcade archive opens next" : "next level opens automatically"}` })
 					]
 				}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 					className: `bonus-goal bonus-${mastery.state}`,
 					children: [
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: retro ? retroMode?.subtitle : "BONUS AUDIT · OPTIONAL" }),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: retro ? "F / X: fire guided bolts · unlimited ammo" : contract.bonus }),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: isDash ? "Dodge patrols · jump for diamonds · E retypes" : retro ? "F / X: fire guided bolts · unlimited ammo" : contract.bonus }),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("small", { children: retro ? "Your original certificate and receipts stay banked" : mastery.text })
 					]
 				})]
@@ -13374,7 +14273,7 @@ function FreeloaderGame() {
 						children: [
 							"A / D or arrows: move · SPACE: jump · E: wildcard for 4.2 seconds.",
 							/* @__PURE__ */ (0, import_jsx_runtime.jsx)("br", {}),
-							retro ? "F / X: fire. Clear every enemy, then reach the portal." : "Collect every receipt, then reach the glowing exit.",
+							isDash ? "Every byte, then the portal before time runs out." : retro ? "F / X: fire. Clear every enemy, then reach the portal." : "Collect every receipt, then reach the glowing exit.",
 							" O: watch AI / take over. V: swap 2D / 3D."
 						]
 					}),
@@ -13400,11 +14299,11 @@ function FreeloaderGame() {
 						className: "secondary-action retry-room",
 						type: "button",
 						onClick: () => useGameStore.getState().retryRoom(),
-						children: retro ? "[ RETRY BUG HUNT ]" : "[ RETRY THIS ROOM + RESET BONUS ]"
+						children: retro ? `[ RETRY ${retroMode?.title} ]` : "[ RETRY THIS ROOM + RESET BONUS ]"
 					}),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
 						className: "retry-note",
-						children: retro ? "J resets the blaster and enemies. Original receipts and certificates stay banked." : "J retries only this room and its receipts. Earlier certificates stay banked."
+						children: isDash ? "J resets this archive's bytes and clock. Certificates stay banked." : retro ? "J resets the blaster and enemies. Original receipts and certificates stay banked." : "J retries only this room and its receipts. Earlier certificates stay banked."
 					})
 				]
 			}),
@@ -13443,10 +14342,12 @@ function FreeloaderGame() {
 						]
 					}),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", { children: [
+						archivesCleared,
+						"/7 archives cleared. ",
 						masteredRooms.length,
 						"/",
 						TOTAL_ROOMS,
-						" bonus audits earned. Bonuses were optional; all property goals are complete."
+						" optional bonus audits earned. All forty-nine encounters complete."
 					] }),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
 						className: "run-category",
@@ -13470,7 +14371,7 @@ function FreeloaderGame() {
 					control: "right",
 					label: "Move right"
 				})] }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-					retro && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TouchButton, {
+					retro?.mode === "bug-hunt" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TouchButton, {
 						control: "fire",
 						label: "Fire blaster",
 						className: "fire-control"
@@ -13503,6 +14404,15 @@ function FreeloaderGame() {
 					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: ["SCORE ", currentScore.toString().padStart(5, "0")] })
 				]
 			}),
+			quip && phase !== "menu" && phase !== "paused" && phase !== "cleared" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("aside", {
+				className: "cabinet-quip",
+				"aria-label": "Caretaker commentary",
+				role: "status",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+					"aria-hidden": "true",
+					children: "42 SAYS"
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: quip.text })]
+			}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
 				className: "sr-only",
 				role: "status",
@@ -13518,4 +14428,4 @@ var root = document.getElementById("root");
 if (!root) throw new Error("FREEL*ADER 42 could not find its arcade cabinet.");
 (0, import_client.createRoot)(root).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(import_react.StrictMode, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(FreeloaderGame, {}) }));
 //#endregion
-export { controls as C, __exportAll as D, __commonJSMin as E, __toESM as O, portalPose as S, require_react as T, PORTAL_CUES as _, BLASTER_SPRITE as a, portalActive as b, stepRetro as c, GUARDIAN_REASONS as d, ROOMS as f, stopPortalAudio as g, playSfx as h, BLASTER_PALETTE as i, weaponPosition as l, moverX as m, useGameStore as n, exitOutstanding as o, guardianX as p, LATENCY_DRAIN as r, retroFor as s, require_jsx_runtime as t, createStore as u, PORTAL_SECONDS as v, require_scheduler as w, portalFrame as x, drawPortal as y };
+export { __toESM as A, portalFrame as C, require_react as D, require_scheduler as E, __commonJSMin as O, portalActive as S, controls as T, playSfx as _, BLASTER_SPRITE as a, PORTAL_SECONDS as b, retroFor as c, GUARDIAN_REASONS as d, ROOMS as f, createStore as g, announceQuip as h, BLASTER_PALETTE as i, __exportAll as k, stepRetro as l, moverX as m, useGameStore as n, exitOutstanding as o, guardianX as p, LATENCY_DRAIN as r, receiptVisible as s, require_jsx_runtime as t, weaponPosition as u, stopPortalAudio as v, portalPose as w, drawPortal as x, PORTAL_CUES as y };
