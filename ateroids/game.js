@@ -26,6 +26,8 @@ let level = 1;
 let smartBombs = 3;
 let highScore = 0;
 let gameOver = false;
+let started = false;
+let paused = false;
 let keys = {};
 let lastShotTime = 0;
 let lastFrameTime = 0;
@@ -96,26 +98,18 @@ function initializeGame() {
         gameContainer = document.getElementById('game-container');
         touchControls = document.getElementById('touch-controls');
 
-        // Create and append HUD elements
-        scoreDisplay = document.createElement('div');
-        scoreDisplay.id = 'score-display';
-        gameContainer.appendChild(scoreDisplay);
-
-        livesDisplay = document.createElement('div');
-        livesDisplay.id = 'lives-display';
-        gameContainer.appendChild(livesDisplay);
-
-        highScoreDisplay = document.createElement('div');
-        highScoreDisplay.id = 'high-score-display';
-        gameContainer.appendChild(highScoreDisplay);
+        // Reuse the single HUD already present in HTML.
+        scoreDisplay = document.getElementById('score-display');
+        livesDisplay = document.getElementById('lives-display');
+        highScoreDisplay = document.getElementById('high-score-display');
 
         // Word-building UI is now in HTML; no need to create it here.
 
         // Load high score from local storage
-        const savedHighScore = localStorage.getItem('asteroidsHighScore');
-        if (savedHighScore) {
-            highScore = parseInt(savedHighScore, 10);
-        }
+        try {
+            const saved = Number(localStorage.getItem('asteroidsHighScore'));
+            highScore = Number.isFinite(saved) && saved >= 0 ? saved : 0;
+        } catch { highScore = 0; }
 
         // Attach all event listeners
         attachEventListeners();
@@ -157,15 +151,21 @@ function attachEventListeners() {
         touchButtons.forEach(btn => {
             const key = btn.getAttribute('data-key');
             // Use mousedown/up for better responsiveness and to avoid conflicts
-            btn.addEventListener('mousedown', (e) => { e.preventDefault(); keys[key] = true; });
+            btn.addEventListener('mousedown', (e) => { e.preventDefault(); pressControl(key); });
             btn.addEventListener('mouseup', (e) => { e.preventDefault(); keys[key] = false; });
             btn.addEventListener('mouseleave', (e) => { e.preventDefault(); keys[key] = false; });
             // Add touch events for mobile devices
-            btn.addEventListener('touchstart', (e) => { e.preventDefault(); keys[key] = true; });
+            btn.addEventListener('touchstart', (e) => { e.preventDefault(); pressControl(key); });
             btn.addEventListener('touchend', (e) => { e.preventDefault(); keys[key] = false; });
+            btn.addEventListener('touchcancel', () => { keys[key] = false; });
+            btn.addEventListener('click', e => { if (e.detail === 0) { pressControl(key); keys[key] = false; } });
         });
     }
 
+    document.getElementById('pause-button').addEventListener('click', () => setPaused(!paused));
+    document.getElementById('resume-button').addEventListener('click', () => setPaused(false));
+    window.addEventListener('blur', () => setPaused(true));
+    document.addEventListener('visibilitychange', () => { if (document.hidden) setPaused(true); });
     window.addEventListener('resize', resizeGame);
 }
 
@@ -178,6 +178,12 @@ function startGame() {
 
         // Reset game state
         gameOver = false;
+        started = true;
+        paused = false;
+        keys = {};
+        document.getElementById('pause-overlay').classList.add('hidden');
+        document.getElementById('pause-button').disabled = false;
+        document.getElementById('pause-button').textContent = 'Pause';
         score = 0;
         wordScore = 0;
         level = 1;
@@ -215,9 +221,9 @@ function startGame() {
 
 // Main game loop function
 function runGameLoop(timestamp) {
-    if (gameOver) return;
+    if (gameOver || paused || !started) return;
 
-    const deltaTime = (timestamp - lastFrameTime) / 1000;
+    const deltaTime = Math.min(0.05, Math.max(0, (timestamp - lastFrameTime) / 1000));
     lastFrameTime = timestamp;
 
     update(deltaTime);
@@ -288,16 +294,57 @@ function spawnLetter(x, y) {
     });
 }
 
+// Pause without accumulating hidden-tab time or held movement keys.
+function setPaused(value) {
+    if (!started || gameOver || paused === value) return;
+    paused = value;
+    keys = {};
+    const overlay = document.getElementById('pause-overlay');
+    overlay.classList.toggle('hidden', !paused);
+    const button = document.getElementById('pause-button');
+    button.textContent = paused ? 'Resume' : 'Pause';
+    if (paused) {
+        cancelAnimationFrame(gameLoopId);
+        document.getElementById('resume-button').focus();
+    } else {
+        lastFrameTime = performance.now();
+        gameLoopId = requestAnimationFrame(runGameLoop);
+        canvas.focus();
+    }
+}
+
 // Handle key events
+function pressControl(key) {
+    if (paused || !started || gameOver) return;
+    key = key.length === 1 ? key.toLowerCase() : key;
+    if (key === 'b') {
+        if (smartBombs > 0) activateSmartBomb();
+        return;
+    }
+    if (key === ' ' && performance.now() - lastShotTime > 200) {
+        shoot();
+        lastShotTime = performance.now();
+    }
+    keys[key] = true;
+}
+
 function keyDownHandler(e) {
-    keys[e.key] = true;
+    if (e.key.toLowerCase() === 'p' || e.key === 'Escape') {
+        e.preventDefault();
+        if (!e.repeat) setPaused(!paused);
+        return;
+    }
+    if (paused || !started || gameOver) return;
+    if (e.key === ' ' && e.target && /^(BUTTON|A)$/.test(e.target.tagName)) return;
+    if (e.key.toLowerCase() === 'b' && e.repeat) return;
+    pressControl(e.key);
     if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
         e.preventDefault();
     }
 }
 
 function keyUpHandler(e) {
-    keys[e.key] = false;
+    keys[e.key.length === 1 ? e.key.toLowerCase() : e.key] = false;
 }
 
 // Update game state
@@ -336,9 +383,9 @@ function update(deltaTime) {
     wrapObject(ship);
 
     // Shooting
-    if (keys[' '] && Date.now() - lastShotTime > 200) {
+    if (keys[' '] && performance.now() - lastShotTime > 200) {
         shoot();
-        lastShotTime = Date.now();
+        lastShotTime = performance.now();
     }
 
     // Smart Bomb
@@ -371,6 +418,7 @@ function update(deltaTime) {
         level++;
         
         createAsteroids(level + 2);
+        updateDisplays();
     }
 }
 
@@ -495,10 +543,11 @@ function isColliding(obj1, obj2) {
 
 function endGame() {
     gameOver = true;
+    document.getElementById('pause-button').disabled = true;
     
     if (score > highScore) {
         highScore = score;
-        localStorage.setItem('asteroidsHighScore', highScore.toString());
+        try { localStorage.setItem('asteroidsHighScore', highScore.toString()); } catch { /* Play remains available without persistence. */ }
     }
     gameOverScreen.classList.remove('hidden');
     finalScoreElement.textContent = score;
@@ -633,7 +682,7 @@ function drawShip() {
     ctx.translate(ship.x, ship.y);
     ctx.rotate(ship.rotation);
 
-    if (ship.isThrusting && Math.floor(Date.now() / 100) % 2 === 0) {
+    if (ship.isThrusting && Math.floor(performance.now() / 100) % 2 === 0) {
         ctx.fillStyle = 'yellow';
         ctx.font = `bold ${ship.radius * 1.5}px monospace`;
         ctx.textAlign = 'center';
@@ -643,7 +692,7 @@ function drawShip() {
     ctx.font = `bold ${ship.radius * 2}px monospace`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillStyle = (isInvincible && Math.floor(Date.now() / 150) % 2 === 0) ? 'grey' : 'white';
+    ctx.fillStyle = (isInvincible && Math.floor(performance.now() / 150) % 2 === 0) ? 'grey' : 'white';
     ctx.fillText('A', 0, 0);
 
     ctx.restore();
@@ -727,8 +776,5 @@ function drawParticles() {
 
 // --- Game Setup ---
 function resizeGame() {
-    const scale = Math.min(window.innerWidth / CANVAS_WIDTH, window.innerHeight / CANVAS_HEIGHT);
-    if (gameContainer) {
-        gameContainer.style.transform = `scale(${scale})`;
-    }
+    // Canvas coordinates stay 800 × 600; CSS controls only its displayed size.
 }
