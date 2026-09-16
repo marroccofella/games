@@ -1,5 +1,5 @@
-import { A as __toESM, C as portalFrame, D as require_react, E as require_scheduler, O as __commonJSMin, S as portalActive, a as BLASTER_SPRITE, c as retroFor, f as ROOMS, g as createStore$1, i as BLASTER_PALETTE, k as __exportAll, m as moverX, n as useGameStore, o as exitOutstanding, p as guardianX, s as receiptVisible, t as require_jsx_runtime, u as weaponPosition, w as portalPose, x as drawPortal } from "./index-Des0fWDS.js";
-import { a as SPRITE_PALETTES, d as phantomStateAt, l as getDriver, n as FREELOADER_FRAMES, r as GUARDIAN_SPRITES, s as spriteToCanvas, t as drawSymbolField } from "./symbol-field-D770hWfj.js";
+import { A as require_react, C as portalPose, D as moverX, E as guardianX, M as __exportAll, N as __toESM, S as portalFrame, T as ROOMS, a as BLASTER_SPRITE, b as portalActive, c as retroFor, f as createStore$1, i as BLASTER_PALETTE, j as __commonJSMin, k as require_scheduler, n as useGameStore, o as exitOutstanding, s as receiptVisible, t as require_jsx_runtime, u as weaponPosition, x as portalArriving, y as drawPortal } from "./index-CiolWOlQ.js";
+import { a as SPRITE_PALETTES, d as phantomStateAt, l as getDriver, n as FREELOADER_FRAMES, r as GUARDIAN_SPRITES, s as spriteToCanvas, t as drawSymbolField } from "./symbol-field-BAlQZgH_.js";
 //#region node_modules/three/build/three.core.js
 var import_react = /* @__PURE__ */ __toESM(require_react(), 1);
 /**
@@ -59363,7 +59363,7 @@ function Caretaker({ driver, reducedMotion }) {
 		const engine = driver.engine;
 		if (!group.current || !plane.current) return;
 		const game = useGameStore.getState();
-		const portal = portalActive(game) ? portalFrame(game.transitionRemaining, game.roomIndex !== game.portalSourceIndex, reducedMotion) : null;
+		const portal = portalActive(game) ? portalFrame(game.transitionRemaining, portalArriving(game), reducedMotion) : null;
 		const room = ROOMS[engine.roomIndex];
 		const pose = portalPose(portal, {
 			x: engine.x,
@@ -59633,7 +59633,7 @@ function PixelGate({ room, driver, reducedMotion, portalReducedMotion = reducedM
 		if (!mesh.current) return;
 		const game = useGameStore.getState();
 		const active = portalActive(game);
-		const arriving = active && game.roomIndex !== game.portalSourceIndex;
+		const arriving = portalArriving(game);
 		mesh.current.visible = !arrival || arriving;
 		if (!mesh.current.visible) return;
 		const frame = active && arrival === arriving ? portalFrame(game.transitionRemaining, arriving, portalReducedMotion) : null;
@@ -59685,7 +59685,7 @@ function RetroEquipment({ driver, reducedMotion }) {
 		weapon.current.visible = Boolean(retro);
 		shots.current.visible = bursts.current.visible = Boolean(retro) && !portalActive(game);
 		if (!retro) return;
-		const frame = portalActive(game) ? portalFrame(game.transitionRemaining, game.roomIndex !== game.portalSourceIndex, reducedMotion) : null;
+		const frame = portalActive(game) ? portalFrame(game.transitionRemaining, portalArriving(game), reducedMotion) : null;
 		const pose = portalPose(frame, {
 			x: engine.x,
 			y: engine.y + .06

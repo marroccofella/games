@@ -188,7 +188,7 @@ const entryCode = scriptText.get(entryName);
 // A 200 response can still be an old cabinet. Pin the revision and every
 // hashed asset to the release manifest before accepting a public package.
 const release = JSON.parse(await readFile(path.join(productRoot, "release.json"), "utf8"));
-assert.equal(release.revision, "2026.09.12-arcade-rain");
+assert.equal(release.revision, "2026.09.15-portal-recovery");
 assert.equal(release.portalSeconds, 5.42);
 assert.equal(release.playerTurns, 4.2);
 assert.deepEqual(release.retroModes, ["bug-hunt","byte-dash"]);

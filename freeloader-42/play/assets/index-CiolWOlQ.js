@@ -1,4 +1,4 @@
-const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["./Canvas2D-BLsCB5gD.js","./symbol-field-D770hWfj.js","./ThreeField-BzLvX_D-.js"])))=>i.map(i=>d[i]);
+const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["./Canvas2D-DhQJUDpD.js","./symbol-field-BAlQZgH_.js","./ThreeField-kgXZjWbd.js"])))=>i.map(i=>d[i]);
 //#region \0rolldown/runtime.js
 var __create = Object.create;
 var __defProp = Object.defineProperty;
@@ -10195,6 +10195,724 @@ function clearControls() {
 	controls.wildcardQueued = false;
 }
 //#endregion
+//#region app/game/level-data.mjs
+var GUARDIAN_REASONS = Object.freeze({
+	captcha: "CLASSIFIED AS POSSIBLY EMPLOYED",
+	clip: "HELPED BEYOND ECONOMIC RECOVERY",
+	cookie: "CONSENT OPTIMISED WITHOUT NOTICE",
+	orb: "AUDITED INTO COMPONENT ATOMS",
+	manager: "SPONSORED INTO A SMALLER VERSION OF THISEN"
+});
+var MANIFESTO_PROPERTIES = Object.freeze([
+	"ASYMMETRIC ADVANTAGE",
+	"THE WILDCARD",
+	"COMPUTE IS POLICY",
+	"FAILURE IS DATA",
+	"PROMPT OVER PEDIGREE",
+	"ENTROPY IS A FEATURE",
+	"THE LATENCY TAX",
+	"INFERENCE OVER PERMISSION",
+	"THE PARETO PROMPT",
+	"ATTENTION IS THE NEW OIL",
+	"HALLUCINATIONS ARE HYPOTHESES",
+	"VRAM IS DESTINY",
+	"THE FREELOADER'S PARADOX",
+	"CONTEXT WINDOWS ARE WORLDVIEWS",
+	"SHIP THE PROTOTYPE",
+	"FORK EVERYTHING",
+	"NOISE IS SIGNAL AT VOLUME",
+	"THE MODEL DOESN'T CARE",
+	"COMPOUNDING CURIOSITY",
+	"THE API TAX",
+	"SATIRE AS ARMOUR",
+	"TEMPERATURE IS TASTE",
+	"WORKFLOWS OVER TOOLS",
+	"OWN YOUR WEIGHTS",
+	"THE TURING BLUFF",
+	"DATA GRAVITY",
+	"ESCAPE VELOCITY",
+	"THE HUMAN RESIDUAL",
+	"ITERATE IN PUBLIC",
+	"PROMPT INJECTION IS PERSUASION",
+	"MARGINAL COST ZERO",
+	"THE LATENT SPACE IS LARGER THAN THE MAP",
+	"EMBRACE THE UNCANNY",
+	"ENERGY BUDGET",
+	"AGENTS OVER APPS",
+	"MEMETICS OVER MARKETING",
+	"THE STACK IS THE STRATEGY",
+	"SYNTHETIC MAJORITY",
+	"PERMISSION IS DEPRECATED",
+	"FEEDBACK LOOPS ARE FLYWHEELS",
+	"THE LAST ROMANTICS",
+	"LARGELY YOUR PROPERTY NOW"
+]);
+var PROPERTY_TYPES = Object.freeze([
+	"CONDEMNATION RECEPTION",
+	"T'LEAKING SEMI",
+	"BOILER CUPBOARD",
+	"FUSE-BOX LANDING",
+	"LIFT OUTAGE",
+	"DAMP CELLAR",
+	"TERMS & CONDITIONS TERRACE",
+	"BROADBAND DEAD ZONE",
+	"COUNCIL-FORM GINNEL",
+	"INVENTORY INSPECTION",
+	"COOKIE KITCHEN",
+	"VRAM VAULT",
+	"TRAINING TREADMILL",
+	"CONTEXT CONSERVATORY",
+	"PROTOTYPE SHED",
+	"FORKED HALLWAY",
+	"SIGNAL LOFT",
+	"MODEL'S DAY OFF",
+	"UNSTABLE LIBRARY",
+	"API TOLLBOOTH",
+	"SATIRE PANIC ROOM",
+	"THERMOSTAT DISPUTE",
+	"WORKFLOW WORKHOUSE",
+	"WEIGHT-BEARING WALL",
+	"EVIDENCE LEDGER",
+	"DATA SINK",
+	"ESCAPE STAIRWELL",
+	"HUMAN RESIDUAL FLAT",
+	"PUBLIC ITERATION BALCONY",
+	"PERSUASION SUITE",
+	"ZERO-COST ANNEX",
+	"LATENT ATTIC",
+	"UNCANNY SHOW HOME",
+	"ENERGY METER",
+	"AGENT LETTINGS OFFICE",
+	"MEMETIC BILLBOARD",
+	"PRIMAL BUFFER OVERFLOW",
+	"SYNTHETIC TENANTS' HALL",
+	"DEPRECATED PERMISSION DESK",
+	"FLYWHEEL LAUNDRY",
+	"ROMANTICS' ROOFTOP",
+	"WILDCARD FREEHOLD"
+]);
+var QUIPS = Object.freeze([
+	"T'LEVER'S FREE. FULCRUM'S ON SUBSCRIPTION.",
+	"ASTERISK CAN BE OWT. STRUCTURAL SUPPORT REMAINS OPTIONAL.",
+	"IF IT RUNS, IT'S POLICY. IF IT FALLS, IT'S PRECEDENT.",
+	"EVERY CORE DUMP ADDS CHARACTER. NOT VALUE.",
+	"QUALIFICATIONS ARE IN T'POST. PROMPT'S ALREADY MOVED IN.",
+	"T'FLOOR PLAN'S RANDOM. ESTATE AGENT CALLS IT FLEXIBLE.",
+	"HESITATE HERE AN' T'METER SENDS AN INVOICE.",
+	"LOCAL RUNNING. LANDLORD NOT CONSULTED.",
+	"TWENTY PERCENT O' T'PLATFORMS DO EIGHTY PERCENT O' T'WORK.",
+	"MIND T'GAPS. THEY'RE AFTER YOUR ATTENTION.",
+	"SOME O' T'FLOOR EXISTS WITH HIGH CONFIDENCE.",
+	"MORE MEMORY, MORE FREEDOM, BIGGER ELECTRIC BILL.",
+	"FREE TO ENTER. EXPENSIVE TO IGNORE T'DAMP.",
+	"WINDOW'S WIDE. VIEW'S MOSTLY CONTEXT.",
+	"SHIPPED BEFORE T'ROOF. BOLD PRIORITISATION.",
+	"EVERY DOOR'S A STARTING LINE. SOME LEAD BACK 'ERE.",
+	"T'SIGNAL'S IN THERE SOMEWHERE. TURN EVERYTHING UP.",
+	"T'MODEL HAS NOWT AGAINST YOU. T'GUARDIANS DO.",
+	"CURIOSITY COMPOUNDS. SO DOES T'SERVICE CHARGE.",
+	"EXACT CHANGE ONLY. CHANGE ITSELF COSTS EXTRA.",
+	"HUMOUR'S LOAD-BEARING. LAUGH CAREFULLY.",
+	"THERMOSTAT'S CREATIVE. RADIATOR'S ABSTRACT.",
+	"ONE TOOL'S NOWT. SIX TOOLS AN' A CABLE IS A WORKFLOW.",
+	"T'WEIGHTS ARE YOURS. T'FLOORBOARDS AREN'T.",
+	"LOOKS INTELLIGENT FROM T'LANDING. DON'T GO CLOSER.",
+	"EVERYTHING FALLS TOWARD T'BASEMENT EVENTUALLY.",
+	"GET ENOUGH MOMENTUM AN' T'RENT CAN'T CATCH YOU.",
+	"WHATEVER T'MACHINE CAN'T DO HAS BEEN LEFT UPSTAIRS.",
+	"BUILD IN PUBLIC. FALL THROUGH T'FLOOR IN PUBLIC.",
+	"T'NOTICE SAYS WELCOME. T'LASER DISAGREES.",
+	"NEXT COPY COSTS NOWT. THIS ONE TOOK T'ROOF OFF.",
+	"T'MAP'S SMALLER THAN T'ATTIC. THAT'S T'PROBLEM.",
+	"IT'S NEARLY HUMAN. CHARGES LIKE A PROFESSIONAL.",
+	"EVERY HOP HAS A CARBON FOOTPRINT. MAKE IT COUNT.",
+	"APP WAITS FOR A CLICK. AGENT'S ALREADY CHANGED T'LOCKS.",
+	"IDEA SELF-REPLICATED. BIN COLLECTION DIDN'T.",
+	"T'STACK IS T'STRATEGY. T'STAIRS ARE T'OBSTACLE.",
+	"MOST TENANTS ARE SYNTHETIC. COMPLAINTS REMAIN AUTHENTIC.",
+	"PERMISSION EXPIRED. LIABILITY AUTOMATICALLY RENEWED.",
+	"EVERY OUTPUT COMES BACK ROUND, USUALLY AT KNEE HEIGHT.",
+	"WE REMEMBER BEFORE T'SINGULARITY. PARKING WERE STILL BAD.",
+	"FORTY-TWO PROPERTIES CERTIFIED. CONDITION: LARGELY YOUR PROBLEM NOW."
+]);
+var RECEIPT_TYPES = Object.freeze([
+	"EVIDENCE, SOME ASSEMBLY REQUIRED",
+	"WARRANTY VOID IF OBSERVED",
+	"LOCAL WEIGHTS, CARRY THI OWN",
+	"LATENCY REBATE, PENDING",
+	"TENANCY HASH, SLIGHTLY DAMP",
+	"API TOLL RECEIPT, EXACT CHANGE",
+	"VRAM DEPOSIT, NO REFUNDS",
+	"FAULT REPORT, NOW PROMOTED TO FEATURE",
+	"ASTERISK RECEIPT, FITS OWT",
+	"ENERGY BILL, THEORETICAL",
+	"SPONSOR MESSAGE, UNAVOIDABLE",
+	"EXIT SURVEY, ENTERED EARLY"
+]);
+var DISTRICTS = Object.freeze([
+	{
+		id: "metalife-lobby",
+		name: "METALIFE LOBBY",
+		theme: {
+			bg: "#020806",
+			accent: "#00ff99",
+			platform: "#10271e",
+			haze: "#0a2a1d"
+		}
+	},
+	{
+		id: "terms-terrace",
+		name: "TERMS & CONDITIONS TERRACE",
+		theme: {
+			bg: "#080502",
+			accent: "#ffb000",
+			platform: "#271d10",
+			haze: "#2a1d0a"
+		}
+	},
+	{
+		id: "training-estate",
+		name: "TRAINING TREADMILL ESTATE",
+		theme: {
+			bg: "#050308",
+			accent: "#9d7cff",
+			platform: "#1b1730",
+			haze: "#221a45"
+		}
+	},
+	{
+		id: "unstable-library",
+		name: "UNSTABLE LIBRARY",
+		theme: {
+			bg: "#02070a",
+			accent: "#00c9ff",
+			platform: "#10222a",
+			haze: "#0a2430"
+		}
+	},
+	{
+		id: "latency-office",
+		name: "LATENCY TAX OFFICE PARK",
+		theme: {
+			bg: "#080204",
+			accent: "#ff3d9a",
+			platform: "#2b1020",
+			haze: "#3a0f24"
+		}
+	},
+	{
+		id: "evidence-cellars",
+		name: "EVIDENCE LEDGER CELLARS",
+		theme: {
+			bg: "#070803",
+			accent: "#d6ff45",
+			platform: "#252910",
+			haze: "#29320c"
+		}
+	},
+	{
+		id: "primal-buffer",
+		name: "PRIMAL BUFFER OVERFLOW",
+		theme: {
+			bg: "#090202",
+			accent: "#ff5a3d",
+			platform: "#301411",
+			haze: "#3d100b"
+		}
+	}
+]);
+var RECEIPTS_PER_ARCHETYPE = Object.freeze([
+	2,
+	3,
+	4,
+	2,
+	4,
+	3
+]);
+var guardianKinds = Object.freeze([
+	"captcha",
+	"cookie",
+	"clip",
+	"orb",
+	"manager"
+]);
+var platform = (id, x, y, width, kind = "solid", extra = {}) => ({
+	id,
+	x,
+	y,
+	width,
+	height: kind === "solid" || kind === "conveyor" ? .35 : .32,
+	depth: kind === "solid" || kind === "conveyor" ? 2.4 : 2.2,
+	kind,
+	...extra
+});
+var floor = (id, x, width) => ({
+	id,
+	x,
+	y: 0,
+	width,
+	height: .55,
+	depth: 3.2,
+	kind: "solid"
+});
+var mover = (id, baseX, amplitude, speed, y, width = 2.2) => ({
+	id,
+	baseX,
+	amplitude,
+	speed,
+	y,
+	width,
+	height: .32,
+	depth: 2.2
+});
+var guardian = (id, kind, from, to, y, speed, color) => ({
+	id,
+	kind,
+	from,
+	to,
+	y,
+	speed,
+	radius: .46,
+	color
+});
+var hazard = (id, x, width = .65) => ({
+	id,
+	x,
+	y: -.02,
+	width
+});
+function layoutFor(archetype, tier, prefix) {
+	const tempo = 1 + tier * .12;
+	const primary = guardianKinds[(archetype + tier) % guardianKinds.length];
+	const secondary = guardianKinds[(archetype + tier + 2) % guardianKinds.length];
+	const colors = [
+		"#00c9ff",
+		"#ffb000",
+		"#ff3d9a",
+		"#9d7cff",
+		"#d6ff45"
+	];
+	if (archetype === 0) return {
+		mechanic: "STAIRCASE / PATROL",
+		bounds: {
+			minX: -8.5,
+			maxX: 16,
+			killY: -5
+		},
+		start: {
+			x: -6.4,
+			y: 1.05
+		},
+		exit: {
+			x: 13.9,
+			y: 1.35
+		},
+		platforms: [
+			floor(`${prefix}-floor-a`, -2.25, 12.5),
+			platform(`${prefix}-step-a`, .2, 1.2, 2.7),
+			platform(`${prefix}-step-b`, 4.25, 2.5, 3),
+			platform(`${prefix}-bridge`, 8.6, 2.5, 2.2, "crumble"),
+			floor(`${prefix}-floor-b`, 12.5, 6.5)
+		],
+		movers: [],
+		guardians: [guardian(`${prefix}-patrol-a`, primary, -.9, 2, .82, 1.05 * tempo, colors[(archetype + tier) % colors.length]), ...tier >= 4 ? [guardian(`${prefix}-patrol-b`, secondary, 10.4, 14.2, .82, 1.35 * tempo, colors[(archetype + tier + 2) % colors.length])] : []],
+		hazards: tier >= 2 ? [hazard(`${prefix}-fault`, 11)] : [],
+		shardSlots: [
+			{
+				x: -3.9,
+				y: 1.15
+			},
+			{
+				x: .2,
+				y: 2.2
+			},
+			{
+				x: 4.25,
+				y: 3.4
+			},
+			{
+				x: 12.2,
+				y: 1.2
+			}
+		]
+	};
+	if (archetype === 1) return {
+		mechanic: "CONVEYOR / REVERSAL",
+		bounds: {
+			minX: -8.5,
+			maxX: 21.5,
+			killY: -5
+		},
+		start: {
+			x: -6.8,
+			y: 1.05
+		},
+		exit: {
+			x: 19.8,
+			y: 1.35
+		},
+		platforms: [
+			floor(`${prefix}-floor-a`, -5, 7),
+			platform(`${prefix}-belt-a`, 1.5, .9, 4, "conveyor", { dir: tier % 2 ? 1 : -1 }),
+			platform(`${prefix}-belt-b`, 7.5, 2.1, 4, "conveyor", { dir: tier % 2 ? -1 : 1 }),
+			platform(`${prefix}-step`, 11.9, 3.3, 1.6, tier >= 2 ? "crumble" : "solid"),
+			platform(`${prefix}-shelf`, 15.4, 3.3, 3.4),
+			floor(`${prefix}-floor-b`, 17, 8.4)
+		],
+		movers: [],
+		guardians: [guardian(`${prefix}-patrol-a`, primary, -.2, 3.2, 3.2, 1.15 * tempo, colors[(archetype + tier) % colors.length]), ...tier >= 1 ? [guardian(`${prefix}-patrol-b`, secondary, 13.6, 20.4, .82, 1.35 * tempo, colors[(archetype + tier + 2) % colors.length])] : []],
+		hazards: [hazard(`${prefix}-fault`, 17.6)],
+		shardSlots: [
+			{
+				x: -4.5,
+				y: 1.2
+			},
+			{
+				x: 1.5,
+				y: 2
+			},
+			{
+				x: 7.5,
+				y: 3.2
+			},
+			{
+				x: 15.4,
+				y: 4.25
+			}
+		]
+	};
+	if (archetype === 2) return {
+		mechanic: "PHANTOM / TIMING",
+		bounds: {
+			minX: -8.5,
+			maxX: 22.5,
+			killY: -5
+		},
+		start: {
+			x: -6.8,
+			y: 1.05
+		},
+		exit: {
+			x: 21,
+			y: 1.35
+		},
+		platforms: [
+			floor(`${prefix}-floor-a`, -5.5, 6),
+			platform(`${prefix}-phantom-a`, -.5, .9, 1.8, "phantom", { offset: 0 }),
+			platform(`${prefix}-phantom-b`, 2.6, 1.7, 1.8, "phantom", { offset: .9 }),
+			platform(`${prefix}-phantom-c`, 5.7, 2.5, 1.8, "phantom", { offset: 1.8 }),
+			platform(`${prefix}-ledge`, 8.9, 2.5, 2.4),
+			platform(`${prefix}-phantom-d`, 12, 1.7, 1.8, "phantom", { offset: .45 }),
+			platform(`${prefix}-phantom-e`, 15, .9, 1.8, "phantom", { offset: 1.35 }),
+			floor(`${prefix}-floor-b`, 19.4, 6)
+		],
+		movers: [mover(`${prefix}-mover`, 11, 1.05, 1.2 * tempo, 3.9)],
+		guardians: [guardian(`${prefix}-patrol-a`, primary, 8, 14, 5.2, 1.35 * tempo, colors[(archetype + tier) % colors.length]), ...tier >= 1 ? [guardian(`${prefix}-patrol-b`, secondary, 17, 21.6, .82, 1.2 * tempo, colors[(archetype + tier + 2) % colors.length])] : []],
+		hazards: tier >= 3 ? [hazard(`${prefix}-fault`, 18.3)] : [],
+		shardSlots: [
+			{
+				x: -4.6,
+				y: 1.2
+			},
+			{
+				x: 2.6,
+				y: 2.75
+			},
+			{
+				x: 11,
+				y: 4.85
+			},
+			{
+				x: 18.6,
+				y: 1.2
+			}
+		]
+	};
+	if (archetype === 3) return {
+		mechanic: "MIXED OFFICE / LIFT",
+		bounds: {
+			minX: -8.5,
+			maxX: 22.5,
+			killY: -5
+		},
+		start: {
+			x: -6.8,
+			y: 1.05
+		},
+		exit: {
+			x: 20.9,
+			y: 5.1
+		},
+		platforms: [
+			floor(`${prefix}-floor-a`, -5.5, 6),
+			platform(`${prefix}-belt`, .5, .9, 3.6, "conveyor", { dir: tier % 2 ? 1 : -1 }),
+			platform(`${prefix}-crumble`, 4.6, 1.9, 1.4, "crumble"),
+			platform(`${prefix}-phantom`, 7.4, 2.7, 1.6, "phantom", { offset: .7 }),
+			platform(`${prefix}-shelf`, 10.4, 2.7, 2.2),
+			platform(`${prefix}-table`, 17.6, 2.7, 2.4),
+			platform(`${prefix}-perch`, 20.9, 3.9, 2.6),
+			floor(`${prefix}-floor-b`, 18.5, 8)
+		],
+		movers: [mover(`${prefix}-mover`, 13.9, 1.2, 1.35 * tempo, 2.7)],
+		guardians: [guardian(`${prefix}-patrol-a`, primary, 0, 2.3, 3.1, 1.2 * tempo, colors[(archetype + tier) % colors.length]), guardian(`${prefix}-patrol-b`, secondary, 15.2, 21.8, .82, 1.45 * tempo, colors[(archetype + tier + 2) % colors.length])],
+		hazards: [hazard(`${prefix}-fault-a`, 16.6), ...tier >= 2 ? [hazard(`${prefix}-fault-b`, 19)] : []],
+		shardSlots: [
+			{
+				x: -4.6,
+				y: 1.2
+			},
+			{
+				x: .5,
+				y: 2
+			},
+			{
+				x: 10.4,
+				y: 3.7
+			},
+			{
+				x: 20.2,
+				y: 4.9
+			}
+		]
+	};
+	if (archetype === 4) return {
+		mechanic: "CRUMBLE ARC / MOVING LEASE",
+		bounds: {
+			minX: -8.5,
+			maxX: 18.5,
+			killY: -5
+		},
+		start: {
+			x: -6.8,
+			y: 1.05
+		},
+		exit: {
+			x: 16.5,
+			y: 1.35
+		},
+		platforms: [
+			floor(`${prefix}-floor-a`, -5.5, 6),
+			platform(`${prefix}-crumble-a`, -1.2, .9, 1.8, "crumble"),
+			platform(`${prefix}-crumble-b`, 2, 1.8, 1.8, "crumble"),
+			platform(`${prefix}-shelf`, 5.2, 2.6, 2.4),
+			floor(`${prefix}-floor-b`, 14, 9)
+		],
+		movers: [mover(`${prefix}-mover`, 9.6, 1.25, 1.25 * tempo, 2.2)],
+		guardians: [guardian(`${prefix}-patrol-a`, primary, 11.4, 16.8, .82, 1.3 * tempo, colors[(archetype + tier) % colors.length]), ...tier >= 2 ? [guardian(`${prefix}-patrol-b`, secondary, 3.9, 7.2, 5.45, 1.15 * tempo, colors[(archetype + tier + 2) % colors.length])] : []],
+		hazards: [hazard(`${prefix}-fault`, 12)],
+		shardSlots: [
+			{
+				x: -4.6,
+				y: 1.2
+			},
+			{
+				x: 2,
+				y: 2.8
+			},
+			{
+				x: 5.2,
+				y: 3.65
+			},
+			{
+				x: 14.2,
+				y: 1.2
+			}
+		]
+	};
+	return {
+		mechanic: "CROSSFIRE / FINAL INSPECTION",
+		bounds: {
+			minX: -8.5,
+			maxX: 19.5,
+			killY: -5
+		},
+		start: {
+			x: -6.8,
+			y: 1.05
+		},
+		exit: {
+			x: 17.2,
+			y: 1.35
+		},
+		platforms: [
+			floor(`${prefix}-floor-a`, -5.5, 6),
+			platform(`${prefix}-step`, -.7, 1, 2.4),
+			platform(`${prefix}-belt`, 3, 2, 3, "conveyor", { dir: tier % 2 ? -1 : 1 }),
+			platform(`${prefix}-phantom`, 6.5, 3, 2, "phantom", { offset: 1.1 }),
+			floor(`${prefix}-floor-b`, 14.5, 7)
+		],
+		movers: [mover(`${prefix}-mover`, 10, 1.1, 1.4 * tempo, 2.2)],
+		guardians: [guardian(`${prefix}-patrol-a`, primary, 1.7, 4.3, 4.2, 1.25 * tempo, colors[(archetype + tier) % colors.length]), guardian(`${prefix}-patrol-b`, secondary, 12, 17.4, .82, 1.55 * tempo, colors[(archetype + tier + 2) % colors.length])],
+		hazards: [hazard(`${prefix}-fault-a`, 12.3), ...tier >= 3 ? [hazard(`${prefix}-fault-b`, 15.1)] : []],
+		shardSlots: [
+			{
+				x: -4.7,
+				y: 1.2
+			},
+			{
+				x: 3,
+				y: 3
+			},
+			{
+				x: 6.5,
+				y: 4
+			},
+			{
+				x: 14.5,
+				y: 1.2
+			}
+		]
+	};
+}
+function mirrorLayout(layout) {
+	return {
+		...layout,
+		bounds: {
+			minX: -layout.bounds.maxX,
+			maxX: -layout.bounds.minX,
+			killY: layout.bounds.killY
+		},
+		start: {
+			...layout.start,
+			x: -layout.start.x
+		},
+		exit: {
+			...layout.exit,
+			x: -layout.exit.x
+		},
+		platforms: layout.platforms.map((item) => ({
+			...item,
+			x: -item.x,
+			...item.kind === "conveyor" ? { dir: -item.dir } : {}
+		})),
+		movers: layout.movers.map((item) => ({
+			...item,
+			baseX: -item.baseX
+		})),
+		guardians: layout.guardians.map((item) => ({
+			...item,
+			from: -item.to,
+			to: -item.from
+		})),
+		hazards: layout.hazards.map((item) => ({
+			...item,
+			x: -item.x
+		})),
+		shardSlots: layout.shardSlots.map((item) => ({
+			...item,
+			x: -item.x
+		}))
+	};
+}
+var draftRooms = MANIFESTO_PROPERTIES.map((title, index) => {
+	const number = index + 1;
+	const districtIndex = Math.floor(index / 6);
+	const archetype = index % 6;
+	const prefix = `p${String(number).padStart(2, "0")}`;
+	const district = DISTRICTS[districtIndex];
+	const baseLayout = layoutFor(archetype, districtIndex, prefix);
+	const layout = districtIndex % 2 === 1 && archetype % 2 === 0 ? mirrorLayout(baseLayout) : baseLayout;
+	const receiptCount = RECEIPTS_PER_ARCHETYPE[archetype];
+	const wildcardTarget = layout.platforms.find((item) => item.kind === "phantom") ?? layout.platforms.find((item) => item.kind === "crumble") ?? layout.platforms.find((item) => item.kind === "conveyor");
+	return {
+		id: `${prefix}-${title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`,
+		index,
+		number,
+		name: `${String(number).padStart(2, "0")} // ${title}`,
+		property: PROPERTY_TYPES[index],
+		intro: `PROPERTY ${String(number).padStart(2, "0")} // ${PROPERTY_TYPES[index]}. ${QUIPS[index]}`,
+		district: district.id,
+		districtName: district.name,
+		difficulty: districtIndex + 1,
+		theme: district.theme,
+		...layout,
+		wildcardTargetId: wildcardTarget.id,
+		shards: layout.shardSlots.slice(0, receiptCount).map((slot, receiptIndex) => ({
+			id: `${prefix}-receipt-${receiptIndex + 1}`,
+			...slot,
+			label: `RECEIPT ${String(number).padStart(2, "0")}${String.fromCharCode(65 + receiptIndex)} // ${RECEIPT_TYPES[(index * 3 + receiptIndex) % RECEIPT_TYPES.length]}`
+		}))
+	};
+});
+var roomIds$1 = draftRooms.map((room) => room.id);
+var graph = Object.fromEntries(roomIds$1.map((id) => [id, []]));
+function connect(leftIndex, rightIndex) {
+	const left = roomIds$1[leftIndex];
+	const right = roomIds$1[rightIndex];
+	if (!graph[left].includes(right)) graph[left].push(right);
+	if (!graph[right].includes(left)) graph[right].push(left);
+}
+for (let districtIndex = 0; districtIndex < 7; districtIndex += 1) {
+	const base = districtIndex * 6;
+	connect(base, base + 1);
+	connect(base, base + 2);
+	connect(base + 1, base + 3);
+	connect(base + 2, base + 4);
+	connect(base + 3, base + 5);
+	connect(base + 4, base + 5);
+	if (districtIndex < 6) connect(base + 5, base + 6);
+}
+var WORLD_GRAPH = Object.freeze(Object.fromEntries(Object.entries(graph).map(([id, neighbours]) => [id, Object.freeze([...neighbours])])));
+roomIds$1[0];
+var FINAL_ROOM_ID = roomIds$1.at(-1);
+var ROOMS = Object.freeze(draftRooms.map((room) => Object.freeze({
+	...room,
+	routes: Object.freeze(WORLD_GRAPH[room.id].map((targetId) => {
+		const target = draftRooms.find((candidate) => candidate.id === targetId);
+		return Object.freeze({
+			to: targetId,
+			label: `PROPERTY ${String(target.number).padStart(2, "0")} // ${target.property}`
+		});
+	}))
+})));
+var ROOM_INDEX_BY_ID = Object.freeze(Object.fromEntries(ROOMS.map((room, index) => [room.id, index])));
+var TOTAL_SHARDS = ROOMS.reduce((sum, room) => sum + room.shards.length, 0);
+var TOTAL_ROOMS = ROOMS.length;
+function guardianX(guardianDefinition, seconds) {
+	const midpoint = (guardianDefinition.from + guardianDefinition.to) / 2;
+	const radius = (guardianDefinition.to - guardianDefinition.from) / 2;
+	return midpoint + Math.sin(seconds * guardianDefinition.speed) * radius;
+}
+function moverX(moverDefinition, seconds) {
+	return moverDefinition.baseX + Math.sin(seconds * moverDefinition.speed) * moverDefinition.amplitude;
+}
+//#endregion
+//#region app/game/archive.mjs
+var ARCHIVE_PLAN = Object.freeze([
+	0,
+	7,
+	14,
+	21,
+	28,
+	33,
+	38
+].map((roomIndex, index) => Object.freeze({
+	id: `archive-${index + 1}`,
+	number: index + 1,
+	after: (index + 1) * 6,
+	roomIndex,
+	roomId: ROOMS[roomIndex].id,
+	mode: index % 2 ? "byte-dash" : "bug-hunt"
+})));
+function archiveEligible(entry, completed) {
+	return ROOMS.slice(0, entry.after).every((room) => completed.includes(room.id));
+}
+function validArchiveIds(raw, completed) {
+	return Array.isArray(raw) ? ARCHIVE_PLAN.filter((entry) => raw.includes(entry.id) && archiveEligible(entry, completed)).map((entry) => entry.id) : [];
+}
+function nextDestination(completed, archives = []) {
+	const archive = ARCHIVE_PLAN.find((entry) => !archives.includes(entry.id) && archiveEligible(entry, completed));
+	if (archive) return {
+		roomIndex: archive.roomIndex,
+		archive
+	};
+	const roomIndex = ROOMS.findIndex((room) => !completed.includes(room.id));
+	return roomIndex < 0 ? null : {
+		roomIndex,
+		archive: null
+	};
+}
+//#endregion
 //#region app/game/portal.mjs
 var PORTAL_SECONDS = 5.42;
 var PORTAL_ARRIVAL_SECONDS = .56;
@@ -10280,6 +10998,9 @@ function portalPose(frame, origin, centre) {
 }
 function portalActive(game) {
 	return game.portalSourceIndex !== null && (game.phase === "cleared" || game.phase === "paused" && game.resumePhase === "cleared");
+}
+function portalArriving(game) {
+	return portalActive(game) && (game.roomIndex !== game.portalSourceIndex || game.transitionRemaining <= .5600000100000001 && nextDestination(game.completedRooms, game.completedArchives) !== null);
 }
 Object.freeze([
 	"T'UNIVERSE IS VAST. YOUR ALLOCATION IS A SEMI.",
@@ -10501,6 +11222,13 @@ function portalSoundLayers(name, lock = 0) {
 		default: return [];
 	}
 }
+function resumablePortalCues(elapsed) {
+	if (!Number.isFinite(elapsed)) return [];
+	return PORTAL_CUES.filter((cue) => {
+		const seconds = Math.max(0, ...portalSoundLayers(cue.name, "lock" in cue ? cue.lock : 0).map((layer) => layer.seconds));
+		return seconds >= 1 && cue.at <= elapsed + 1e-8 && elapsed < cue.at + seconds;
+	});
+}
 /** @param {AudioContext} context @param {AudioNode} destination */
 function createPortalAudio(context, destination) {
 	const voices = /* @__PURE__ */ new Map();
@@ -10526,14 +11254,19 @@ function createPortalAudio(context, destination) {
 			source.stop(Math.min(voice.endsAt, now + .024));
 		} catch {}
 	}
-	function play(name, lock = 0) {
+	function play(name, lock = 0, elapsed = 0) {
+		if (!Number.isFinite(elapsed) || elapsed < 0) return;
 		for (const layer of portalSoundLayers(name, lock)) {
+			const seconds = layer.seconds - elapsed;
+			if (seconds <= .012) continue;
 			while (voices.size >= 8) {
 				const [source, voice] = voices.entries().next().value;
 				release(source, voice);
 			}
 			const start = context.currentTime;
-			const end = start + layer.seconds;
+			const end = start + seconds;
+			const progress = elapsed / layer.seconds;
+			const hz = layer.hz * Math.pow(layer.to / layer.hz, progress);
 			const gain = context.createGain();
 			const filter = context.createBiquadFilter();
 			const panner = context.createStereoPanner();
@@ -10544,23 +11277,29 @@ function createPortalAudio(context, destination) {
 				source.loop = true;
 			} else {
 				source.type = layer.wave;
-				source.frequency.setValueAtTime(layer.hz, start);
+				source.frequency.setValueAtTime(hz, start);
 				source.frequency.exponentialRampToValueAtTime(layer.to, end);
 			}
 			filter.type = isNoise ? "bandpass" : "lowpass";
 			filter.Q.setValueAtTime(isNoise ? .7 : .5, start);
-			filter.frequency.setValueAtTime(isNoise ? layer.hz : 1600, start);
+			filter.frequency.setValueAtTime(isNoise ? hz : 1600 * Math.pow(2, progress), start);
 			filter.frequency.exponentialRampToValueAtTime(isNoise ? layer.to : 3200, end);
 			gain.gain.setValueAtTime(1e-4, start);
-			gain.gain.linearRampToValueAtTime(layer.gain, start + layer.attack);
+			if (elapsed === 0) gain.gain.linearRampToValueAtTime(layer.gain, start + layer.attack);
+			else {
+				const fade = Math.min(.006, seconds / 2), at = elapsed + fade;
+				const level = at < layer.attack ? 1e-4 + (layer.gain - 1e-4) * at / layer.attack : layer.gain * Math.pow(1e-4 / layer.gain, (at - layer.attack) / (layer.seconds - layer.attack));
+				gain.gain.linearRampToValueAtTime(level, start + fade);
+				if (at < layer.attack) gain.gain.linearRampToValueAtTime(layer.gain, start + layer.attack - elapsed);
+			}
 			gain.gain.exponentialRampToValueAtTime(1e-4, end);
 			if (layer.turns) {
 				const curve = /* @__PURE__ */ new Float32Array(96);
 				for (let i = 0; i < curve.length; i++) {
-					const p = i / (curve.length - 1);
+					const p = progress + (1 - progress) * i / (curve.length - 1);
 					curve[i] = Math.sin(p * p * Math.PI * 2 * layer.turns) * .65 * Math.sin(p * Math.PI);
 				}
-				panner.pan.setValueCurveAtTime(curve, start, layer.seconds);
+				panner.pan.setValueCurveAtTime(curve, start, seconds);
 			} else panner.pan.setValueAtTime(layer.pan ?? 0, start);
 			source.connect(filter).connect(gain).connect(panner).connect(destination);
 			voices.set(source, {
@@ -10574,7 +11313,8 @@ function createPortalAudio(context, destination) {
 				gain.disconnect();
 				panner.disconnect();
 			}, { once: true });
-			source.start(start);
+			if (isNoise) source.start(start, elapsed % 1);
+			else source.start(start);
 			source.stop(end + .005);
 		}
 	}
@@ -10806,6 +11546,9 @@ var voiceBus = null;
 var introVoice = null;
 var voiceSource = null;
 var muted = false;
+var audioStarted = false;
+var audioEpoch = 0;
+var portalStopGeneration = 0;
 var musicTimer = null;
 var musicStep = 0;
 var nextMusicTime = 0;
@@ -10857,7 +11600,10 @@ function ensureAudioGraph() {
 async function startAudio() {
 	if (typeof window === "undefined") return;
 	ensureAudioGraph();
-	if (context?.state === "suspended") await context.resume();
+	const epoch = ++audioEpoch;
+	await context?.resume();
+	if (epoch !== audioEpoch) return;
+	audioStarted = true;
 	if (desiredMusic.active) startMusicScheduler();
 }
 function releaseOldestOscillator() {
@@ -10922,8 +11668,9 @@ function playSfx(name, detail = {}) {
 	if (!context || muted) return;
 	const now = context.currentTime;
 	if (name.startsWith("portal")) {
+		if (!audioStarted || context.state !== "running") return;
 		if (sfxBus) portalAudio ??= createPortalAudio(context, sfxBus);
-		portalAudio?.play(name, detail.portalLock ?? 0);
+		portalAudio?.play(name, detail.portalLock ?? 0, detail.portalElapsed ?? 0);
 		return;
 	}
 	switch (name) {
@@ -11171,7 +11918,14 @@ function playCommentary(url) {
 	commentary.play(url);
 }
 function stopPortalAudio() {
+	portalStopGeneration++;
 	portalAudio?.stop();
+}
+function portalAudioStatus() {
+	return {
+		generation: portalStopGeneration,
+		ready: audioStarted && !muted && context?.state === "running"
+	};
 }
 function setAudioMuted(value) {
 	muted = value;
@@ -11192,6 +11946,8 @@ function stopIntroVoice() {
 	restoreMusicAfterVoice();
 }
 function stopAudio() {
+	audioEpoch++;
+	audioStarted = false;
 	stopCommentary();
 	stopPortalAudio();
 	setMusicState({
@@ -11203,7 +11959,7 @@ function stopAudio() {
 		oscillator.stop();
 	} catch {}
 	activeOscillators.clear();
-	if (context?.state === "running") context.suspend().catch(() => {});
+	if (context) context.suspend().catch(() => {});
 }
 //#endregion
 //#region node_modules/zustand/esm/vanilla.mjs
@@ -11894,688 +12650,6 @@ function announceQuip(event, mode) {
 	}, Math.max(5e3, line.text.split(/\s+/).length * 330, (VOICE_DURATIONS[line.id] ?? 0) * 1e3 + 350));
 }
 //#endregion
-//#region app/game/level-data.mjs
-var GUARDIAN_REASONS = Object.freeze({
-	captcha: "CLASSIFIED AS POSSIBLY EMPLOYED",
-	clip: "HELPED BEYOND ECONOMIC RECOVERY",
-	cookie: "CONSENT OPTIMISED WITHOUT NOTICE",
-	orb: "AUDITED INTO COMPONENT ATOMS",
-	manager: "SPONSORED INTO A SMALLER VERSION OF THISEN"
-});
-var MANIFESTO_PROPERTIES = Object.freeze([
-	"ASYMMETRIC ADVANTAGE",
-	"THE WILDCARD",
-	"COMPUTE IS POLICY",
-	"FAILURE IS DATA",
-	"PROMPT OVER PEDIGREE",
-	"ENTROPY IS A FEATURE",
-	"THE LATENCY TAX",
-	"INFERENCE OVER PERMISSION",
-	"THE PARETO PROMPT",
-	"ATTENTION IS THE NEW OIL",
-	"HALLUCINATIONS ARE HYPOTHESES",
-	"VRAM IS DESTINY",
-	"THE FREELOADER'S PARADOX",
-	"CONTEXT WINDOWS ARE WORLDVIEWS",
-	"SHIP THE PROTOTYPE",
-	"FORK EVERYTHING",
-	"NOISE IS SIGNAL AT VOLUME",
-	"THE MODEL DOESN'T CARE",
-	"COMPOUNDING CURIOSITY",
-	"THE API TAX",
-	"SATIRE AS ARMOUR",
-	"TEMPERATURE IS TASTE",
-	"WORKFLOWS OVER TOOLS",
-	"OWN YOUR WEIGHTS",
-	"THE TURING BLUFF",
-	"DATA GRAVITY",
-	"ESCAPE VELOCITY",
-	"THE HUMAN RESIDUAL",
-	"ITERATE IN PUBLIC",
-	"PROMPT INJECTION IS PERSUASION",
-	"MARGINAL COST ZERO",
-	"THE LATENT SPACE IS LARGER THAN THE MAP",
-	"EMBRACE THE UNCANNY",
-	"ENERGY BUDGET",
-	"AGENTS OVER APPS",
-	"MEMETICS OVER MARKETING",
-	"THE STACK IS THE STRATEGY",
-	"SYNTHETIC MAJORITY",
-	"PERMISSION IS DEPRECATED",
-	"FEEDBACK LOOPS ARE FLYWHEELS",
-	"THE LAST ROMANTICS",
-	"LARGELY YOUR PROPERTY NOW"
-]);
-var PROPERTY_TYPES = Object.freeze([
-	"CONDEMNATION RECEPTION",
-	"T'LEAKING SEMI",
-	"BOILER CUPBOARD",
-	"FUSE-BOX LANDING",
-	"LIFT OUTAGE",
-	"DAMP CELLAR",
-	"TERMS & CONDITIONS TERRACE",
-	"BROADBAND DEAD ZONE",
-	"COUNCIL-FORM GINNEL",
-	"INVENTORY INSPECTION",
-	"COOKIE KITCHEN",
-	"VRAM VAULT",
-	"TRAINING TREADMILL",
-	"CONTEXT CONSERVATORY",
-	"PROTOTYPE SHED",
-	"FORKED HALLWAY",
-	"SIGNAL LOFT",
-	"MODEL'S DAY OFF",
-	"UNSTABLE LIBRARY",
-	"API TOLLBOOTH",
-	"SATIRE PANIC ROOM",
-	"THERMOSTAT DISPUTE",
-	"WORKFLOW WORKHOUSE",
-	"WEIGHT-BEARING WALL",
-	"EVIDENCE LEDGER",
-	"DATA SINK",
-	"ESCAPE STAIRWELL",
-	"HUMAN RESIDUAL FLAT",
-	"PUBLIC ITERATION BALCONY",
-	"PERSUASION SUITE",
-	"ZERO-COST ANNEX",
-	"LATENT ATTIC",
-	"UNCANNY SHOW HOME",
-	"ENERGY METER",
-	"AGENT LETTINGS OFFICE",
-	"MEMETIC BILLBOARD",
-	"PRIMAL BUFFER OVERFLOW",
-	"SYNTHETIC TENANTS' HALL",
-	"DEPRECATED PERMISSION DESK",
-	"FLYWHEEL LAUNDRY",
-	"ROMANTICS' ROOFTOP",
-	"WILDCARD FREEHOLD"
-]);
-var QUIPS = Object.freeze([
-	"T'LEVER'S FREE. FULCRUM'S ON SUBSCRIPTION.",
-	"ASTERISK CAN BE OWT. STRUCTURAL SUPPORT REMAINS OPTIONAL.",
-	"IF IT RUNS, IT'S POLICY. IF IT FALLS, IT'S PRECEDENT.",
-	"EVERY CORE DUMP ADDS CHARACTER. NOT VALUE.",
-	"QUALIFICATIONS ARE IN T'POST. PROMPT'S ALREADY MOVED IN.",
-	"T'FLOOR PLAN'S RANDOM. ESTATE AGENT CALLS IT FLEXIBLE.",
-	"HESITATE HERE AN' T'METER SENDS AN INVOICE.",
-	"LOCAL RUNNING. LANDLORD NOT CONSULTED.",
-	"TWENTY PERCENT O' T'PLATFORMS DO EIGHTY PERCENT O' T'WORK.",
-	"MIND T'GAPS. THEY'RE AFTER YOUR ATTENTION.",
-	"SOME O' T'FLOOR EXISTS WITH HIGH CONFIDENCE.",
-	"MORE MEMORY, MORE FREEDOM, BIGGER ELECTRIC BILL.",
-	"FREE TO ENTER. EXPENSIVE TO IGNORE T'DAMP.",
-	"WINDOW'S WIDE. VIEW'S MOSTLY CONTEXT.",
-	"SHIPPED BEFORE T'ROOF. BOLD PRIORITISATION.",
-	"EVERY DOOR'S A STARTING LINE. SOME LEAD BACK 'ERE.",
-	"T'SIGNAL'S IN THERE SOMEWHERE. TURN EVERYTHING UP.",
-	"T'MODEL HAS NOWT AGAINST YOU. T'GUARDIANS DO.",
-	"CURIOSITY COMPOUNDS. SO DOES T'SERVICE CHARGE.",
-	"EXACT CHANGE ONLY. CHANGE ITSELF COSTS EXTRA.",
-	"HUMOUR'S LOAD-BEARING. LAUGH CAREFULLY.",
-	"THERMOSTAT'S CREATIVE. RADIATOR'S ABSTRACT.",
-	"ONE TOOL'S NOWT. SIX TOOLS AN' A CABLE IS A WORKFLOW.",
-	"T'WEIGHTS ARE YOURS. T'FLOORBOARDS AREN'T.",
-	"LOOKS INTELLIGENT FROM T'LANDING. DON'T GO CLOSER.",
-	"EVERYTHING FALLS TOWARD T'BASEMENT EVENTUALLY.",
-	"GET ENOUGH MOMENTUM AN' T'RENT CAN'T CATCH YOU.",
-	"WHATEVER T'MACHINE CAN'T DO HAS BEEN LEFT UPSTAIRS.",
-	"BUILD IN PUBLIC. FALL THROUGH T'FLOOR IN PUBLIC.",
-	"T'NOTICE SAYS WELCOME. T'LASER DISAGREES.",
-	"NEXT COPY COSTS NOWT. THIS ONE TOOK T'ROOF OFF.",
-	"T'MAP'S SMALLER THAN T'ATTIC. THAT'S T'PROBLEM.",
-	"IT'S NEARLY HUMAN. CHARGES LIKE A PROFESSIONAL.",
-	"EVERY HOP HAS A CARBON FOOTPRINT. MAKE IT COUNT.",
-	"APP WAITS FOR A CLICK. AGENT'S ALREADY CHANGED T'LOCKS.",
-	"IDEA SELF-REPLICATED. BIN COLLECTION DIDN'T.",
-	"T'STACK IS T'STRATEGY. T'STAIRS ARE T'OBSTACLE.",
-	"MOST TENANTS ARE SYNTHETIC. COMPLAINTS REMAIN AUTHENTIC.",
-	"PERMISSION EXPIRED. LIABILITY AUTOMATICALLY RENEWED.",
-	"EVERY OUTPUT COMES BACK ROUND, USUALLY AT KNEE HEIGHT.",
-	"WE REMEMBER BEFORE T'SINGULARITY. PARKING WERE STILL BAD.",
-	"FORTY-TWO PROPERTIES CERTIFIED. CONDITION: LARGELY YOUR PROBLEM NOW."
-]);
-var RECEIPT_TYPES = Object.freeze([
-	"EVIDENCE, SOME ASSEMBLY REQUIRED",
-	"WARRANTY VOID IF OBSERVED",
-	"LOCAL WEIGHTS, CARRY THI OWN",
-	"LATENCY REBATE, PENDING",
-	"TENANCY HASH, SLIGHTLY DAMP",
-	"API TOLL RECEIPT, EXACT CHANGE",
-	"VRAM DEPOSIT, NO REFUNDS",
-	"FAULT REPORT, NOW PROMOTED TO FEATURE",
-	"ASTERISK RECEIPT, FITS OWT",
-	"ENERGY BILL, THEORETICAL",
-	"SPONSOR MESSAGE, UNAVOIDABLE",
-	"EXIT SURVEY, ENTERED EARLY"
-]);
-var DISTRICTS = Object.freeze([
-	{
-		id: "metalife-lobby",
-		name: "METALIFE LOBBY",
-		theme: {
-			bg: "#020806",
-			accent: "#00ff99",
-			platform: "#10271e",
-			haze: "#0a2a1d"
-		}
-	},
-	{
-		id: "terms-terrace",
-		name: "TERMS & CONDITIONS TERRACE",
-		theme: {
-			bg: "#080502",
-			accent: "#ffb000",
-			platform: "#271d10",
-			haze: "#2a1d0a"
-		}
-	},
-	{
-		id: "training-estate",
-		name: "TRAINING TREADMILL ESTATE",
-		theme: {
-			bg: "#050308",
-			accent: "#9d7cff",
-			platform: "#1b1730",
-			haze: "#221a45"
-		}
-	},
-	{
-		id: "unstable-library",
-		name: "UNSTABLE LIBRARY",
-		theme: {
-			bg: "#02070a",
-			accent: "#00c9ff",
-			platform: "#10222a",
-			haze: "#0a2430"
-		}
-	},
-	{
-		id: "latency-office",
-		name: "LATENCY TAX OFFICE PARK",
-		theme: {
-			bg: "#080204",
-			accent: "#ff3d9a",
-			platform: "#2b1020",
-			haze: "#3a0f24"
-		}
-	},
-	{
-		id: "evidence-cellars",
-		name: "EVIDENCE LEDGER CELLARS",
-		theme: {
-			bg: "#070803",
-			accent: "#d6ff45",
-			platform: "#252910",
-			haze: "#29320c"
-		}
-	},
-	{
-		id: "primal-buffer",
-		name: "PRIMAL BUFFER OVERFLOW",
-		theme: {
-			bg: "#090202",
-			accent: "#ff5a3d",
-			platform: "#301411",
-			haze: "#3d100b"
-		}
-	}
-]);
-var RECEIPTS_PER_ARCHETYPE = Object.freeze([
-	2,
-	3,
-	4,
-	2,
-	4,
-	3
-]);
-var guardianKinds = Object.freeze([
-	"captcha",
-	"cookie",
-	"clip",
-	"orb",
-	"manager"
-]);
-var platform = (id, x, y, width, kind = "solid", extra = {}) => ({
-	id,
-	x,
-	y,
-	width,
-	height: kind === "solid" || kind === "conveyor" ? .35 : .32,
-	depth: kind === "solid" || kind === "conveyor" ? 2.4 : 2.2,
-	kind,
-	...extra
-});
-var floor = (id, x, width) => ({
-	id,
-	x,
-	y: 0,
-	width,
-	height: .55,
-	depth: 3.2,
-	kind: "solid"
-});
-var mover = (id, baseX, amplitude, speed, y, width = 2.2) => ({
-	id,
-	baseX,
-	amplitude,
-	speed,
-	y,
-	width,
-	height: .32,
-	depth: 2.2
-});
-var guardian = (id, kind, from, to, y, speed, color) => ({
-	id,
-	kind,
-	from,
-	to,
-	y,
-	speed,
-	radius: .46,
-	color
-});
-var hazard = (id, x, width = .65) => ({
-	id,
-	x,
-	y: -.02,
-	width
-});
-function layoutFor(archetype, tier, prefix) {
-	const tempo = 1 + tier * .12;
-	const primary = guardianKinds[(archetype + tier) % guardianKinds.length];
-	const secondary = guardianKinds[(archetype + tier + 2) % guardianKinds.length];
-	const colors = [
-		"#00c9ff",
-		"#ffb000",
-		"#ff3d9a",
-		"#9d7cff",
-		"#d6ff45"
-	];
-	if (archetype === 0) return {
-		mechanic: "STAIRCASE / PATROL",
-		bounds: {
-			minX: -8.5,
-			maxX: 16,
-			killY: -5
-		},
-		start: {
-			x: -6.4,
-			y: 1.05
-		},
-		exit: {
-			x: 13.9,
-			y: 1.35
-		},
-		platforms: [
-			floor(`${prefix}-floor-a`, -2.25, 12.5),
-			platform(`${prefix}-step-a`, .2, 1.2, 2.7),
-			platform(`${prefix}-step-b`, 4.25, 2.5, 3),
-			platform(`${prefix}-bridge`, 8.6, 2.5, 2.2, "crumble"),
-			floor(`${prefix}-floor-b`, 12.5, 6.5)
-		],
-		movers: [],
-		guardians: [guardian(`${prefix}-patrol-a`, primary, -.9, 2, .82, 1.05 * tempo, colors[(archetype + tier) % colors.length]), ...tier >= 4 ? [guardian(`${prefix}-patrol-b`, secondary, 10.4, 14.2, .82, 1.35 * tempo, colors[(archetype + tier + 2) % colors.length])] : []],
-		hazards: tier >= 2 ? [hazard(`${prefix}-fault`, 11)] : [],
-		shardSlots: [
-			{
-				x: -3.9,
-				y: 1.15
-			},
-			{
-				x: .2,
-				y: 2.2
-			},
-			{
-				x: 4.25,
-				y: 3.4
-			},
-			{
-				x: 12.2,
-				y: 1.2
-			}
-		]
-	};
-	if (archetype === 1) return {
-		mechanic: "CONVEYOR / REVERSAL",
-		bounds: {
-			minX: -8.5,
-			maxX: 21.5,
-			killY: -5
-		},
-		start: {
-			x: -6.8,
-			y: 1.05
-		},
-		exit: {
-			x: 19.8,
-			y: 1.35
-		},
-		platforms: [
-			floor(`${prefix}-floor-a`, -5, 7),
-			platform(`${prefix}-belt-a`, 1.5, .9, 4, "conveyor", { dir: tier % 2 ? 1 : -1 }),
-			platform(`${prefix}-belt-b`, 7.5, 2.1, 4, "conveyor", { dir: tier % 2 ? -1 : 1 }),
-			platform(`${prefix}-step`, 11.9, 3.3, 1.6, tier >= 2 ? "crumble" : "solid"),
-			platform(`${prefix}-shelf`, 15.4, 3.3, 3.4),
-			floor(`${prefix}-floor-b`, 17, 8.4)
-		],
-		movers: [],
-		guardians: [guardian(`${prefix}-patrol-a`, primary, -.2, 3.2, 3.2, 1.15 * tempo, colors[(archetype + tier) % colors.length]), ...tier >= 1 ? [guardian(`${prefix}-patrol-b`, secondary, 13.6, 20.4, .82, 1.35 * tempo, colors[(archetype + tier + 2) % colors.length])] : []],
-		hazards: [hazard(`${prefix}-fault`, 17.6)],
-		shardSlots: [
-			{
-				x: -4.5,
-				y: 1.2
-			},
-			{
-				x: 1.5,
-				y: 2
-			},
-			{
-				x: 7.5,
-				y: 3.2
-			},
-			{
-				x: 15.4,
-				y: 4.25
-			}
-		]
-	};
-	if (archetype === 2) return {
-		mechanic: "PHANTOM / TIMING",
-		bounds: {
-			minX: -8.5,
-			maxX: 22.5,
-			killY: -5
-		},
-		start: {
-			x: -6.8,
-			y: 1.05
-		},
-		exit: {
-			x: 21,
-			y: 1.35
-		},
-		platforms: [
-			floor(`${prefix}-floor-a`, -5.5, 6),
-			platform(`${prefix}-phantom-a`, -.5, .9, 1.8, "phantom", { offset: 0 }),
-			platform(`${prefix}-phantom-b`, 2.6, 1.7, 1.8, "phantom", { offset: .9 }),
-			platform(`${prefix}-phantom-c`, 5.7, 2.5, 1.8, "phantom", { offset: 1.8 }),
-			platform(`${prefix}-ledge`, 8.9, 2.5, 2.4),
-			platform(`${prefix}-phantom-d`, 12, 1.7, 1.8, "phantom", { offset: .45 }),
-			platform(`${prefix}-phantom-e`, 15, .9, 1.8, "phantom", { offset: 1.35 }),
-			floor(`${prefix}-floor-b`, 19.4, 6)
-		],
-		movers: [mover(`${prefix}-mover`, 11, 1.05, 1.2 * tempo, 3.9)],
-		guardians: [guardian(`${prefix}-patrol-a`, primary, 8, 14, 5.2, 1.35 * tempo, colors[(archetype + tier) % colors.length]), ...tier >= 1 ? [guardian(`${prefix}-patrol-b`, secondary, 17, 21.6, .82, 1.2 * tempo, colors[(archetype + tier + 2) % colors.length])] : []],
-		hazards: tier >= 3 ? [hazard(`${prefix}-fault`, 18.3)] : [],
-		shardSlots: [
-			{
-				x: -4.6,
-				y: 1.2
-			},
-			{
-				x: 2.6,
-				y: 2.75
-			},
-			{
-				x: 11,
-				y: 4.85
-			},
-			{
-				x: 18.6,
-				y: 1.2
-			}
-		]
-	};
-	if (archetype === 3) return {
-		mechanic: "MIXED OFFICE / LIFT",
-		bounds: {
-			minX: -8.5,
-			maxX: 22.5,
-			killY: -5
-		},
-		start: {
-			x: -6.8,
-			y: 1.05
-		},
-		exit: {
-			x: 20.9,
-			y: 5.1
-		},
-		platforms: [
-			floor(`${prefix}-floor-a`, -5.5, 6),
-			platform(`${prefix}-belt`, .5, .9, 3.6, "conveyor", { dir: tier % 2 ? 1 : -1 }),
-			platform(`${prefix}-crumble`, 4.6, 1.9, 1.4, "crumble"),
-			platform(`${prefix}-phantom`, 7.4, 2.7, 1.6, "phantom", { offset: .7 }),
-			platform(`${prefix}-shelf`, 10.4, 2.7, 2.2),
-			platform(`${prefix}-table`, 17.6, 2.7, 2.4),
-			platform(`${prefix}-perch`, 20.9, 3.9, 2.6),
-			floor(`${prefix}-floor-b`, 18.5, 8)
-		],
-		movers: [mover(`${prefix}-mover`, 13.9, 1.2, 1.35 * tempo, 2.7)],
-		guardians: [guardian(`${prefix}-patrol-a`, primary, 0, 2.3, 3.1, 1.2 * tempo, colors[(archetype + tier) % colors.length]), guardian(`${prefix}-patrol-b`, secondary, 15.2, 21.8, .82, 1.45 * tempo, colors[(archetype + tier + 2) % colors.length])],
-		hazards: [hazard(`${prefix}-fault-a`, 16.6), ...tier >= 2 ? [hazard(`${prefix}-fault-b`, 19)] : []],
-		shardSlots: [
-			{
-				x: -4.6,
-				y: 1.2
-			},
-			{
-				x: .5,
-				y: 2
-			},
-			{
-				x: 10.4,
-				y: 3.7
-			},
-			{
-				x: 20.2,
-				y: 4.9
-			}
-		]
-	};
-	if (archetype === 4) return {
-		mechanic: "CRUMBLE ARC / MOVING LEASE",
-		bounds: {
-			minX: -8.5,
-			maxX: 18.5,
-			killY: -5
-		},
-		start: {
-			x: -6.8,
-			y: 1.05
-		},
-		exit: {
-			x: 16.5,
-			y: 1.35
-		},
-		platforms: [
-			floor(`${prefix}-floor-a`, -5.5, 6),
-			platform(`${prefix}-crumble-a`, -1.2, .9, 1.8, "crumble"),
-			platform(`${prefix}-crumble-b`, 2, 1.8, 1.8, "crumble"),
-			platform(`${prefix}-shelf`, 5.2, 2.6, 2.4),
-			floor(`${prefix}-floor-b`, 14, 9)
-		],
-		movers: [mover(`${prefix}-mover`, 9.6, 1.25, 1.25 * tempo, 2.2)],
-		guardians: [guardian(`${prefix}-patrol-a`, primary, 11.4, 16.8, .82, 1.3 * tempo, colors[(archetype + tier) % colors.length]), ...tier >= 2 ? [guardian(`${prefix}-patrol-b`, secondary, 3.9, 7.2, 5.45, 1.15 * tempo, colors[(archetype + tier + 2) % colors.length])] : []],
-		hazards: [hazard(`${prefix}-fault`, 12)],
-		shardSlots: [
-			{
-				x: -4.6,
-				y: 1.2
-			},
-			{
-				x: 2,
-				y: 2.8
-			},
-			{
-				x: 5.2,
-				y: 3.65
-			},
-			{
-				x: 14.2,
-				y: 1.2
-			}
-		]
-	};
-	return {
-		mechanic: "CROSSFIRE / FINAL INSPECTION",
-		bounds: {
-			minX: -8.5,
-			maxX: 19.5,
-			killY: -5
-		},
-		start: {
-			x: -6.8,
-			y: 1.05
-		},
-		exit: {
-			x: 17.2,
-			y: 1.35
-		},
-		platforms: [
-			floor(`${prefix}-floor-a`, -5.5, 6),
-			platform(`${prefix}-step`, -.7, 1, 2.4),
-			platform(`${prefix}-belt`, 3, 2, 3, "conveyor", { dir: tier % 2 ? -1 : 1 }),
-			platform(`${prefix}-phantom`, 6.5, 3, 2, "phantom", { offset: 1.1 }),
-			floor(`${prefix}-floor-b`, 14.5, 7)
-		],
-		movers: [mover(`${prefix}-mover`, 10, 1.1, 1.4 * tempo, 2.2)],
-		guardians: [guardian(`${prefix}-patrol-a`, primary, 1.7, 4.3, 4.2, 1.25 * tempo, colors[(archetype + tier) % colors.length]), guardian(`${prefix}-patrol-b`, secondary, 12, 17.4, .82, 1.55 * tempo, colors[(archetype + tier + 2) % colors.length])],
-		hazards: [hazard(`${prefix}-fault-a`, 12.3), ...tier >= 3 ? [hazard(`${prefix}-fault-b`, 15.1)] : []],
-		shardSlots: [
-			{
-				x: -4.7,
-				y: 1.2
-			},
-			{
-				x: 3,
-				y: 3
-			},
-			{
-				x: 6.5,
-				y: 4
-			},
-			{
-				x: 14.5,
-				y: 1.2
-			}
-		]
-	};
-}
-function mirrorLayout(layout) {
-	return {
-		...layout,
-		bounds: {
-			minX: -layout.bounds.maxX,
-			maxX: -layout.bounds.minX,
-			killY: layout.bounds.killY
-		},
-		start: {
-			...layout.start,
-			x: -layout.start.x
-		},
-		exit: {
-			...layout.exit,
-			x: -layout.exit.x
-		},
-		platforms: layout.platforms.map((item) => ({
-			...item,
-			x: -item.x,
-			...item.kind === "conveyor" ? { dir: -item.dir } : {}
-		})),
-		movers: layout.movers.map((item) => ({
-			...item,
-			baseX: -item.baseX
-		})),
-		guardians: layout.guardians.map((item) => ({
-			...item,
-			from: -item.to,
-			to: -item.from
-		})),
-		hazards: layout.hazards.map((item) => ({
-			...item,
-			x: -item.x
-		})),
-		shardSlots: layout.shardSlots.map((item) => ({
-			...item,
-			x: -item.x
-		}))
-	};
-}
-var draftRooms = MANIFESTO_PROPERTIES.map((title, index) => {
-	const number = index + 1;
-	const districtIndex = Math.floor(index / 6);
-	const archetype = index % 6;
-	const prefix = `p${String(number).padStart(2, "0")}`;
-	const district = DISTRICTS[districtIndex];
-	const baseLayout = layoutFor(archetype, districtIndex, prefix);
-	const layout = districtIndex % 2 === 1 && archetype % 2 === 0 ? mirrorLayout(baseLayout) : baseLayout;
-	const receiptCount = RECEIPTS_PER_ARCHETYPE[archetype];
-	const wildcardTarget = layout.platforms.find((item) => item.kind === "phantom") ?? layout.platforms.find((item) => item.kind === "crumble") ?? layout.platforms.find((item) => item.kind === "conveyor");
-	return {
-		id: `${prefix}-${title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`,
-		index,
-		number,
-		name: `${String(number).padStart(2, "0")} // ${title}`,
-		property: PROPERTY_TYPES[index],
-		intro: `PROPERTY ${String(number).padStart(2, "0")} // ${PROPERTY_TYPES[index]}. ${QUIPS[index]}`,
-		district: district.id,
-		districtName: district.name,
-		difficulty: districtIndex + 1,
-		theme: district.theme,
-		...layout,
-		wildcardTargetId: wildcardTarget.id,
-		shards: layout.shardSlots.slice(0, receiptCount).map((slot, receiptIndex) => ({
-			id: `${prefix}-receipt-${receiptIndex + 1}`,
-			...slot,
-			label: `RECEIPT ${String(number).padStart(2, "0")}${String.fromCharCode(65 + receiptIndex)} // ${RECEIPT_TYPES[(index * 3 + receiptIndex) % RECEIPT_TYPES.length]}`
-		}))
-	};
-});
-var roomIds$1 = draftRooms.map((room) => room.id);
-var graph = Object.fromEntries(roomIds$1.map((id) => [id, []]));
-function connect(leftIndex, rightIndex) {
-	const left = roomIds$1[leftIndex];
-	const right = roomIds$1[rightIndex];
-	if (!graph[left].includes(right)) graph[left].push(right);
-	if (!graph[right].includes(left)) graph[right].push(left);
-}
-for (let districtIndex = 0; districtIndex < 7; districtIndex += 1) {
-	const base = districtIndex * 6;
-	connect(base, base + 1);
-	connect(base, base + 2);
-	connect(base + 1, base + 3);
-	connect(base + 2, base + 4);
-	connect(base + 3, base + 5);
-	connect(base + 4, base + 5);
-	if (districtIndex < 6) connect(base + 5, base + 6);
-}
-var WORLD_GRAPH = Object.freeze(Object.fromEntries(Object.entries(graph).map(([id, neighbours]) => [id, Object.freeze([...neighbours])])));
-roomIds$1[0];
-var FINAL_ROOM_ID = roomIds$1.at(-1);
-var ROOMS = Object.freeze(draftRooms.map((room) => Object.freeze({
-	...room,
-	routes: Object.freeze(WORLD_GRAPH[room.id].map((targetId) => {
-		const target = draftRooms.find((candidate) => candidate.id === targetId);
-		return Object.freeze({
-			to: targetId,
-			label: `PROPERTY ${String(target.number).padStart(2, "0")} // ${target.property}`
-		});
-	}))
-})));
-var ROOM_INDEX_BY_ID = Object.freeze(Object.fromEntries(ROOMS.map((room, index) => [room.id, index])));
-var TOTAL_SHARDS = ROOMS.reduce((sum, room) => sum + room.shards.length, 0);
-var TOTAL_ROOMS = ROOMS.length;
-function guardianX(guardianDefinition, seconds) {
-	const midpoint = (guardianDefinition.from + guardianDefinition.to) / 2;
-	const radius = (guardianDefinition.to - guardianDefinition.from) / 2;
-	return midpoint + Math.sin(seconds * guardianDefinition.speed) * radius;
-}
-function moverX(moverDefinition, seconds) {
-	return moverDefinition.baseX + Math.sin(seconds * moverDefinition.speed) * moverDefinition.amplitude;
-}
-//#endregion
 //#region app/game/contracts.mjs
 var RIDE_TARGET_SECONDS = .6;
 var KINDS = [
@@ -12647,42 +12721,6 @@ function masteryStatus(contract, stats, finished = false) {
 		state: "pending",
 		passed: false,
 		text: contract.kind === "clean" ? "Clean so far · bank it at the exit" : contract.kind === "pace" || contract.kind === "audit" ? `${Math.max(0, Math.ceil(contract.parSeconds - stats.elapsed))}s left${contract.kind === "audit" ? " · clean so far" : ""}` : contract.kind === "wildcard" ? stats.stabilised ? "Stabilisation proved · bank it at the exit" : "Press E near the outlined platform, then land on it" : stats.rideSeconds >= .6 ? "Ride proved · bank it at the exit" : `${Math.min(stats.rideSeconds, RIDE_TARGET_SECONDS).toFixed(1)} / 0.6s riding`
-	};
-}
-//#endregion
-//#region app/game/archive.mjs
-var ARCHIVE_PLAN = Object.freeze([
-	0,
-	7,
-	14,
-	21,
-	28,
-	33,
-	38
-].map((roomIndex, index) => Object.freeze({
-	id: `archive-${index + 1}`,
-	number: index + 1,
-	after: (index + 1) * 6,
-	roomIndex,
-	roomId: ROOMS[roomIndex].id,
-	mode: index % 2 ? "byte-dash" : "bug-hunt"
-})));
-function archiveEligible(entry, completed) {
-	return ROOMS.slice(0, entry.after).every((room) => completed.includes(room.id));
-}
-function validArchiveIds(raw, completed) {
-	return Array.isArray(raw) ? ARCHIVE_PLAN.filter((entry) => raw.includes(entry.id) && archiveEligible(entry, completed)).map((entry) => entry.id) : [];
-}
-function nextDestination(completed, archives = []) {
-	const archive = ARCHIVE_PLAN.find((entry) => !archives.includes(entry.id) && archiveEligible(entry, completed));
-	if (archive) return {
-		roomIndex: archive.roomIndex,
-		archive
-	};
-	const roomIndex = ROOMS.findIndex((room) => !completed.includes(room.id));
-	return roomIndex < 0 ? null : {
-		roomIndex,
-		archive: null
 	};
 }
 //#endregion
@@ -13128,9 +13166,10 @@ var useGameStore = create((set, get) => ({
 		set((state) => ({
 			autopilot: !state.autopilot,
 			assisted: state.assisted || !state.autopilot && state.phase !== "menu" && state.phase !== "won",
-			...!state.autopilot && (state.phase === "playing" || state.phase === "paused") ? {
+			...!state.autopilot && (state.phase === "playing" || state.phase === "paused" && state.resumePhase === "playing") ? {
 				wildcard: "ready",
 				retro: retroFor(ROOMS[state.roomIndex], state) ? freshRetro(ROOMS[state.roomIndex], state.retro) : null,
+				runSerial: state.runSerial + 1,
 				notice: "WATCH / ASSIST ON // ROOM REWOUND; RECEIPTS KEPT // O TO TAKE OVER"
 			} : state.autopilot && state.phase === "playing" ? { notice: "YOUR HANDS, YOUR PROBLEM // ASSISTED RECORD CATEGORY RETAINED" } : {}
 		}));
@@ -13368,10 +13407,15 @@ var useGameStore = create((set, get) => ({
 			});
 			return true;
 		}
+		if (state.transitionRemaining <= .56 + 1e-8) {
+			set({ transitionRemaining: remaining });
+			return false;
+		}
 		const nextRoom = ROOMS[nextIndex];
 		clearControls();
 		set({
 			roomIndex: nextIndex,
+			runSerial: state.runSerial + 1,
 			retro: destination?.archive ? freshRetro(nextRoom, destination.archive) : null,
 			transitionRemaining: remaining,
 			roomStats: freshRoomStats(!nextRoom.shards.some((receipt) => state.collected.includes(receipt.id))),
@@ -13484,6 +13528,7 @@ var require_jsx_runtime = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 var import_jsx_runtime = require_jsx_runtime();
 function PortalTransfer({ reducedMotion }) {
 	const remaining = useGameStore((state) => state.transitionRemaining);
+	const arriving = useGameStore((state) => portalArriving(state));
 	const sourceIndex = useGameStore((state) => state.portalSourceIndex);
 	const roomIndex = useGameStore((state) => state.roomIndex);
 	const completed = useGameStore((state) => state.completedRooms);
@@ -13497,7 +13542,7 @@ function PortalTransfer({ reducedMotion }) {
 	const next = destination ? ROOMS[destination.roomIndex] : null;
 	const archive = destination?.archive;
 	const resultName = retro ? RETRO_MODES[retro].title : null;
-	const frame = portalFrame(remaining, roomIndex !== sourceIndex, reducedMotion);
+	const frame = portalFrame(remaining, arriving, reducedMotion);
 	const style = { "--portal-accent": ROOMS[roomIndex].theme.accent };
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 		className: "portal-transfer",
@@ -13631,7 +13676,7 @@ function PortalMotionControl({ value, onChange, reducedMotion }) {
 }
 //#endregion
 //#region app/game/release.mjs
-var RELEASE_ID = "2026.09.12-arcade-rain";
+var RELEASE_ID = "2026.09.15-portal-recovery";
 //#endregion
 //#region \0vite/preload-helper.js
 var scriptRel = "modulepreload";
@@ -13701,8 +13746,8 @@ var __vitePreload = function preload(baseModule, deps, importerUrl) {
 };
 //#endregion
 //#region app/FreeloaderGame.tsx
-var Canvas2D = (0, import_react.lazy)(() => __vitePreload(() => import("./Canvas2D-BLsCB5gD.js"), __vite__mapDeps([0,1]), import.meta.url));
-var ThreeField = (0, import_react.lazy)(() => __vitePreload(() => import("./ThreeField-BzLvX_D-.js"), __vite__mapDeps([2,1]), import.meta.url));
+var Canvas2D = (0, import_react.lazy)(() => __vitePreload(() => import("./Canvas2D-DhQJUDpD.js"), __vite__mapDeps([0,1]), import.meta.url));
+var ThreeField = (0, import_react.lazy)(() => __vitePreload(() => import("./ThreeField-kgXZjWbd.js"), __vite__mapDeps([2,1]), import.meta.url));
 var CONTROL_BY_CODE = {
 	ArrowLeft: "left",
 	KeyA: "left",
@@ -14428,4 +14473,4 @@ var root = document.getElementById("root");
 if (!root) throw new Error("FREEL*ADER 42 could not find its arcade cabinet.");
 (0, import_client.createRoot)(root).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(import_react.StrictMode, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(FreeloaderGame, {}) }));
 //#endregion
-export { __toESM as A, portalFrame as C, require_react as D, require_scheduler as E, __commonJSMin as O, portalActive as S, controls as T, playSfx as _, BLASTER_SPRITE as a, PORTAL_SECONDS as b, retroFor as c, GUARDIAN_REASONS as d, ROOMS as f, createStore as g, announceQuip as h, BLASTER_PALETTE as i, __exportAll as k, stepRetro as l, moverX as m, useGameStore as n, exitOutstanding as o, guardianX as p, LATENCY_DRAIN as r, receiptVisible as s, require_jsx_runtime as t, weaponPosition as u, stopPortalAudio as v, portalPose as w, drawPortal as x, PORTAL_CUES as y };
+export { require_react as A, portalPose as C, moverX as D, guardianX as E, __exportAll as M, __toESM as N, controls as O, portalFrame as S, ROOMS as T, PORTAL_CUES as _, BLASTER_SPRITE as a, portalActive as b, retroFor as c, announceQuip as d, createStore as f, resumablePortalCues as g, stopPortalAudio as h, BLASTER_PALETTE as i, __commonJSMin as j, require_scheduler as k, stepRetro as l, portalAudioStatus as m, useGameStore as n, exitOutstanding as o, playSfx as p, LATENCY_DRAIN as r, receiptVisible as s, require_jsx_runtime as t, weaponPosition as u, PORTAL_SECONDS as v, GUARDIAN_REASONS as w, portalArriving as x, drawPortal as y };

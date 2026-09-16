@@ -1,6 +1,6 @@
 {
-  "revision": "2026.09.12-arcade-rain",
-  "released": "2026-09-12",
+  "revision": "2026.09.15-portal-recovery",
+  "released": "2026-09-15",
   "portalSeconds": 5.42,
   "playerTurns": 4.2,
   "portalMotionChoices": [
@@ -79,10 +79,10 @@
     "manifest": "voice-manifest.json"
   },
   "wallpaper": "local-42uk-layered-symbol-rain",
-  "releaseNotes": "releases/2026.09.12-arcade-rain.html",
+  "releaseNotes": "releases/2026.09.15-portal-recovery.html",
   "assets": {
-    "play/index.html": "ca5ad9b2d009f7d3d9fca714faf131629d4164524e688b94d5be581c8765356a",
-    "play/assets/Canvas2D-BLsCB5gD.js": "cbc7b098e11f3990f903ce054314fcb25fdbb2403f9e0b5e9e302f6eb9880ec0",
+    "play/index.html": "53077c3a909d0f51e910df9b867bbdc6a3e67d0cc144f69b83955ce453dad110",
+    "play/assets/Canvas2D-DhQJUDpD.js": "cf74f926779862539160bf5100cc7898b63adc1b33fc9b809d5cca16c37df746",
     "play/assets/clear-001-CmzN8C23.flac": "2ae601610bedb55513a10c55fe20042fc3aedef7df9158cb8f6aed85fcd66271",
     "play/assets/clear-002-BEIwwIUo.flac": "1ef20dd919329f6f5c3793244cf313fd280ec0ddb3749cff9933ea3081abdeaf",
     "play/assets/clear-003-CkfeoGkn.flac": "a9dca3274141204f943eb9813b10d2135121910a0ea93345ed4bc82fa1def953",
@@ -243,8 +243,16 @@
     "play/assets/death-125-DkCxABzz.flac": "1bd681aacc29420259895dec644b2e87a59ac465312f890a6985549e5798bdad",
     "play/assets/death-126-30qtOnXA.flac": "2a1f020d5b36dd7321a12627c52a65a0f48b19320dce36333bc603065ea6c8c3",
     "play/assets/index-Bnxa4_aK.css": "b3127392308489685ad498213a54d9cfbfe4be5c4566fb12a4ee1bead34f29dd",
-    "play/assets/index-Des0fWDS.js": "6c68c51783b6e3d6e192ddbc93d9b683e929b3fa26cd04b492acc98afb256eb3",
-    "play/assets/symbol-field-D770hWfj.js": "ad808399580ecc5b6c727451536d37659bad09115ee722c1983d54a527e612c5",
-    "play/assets/ThreeField-BzLvX_D-.js": "068422b2bf4f0007ec975782cd465a1f6ee4c36edd883410117d0db5ea571939"
-  }
+    "play/assets/index-CiolWOlQ.js": "38ad348868d33d7d34296a1dc7e44330f08a40d0b644365ccc5ea9a04d6d1567",
+    "play/assets/symbol-field-BAlQZgH_.js": "fbaa76931eb7c626b5765f9ffc73de52eebab7fd3c4bf92bda4158f61c8e9363",
+    "play/assets/ThreeField-kgXZjWbd.js": "868a4064832be32cec991033c187ed29d7a7716cc5c297f406558c75c1d5a6a0"
+  },
+  "recoveryFixes": [
+    "phase-aligned-suction-resume",
+    "paused-watch-room-reset",
+    "single-handoff-same-property-reassembly",
+    "one-cue-sequence-per-transfer",
+    "mute-and-audio-lifecycle-recovery",
+    "external-interruption-layer-cleanup"
+  ]
 }

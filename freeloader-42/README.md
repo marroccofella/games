@@ -26,7 +26,9 @@ GUEST@42 is the unpaid caretaker of 42 digital properties, played in order. Reco
 
 ## What ships
 
-Latest update: **2026.09.12-arcade-rain** — [49 encounters, 42.uk symbol rain and 42 SAYS](releases/2026.09.12-arcade-rain.html). Every sixth certificate opens an archive remix: four Bug Hunts and three timed Byte Dashes. Both human and AI campaigns discover all seven. The new layered wallpaper and 159 locally generated, individually verified synthetic Yorkshire quips use the creator-approved fast theatrical delivery. Earlier progress and scores are preserved.
+Latest update: **2026.09.15-portal-recovery** — [portal recovery and archive arrival fixes](releases/2026.09.15-portal-recovery.html). Paused wormholes resume their sustained sound in phase; WATCH toggles rewind the caretaker with the room; same-property archives swap once and visibly reassemble at the entrance.
+
+Previous update: **2026.09.12-arcade-rain** — [49 encounters, 42.uk symbol rain and 42 SAYS](releases/2026.09.12-arcade-rain.html). Every sixth certificate opens an archive remix: four Bug Hunts and three timed Byte Dashes. Both human and AI campaigns discover all seven. The new layered wallpaper and 159 locally generated, individually verified synthetic Yorkshire quips use the creator-approved fast theatrical delivery. Earlier progress and scores are preserved.
 
 Previous update: **2026.09.11-bug-hunt** — [Bug Hunt: Terms & Exterminations](docs/bug-hunt-release.md). On an actual return to a certified property, pick up the blaster and defeat every enemy before the portal opens. Use F / X or FIRE; guided energy bolts pass through platforms with unlimited ammo. Original campaign credit stays earned. No new detours: the current linear campaign does not deliberately revisit certified rooms, and repeated layouts alone do not trigger the mode. All 138 game tests pass, including combat replays in every layout.
 

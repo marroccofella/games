@@ -1,4 +1,4 @@
-import { T as controls, _ as playSfx, b as PORTAL_SECONDS, c as retroFor, d as GUARDIAN_REASONS, f as ROOMS, h as announceQuip, l as stepRetro, m as moverX, n as useGameStore, o as exitOutstanding, p as guardianX, r as LATENCY_DRAIN, v as stopPortalAudio, y as PORTAL_CUES } from "./index-Des0fWDS.js";
+import { D as moverX, E as guardianX, O as controls, T as ROOMS, _ as PORTAL_CUES, c as retroFor, d as announceQuip, g as resumablePortalCues, h as stopPortalAudio, l as stepRetro, m as portalAudioStatus, n as useGameStore, o as exitOutstanding, p as playSfx, r as LATENCY_DRAIN, v as PORTAL_SECONDS, w as GUARDIAN_REASONS } from "./index-CiolWOlQ.js";
 //#region app/game/engine.mjs
 var FIXED_STEP = 1 / 60;
 var PLAYER_HALF_WIDTH = .3;
@@ -4503,6 +4503,8 @@ function createDriver() {
 	let portalCueIndex = 0;
 	let portalKey = "";
 	let portalWasRunning = false;
+	let portalWasAudible = false;
+	let observedPortalStop = portalAudioStatus().generation;
 	let visualSeconds = 0;
 	return {
 		engine,
@@ -4512,6 +4514,7 @@ function createDriver() {
 		frame(frameDelta) {
 			if (typeof document !== "undefined" && document.hidden) {
 				stopPortalAudio();
+				portalWasRunning = false;
 				return;
 			}
 			useGameStore.getState().beginRevisit();
@@ -4519,20 +4522,30 @@ function createDriver() {
 			if (state.phase === "playing" || state.phase === "cleared") visualSeconds += Number.isFinite(frameDelta) ? Math.max(0, Math.min(frameDelta, .05)) : 0;
 			if (state.phase === "cleared") {
 				accumulator = 0;
-				const key = `${state.runSerial}:${state.portalSourceIndex}`;
-				if (portalKey !== key) {
-					portalKey = key;
+				const audio = portalAudioStatus();
+				if (!audio.ready && portalWasAudible) stopPortalAudio();
+				const resumed = portalKey !== "" && audio.ready && (!portalWasRunning || !portalWasAudible || observedPortalStop !== audio.generation);
+				portalWasAudible = audio.ready;
+				observedPortalStop = audio.generation;
+				if (portalKey === "") {
+					portalKey = `${state.runSerial}:${state.portalSourceIndex}`;
 					portalCueIndex = 0;
 				}
 				portalWasRunning = true;
 				state.advanceTransition(frameDelta);
 				const entered = useGameStore.getState();
 				const elapsed = PORTAL_SECONDS - entered.transitionRemaining;
+				if (resumed) {
+					for (const cue of resumablePortalCues(elapsed)) if (PORTAL_CUES.indexOf(cue) < portalCueIndex) playSfx(cue.name, {
+						portalLock: "lock" in cue ? cue.lock : 0,
+						portalElapsed: elapsed - cue.at
+					});
+				}
 				while (portalCueIndex < PORTAL_CUES.length && PORTAL_CUES[portalCueIndex].at <= elapsed + 1e-8) {
 					const cue = PORTAL_CUES[portalCueIndex++];
 					playSfx(cue.name, { portalLock: "lock" in cue ? cue.lock : 0 });
 				}
-				if (engine.roomIndex !== entered.roomIndex) {
+				if (engine.roomIndex !== entered.roomIndex || observedRunSerial !== entered.runSerial) {
 					resetEngineState(engine, entered.roomIndex);
 					observedRunSerial = entered.runSerial;
 				}

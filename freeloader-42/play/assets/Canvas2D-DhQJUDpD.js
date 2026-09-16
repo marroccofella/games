@@ -1,5 +1,5 @@
-import { A as __toESM, C as portalFrame, D as require_react, S as portalActive, a as BLASTER_SPRITE, c as retroFor, f as ROOMS, i as BLASTER_PALETTE, m as moverX, n as useGameStore, o as exitOutstanding, p as guardianX, s as receiptVisible, t as require_jsx_runtime, u as weaponPosition, w as portalPose, x as drawPortal } from "./index-Des0fWDS.js";
-import { a as SPRITE_PALETTES, c as tilePalette, d as phantomStateAt, i as SHARD_SPRITE, l as getDriver, n as FREELOADER_FRAMES, o as TILE_SPRITES, r as GUARDIAN_SPRITES, s as spriteToCanvas, t as drawSymbolField, u as BELT_SPEED } from "./symbol-field-D770hWfj.js";
+import { A as require_react, C as portalPose, D as moverX, E as guardianX, N as __toESM, S as portalFrame, T as ROOMS, a as BLASTER_SPRITE, b as portalActive, c as retroFor, i as BLASTER_PALETTE, n as useGameStore, o as exitOutstanding, s as receiptVisible, t as require_jsx_runtime, u as weaponPosition, x as portalArriving, y as drawPortal } from "./index-CiolWOlQ.js";
+import { a as SPRITE_PALETTES, c as tilePalette, d as phantomStateAt, i as SHARD_SPRITE, l as getDriver, n as FREELOADER_FRAMES, o as TILE_SPRITES, r as GUARDIAN_SPRITES, s as spriteToCanvas, t as drawSymbolField, u as BELT_SPEED } from "./symbol-field-BAlQZgH_.js";
 //#region app/game/Canvas2D.tsx
 var import_react = /* @__PURE__ */ __toESM(require_react(), 1);
 var import_jsx_runtime = require_jsx_runtime();
@@ -54,7 +54,7 @@ function Canvas2D({ reducedMotion, portalReducedMotion = reducedMotion }) {
 			const theme = room.theme;
 			const game = useGameStore.getState();
 			const transferring = portalActive(game);
-			const arriving = transferring && game.roomIndex !== game.portalSourceIndex;
+			const arriving = portalArriving(game);
 			const portal = transferring ? portalFrame(game.transitionRemaining, arriving, portalReducedMotion) : null;
 			const width = canvas.width;
 			const height = canvas.height;
