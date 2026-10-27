@@ -8,11 +8,32 @@ import { fileURLToPath } from "node:url";
 const gameDirectory = path.dirname(fileURLToPath(import.meta.url));
 const gamePath = path.join(gameDirectory, "index.html");
 const html = readFileSync(gamePath, "utf8");
-const engineBlocks = [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)];
+function inlineEngineBlocks(markup) {
+  return [...markup.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)]
+    .filter(block => {
+      const openingTag = block[0].slice(0, block[0].indexOf(">") + 1);
+      const type = openingTag.match(/\stype\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i);
+      const value = (type?.[1] ?? type?.[2] ?? type?.[3] ?? "").trim().toLowerCase();
+      return value !== "application/ld+json";
+    });
+}
+const engineBlocks = inlineEngineBlocks(html);
 
 assert.equal(engineBlocks.length, 1, "the game must contain exactly one inline engine script");
 const script = engineBlocks[0][1];
 assert.match(script, /function\s+gameLoop\s*\(/, "the inline script must contain the game engine");
+
+test("structured data is not counted as a game engine", () => {
+  const engine = "<script>function gameLoop() {}</script>";
+  for (const type of ['type="application/ld+json"', "TYPE='APPLICATION/LD+JSON'", 'type=application/ld+json']) {
+    const blocks = inlineEngineBlocks(`<script ${type}>{"@type":"VideoGame"}</script>${engine}`);
+    assert.equal(blocks.length, 1);
+    assert.equal(blocks[0][1], "function gameLoop() {}");
+  }
+  assert.equal(inlineEngineBlocks(engine + engine).length, 2, "duplicate executable scripts must remain detectable");
+  assert.equal(inlineEngineBlocks('<script data-type="application/ld+json">function gameLoop() {}</script>').length, 1);
+  assert.equal(inlineEngineBlocks('<script>const label = "application/ld+json";</script>').length, 1);
+});
 
 function fakeClassList(initial = []) {
   const classes = new Set(initial);
