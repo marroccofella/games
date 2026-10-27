@@ -1,4 +1,11 @@
-<title>MOMM-MAN</title>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Play MOMM-MAN - 42.uk Arcade</title>
+<meta name="description" content="Play MOMM-MAN in your browser: collect evidence dots, avoid four failure-status ghosts, and steer with arrow keys, WASD or touch swipes.">
+<link rel="canonical" href="https://marroccofella.github.io/games/momm-man/play.html">
 <style>
   :root {
     --bg: #080a0a; --panel: #111316; --border: #1f2a22; --text: #e6ffe6;
@@ -24,6 +31,8 @@
   .lg-auth::before { color: var(--blue); } .lg-tier::before { color: var(--purple); }
   .note { color: var(--dim); font-size: 10.5px; margin-top: 8px; max-width: 62ch; text-align: center; }
 </style>
+</head>
+<body>
 
 <h1><span class="diamond">◆</span> MOMM-MAN</h1>
 <p class="tagline">eat every evidence dot · dodge the four failure statuses · pellets turn them fail-closed</p>
@@ -481,3 +490,5 @@ addEventListener("touchend", (event) => {
 resetLevel(true);
 requestAnimationFrame(tick);
 </script>
+</body>
+</html>
