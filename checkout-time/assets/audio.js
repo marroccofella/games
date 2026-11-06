@@ -1,14 +1,14 @@
 // Checkout Time — procedural audio. Everything is synthesised with WebAudio; no sample files.
 (function(){
 'use strict';
-const A={ctx:null,master:null,sfx:null,music:null,amb:null,muted:false,intensity:0,started:false};
+const A={ctx:null,master:null,sfx:null,music:null,amb:null,muted:false,narrating:false,intensity:0,started:false};
 let noiseBuf=null,listenerX=0;
 
 function init(){
   if(A.ctx)return;
   const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
   const c=A.ctx=new AC();
-  A.master=c.createGain();A.master.gain.value=A.muted?0:.9;
+  A.master=c.createGain();A.master.gain.value=A.muted?0:(A.narrating?.22:.9);
   const comp=c.createDynamicsCompressor();comp.threshold.value=-14;comp.ratio.value=4;
   A.master.connect(comp);comp.connect(c.destination);
   A.sfx=gain(1,A.master);A.music=gain(.42,A.master);A.amb=gain(.5,A.master);
@@ -133,7 +133,8 @@ window.AUDIO={
   setListener(x){listenerX=x;},
   setFire(v){if(A.fireGain)A.fireGain.gain.setTargetAtTime(v*.35,now(),.3);},
   setSiren(v){if(A.sirenGain)A.sirenGain.gain.setTargetAtTime(v*.05,now(),.5);},
-  toggleMute(){A.muted=!A.muted;if(A.master)A.master.gain.setTargetAtTime(A.muted?0:.9,now(),.05);return A.muted;},
+  setNarrating(value){A.narrating=value;if(A.master)A.master.gain.setTargetAtTime(A.muted?0:(value?.22:.9),now(),.08);},
+  toggleMute(){A.muted=!A.muted;if(A.master)A.master.gain.setTargetAtTime(A.muted?0:(A.narrating?.22:.9),now(),.05);return A.muted;},
   duck(v){if(A.music)A.music.gain.setTargetAtTime(v,now(),.2);}
 };
 })();

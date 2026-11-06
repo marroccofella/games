@@ -100,3 +100,13 @@ blockquote cite{display:block;margin-top:8px;font-size:11px;color:var(--muted);f
 
 .owner-panel{position:fixed;top:66px;left:50%;transform:translateX(-50%);width:min(420px,calc(100% - 32px));padding:9px 12px;background:#151020ed;border:1px solid #c38aff;color:#f1ddff;font-size:12px;z-index:3;display:flex;align-items:center;gap:10px}.owner-panel p{margin:0;line-height:1.4;flex:1}.owner-panel button{background:#c38aff;border:0;padding:8px;color:#10091a;font:inherit;cursor:pointer;flex-shrink:0}.owner-panel[hidden]{display:none}@media(max-width:760px){.owner-panel{top:330px;font-size:11px;padding:8px}.owner-panel button{padding:7px}}@media(max-height:600px){.owner-panel{top:auto;bottom:130px;width:min(420px,calc(100% - 32px))}}
 @media(min-width:761px){.room-tag{top:138px}}
+/* Keep navigation, interaction prompts and rescue countdowns visible in voice mode. */
+#voice-toggle{display:inline-flex;align-items:center;gap:4px;min-height:36px;cursor:pointer}
+#voice-toggle span{font-size:10px}
+#voice-toggle[data-on="true"]{color:#060908;background:var(--accent);border-color:var(--accent)}
+#voice-toggle:focus-visible{outline:2px solid white;outline-offset:3px}
+@media(max-width:760px){.session-controls{top:212px;max-width:calc(100vw - 174px);flex-wrap:wrap}.session-controls button{font-size:11px;padding:7px}}
+.spoken-announcements #owner-line,.spoken-announcements #toasts .toast.spoken,.spoken-announcements #barks .bark{display:none}
+.spoken-announcements .owner-panel{top:190px;left:12px;transform:none;width:auto;padding:0;background:none;border:0}
+@media(max-width:760px){.spoken-announcements .owner-panel{top:330px;left:8px}}
+@media(max-height:600px){.spoken-announcements .owner-panel{top:auto;bottom:130px}}

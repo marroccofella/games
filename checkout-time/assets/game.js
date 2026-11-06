@@ -650,7 +650,11 @@ function updateIndicators(){
     ind.el.style.display='';ind.el.className='ind '+w.cls;ind.el.style.left=(cx+dx*k)+'px';ind.el.style.top=(cy+dy*k)+'px';
     ind.arrow.style.transform=`rotate(${Math.atan2(dy,dx)}rad)`;ind.span.textContent=w.label;});
 }
-function toast(title,sub,bad,big){const d=document.createElement('div');d.className='toast'+(bad?' bad':'')+(big?' big':'');d.innerHTML=`${title}<small>${sub||''}</small>`;const box=$('#toasts');box.appendChild(d);while(box.children.length>3)box.firstChild.remove();setTimeout(()=>d.remove(),1900);}
+function toast(title,sub,bad,big){const d=document.createElement('div');d.className='toast'+(bad?' bad':'')+(big?' big':'');d.innerHTML=`${title}<small>${sub||''}</small>`;const box=$('#toasts');let removal;
+  const trim=()=>{while(box.children.length>3)box.firstChild.remove();};
+  const showText=()=>{d.classList.remove('spoken');if(d.parentNode!==box)box.appendChild(d);trim();clearTimeout(removal);removal=setTimeout(()=>d.remove(),1900);};
+  if(window.ANNOUNCEMENTS?.event(title,bad,big,showText))d.classList.add('spoken');
+  box.appendChild(d);trim();clearTimeout(removal);removal=setTimeout(()=>d.remove(),1900);}
 let hintT=0;function hint(text,t){prompt(text,'warn',true);hintT=t;}
 let promptLock=false;function prompt(text,cls,lock){if(hintT>0&&!lock)return;const el=$('#prompt');el.textContent=text;el.className='prompt'+(text?' on':'')+(cls?' '+cls:'');}
 function holdBar(v){const el=$('#hold');if(v<0){el.classList.remove('on');return;}el.classList.add('on');el.firstElementChild.style.width=(v*100)+'%';}
@@ -672,7 +676,7 @@ const hud={reset(){['saved','locked','kills','turned'].forEach(k=>$('#s-'+k).tex
 const OWNER_PITCHES=[
   "The undead? Repeat customers. Exceptional retention.",
   "That is not a horde. It is an extremely motivated viewing party.",
-  "Sea view included. Sea rescue charged separately.",
+  "The sea view is included. A sea rescue costs extra.",
   "The asking price is negotiable. The zombies are less flexible.",
   "I said open-plan potential. The chef took that personally.",
   "That boarded door? Bespoke timber. Very boutique.",
@@ -687,6 +691,7 @@ function ownerPitch(negotiated=false){
   if(G.state!=='play')return;
   const line=OWNER_PITCHES[G.ownerQuote++%OWNER_PITCHES.length];G.stats.pitches++;
   $('#owner-line').textContent='Monty Upsell: '+(negotiated?'Counter-offer! ':'')+line;
+  window.ANNOUNCEMENTS?.say('pitch-'+((G.ownerQuote-1)%OWNER_PITCHES.length),negotiated?1:0);
   G.ownerNext=8;if(G.owner)bark(G.owner,negotiated?'Let us talk biscuits.':'Rare opportunity!');
 }
 function updateOwner(dt){
@@ -772,7 +777,7 @@ function slowmo(t){G.slow=t;}
 
 // ================================================================ end of run: stars + the guest review
 function endGame(won){
-  if(G.state!=='play')return;G.state='end';clearInput();
+  if(G.state!=='play')return;G.state='end';clearInput();window.ANNOUNCEMENTS?.stop();
   const s=G.stats,alive=civs().filter(c=>c.kind==='c'&&!c.gone&&c.state!=='grabbed').length;
   const score=Math.max(0,s.saved*100+s.rescued*60+G.lockedCount*50+s.kills*10+(won?500:0)-s.turned*40);
   // stars: surviving earns one; the rest are for guests saved, rooms sealed, and not letting the outbreak spread
@@ -804,9 +809,9 @@ function endGame(won){
 // ================================================================ input + loop
 function clearInput(){G.keys={};Object.assign(G.hold,{down:false,t:0,fired:false,door:null,completed:false});holdBar(-1);}
 function syncSound(){const s=AUDIO.status();$('#mute').textContent=s.available?(s.muted?'Sound off':'Sound on'):'Sound unavailable';$('#mute').setAttribute('aria-pressed',String(s.muted));$('#audio-status').textContent=s.available?'Sound '+(s.muted?'muted':'enabled'):'Audio unavailable; game can be played silently.';}
-function toggleSound(){AUDIO.toggleMute();syncSound();}
-function setPaused(paused){if(G.state!=='play'&&G.state!=='pause')return;clearInput();G.state=paused?'pause':'play';$('#pause').hidden=!paused;AUDIO.setPaused(paused);if(!paused)canvas.focus({preventScroll:true});}
-function start(){clearInput();AUDIO.start();syncSound();$('#title').hidden=true;$('#end').hidden=true;$('#pause').hidden=true;$('#hud').hidden=false;newGame();G.state='play';G.seen={};canvas.focus({preventScroll:true});hint('ARROWS MOVE · TAP SPACE FIRES',5);SFX.bell();
+function toggleSound(){AUDIO.toggleMute();window.ANNOUNCEMENTS?.setMuted(AUDIO.status().muted);syncSound();}
+function setPaused(paused){if(G.state!=='play'&&G.state!=='pause')return;clearInput();G.state=paused?'pause':'play';$('#pause').hidden=!paused;AUDIO.setPaused(paused);window.ANNOUNCEMENTS?.setPaused(paused);if(!paused)canvas.focus({preventScroll:true});}
+function start(){clearInput();AUDIO.start();syncSound();window.ANNOUNCEMENTS?.reset();window.ANNOUNCEMENTS?.setMuted(AUDIO.status().muted);$('#title').hidden=true;$('#end').hidden=true;$('#pause').hidden=true;$('#hud').hidden=false;newGame();G.state='play';G.seen={};window.ANNOUNCEMENTS?.say('welcome',0);canvas.focus({preventScroll:true});hint('ARROWS MOVE · TAP SPACE FIRES',5);SFX.bell();
   if(matchMedia('(pointer:coarse)').matches||innerWidth<760)$('#touch').hidden=false;}
 addEventListener('keydown',e=>{
   if(e.key===' '&&document.activeElement?.matches('button,a')&&!['start','again'].includes(document.activeElement.id))return;

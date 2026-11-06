@@ -24,6 +24,14 @@ Pick up tea and biscuits for health. Red extinguisher pickups provide crowd-cont
 
 Monty follows the porter and periodically delivers a sales pitch. Haggle produces another counter-offer. Pitches are counted separately from rescues. There is no sale, payment or purchase flow. Monty is a comic bystander, not an extra rescue target.
 
+## Dom voice announcements
+
+Click the separate speaker **1.8×** icon beside Sound to enable the consented synthetic Dom voice. Monty's pitches and event announcements use locally generated clips at exactly **1.8 times playback speed**, preserving pitch. Spoken announcement banners, Monty's text and character speech bubbles disappear in this mode; rescue arrows, countdowns, health and door prompts remain visible. Essential event text stays visible when speech is busy or unmapped, and reappears if its clip is interrupted or fails. Click again for text announcements. The preference stays in this browser. Sound off also silences Dom and restores text. Pause, loss of focus, restart and game over stop speech; urgent alerts interrupt sales chatter and stale notices are discarded.
+
+Speech clips are generated ahead of time with the installed myvoice Dom Studio preset, then checked for signal health and word accuracy. Gameplay needs no Promptus service, microphone, speech service or browser speech synthesis. The voice pack records human listening status separately from automated checks. Character chatter is hidden rather than narrated; variable room and door alerts use concise generic speech. Generated speech is synthetic.
+
+Run `node --test announcements.test.mjs` for announcement lifecycle tests. `node build.mjs` embeds the voice clips in the standalone build. The privacy check verifies the audio allowlist, clip hashes and metadata secret scan; the original voice reference and personal generation evidence stay outside the game folder.
+
 ## Night events and scoring
 
 Midnight brings a wave; 01:00 introduces runners; at 03:00 dormant indoor zombies wake; at 05:00 a double wave arrives. The end screen generates a fictional guest review. One star for each:
@@ -61,7 +69,7 @@ The public release uses a newly generated, invented layout: 13 room regions and 
 
 This release is assembled from an explicit source allowlist into a fresh publication folder, without private development history. The privacy audit checks file types, sensitive identifiers, machine paths, credential patterns and runtime network APIs. It is a reproducible check of this package, not a guarantee about unrelated repositories or websites.
 
-No telemetry, accounts, microphone, cloud voice, remote fonts or in-game purchases. Three.js is vendored; sounds are synthesised with WebAudio after a player gesture. External links lead to the arcade, source and 42.uk only. Hosting providers receive normal website requests.
+No telemetry, accounts, microphone, cloud voice, remote fonts or in-game purchases. Three.js is vendored; effects are synthesised with WebAudio after a player gesture, and optional synthetic Dom announcements play from local clips. External links lead to the arcade, source and 42.uk only. Hosting providers receive normal website requests.
 
 ## Scope and access
 

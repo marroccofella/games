@@ -1,0 +1,84 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import vm from 'node:vm';
+import {test} from 'node:test';
+const source=fs.readFileSync(new URL('assets/announcements.js',import.meta.url),'utf8');
+const catalog=JSON.parse(fs.readFileSync(new URL('assets/voice-catalog.json',import.meta.url),'utf8'));
+function setup({complete=true,stored='off',rejectPlayback=false,started=true}={}){
+  const elements=new Map(),classes=new Set(),audios=[],timers=new Map(),ducking=[];let now=0,serial=0;
+  const element=()=>({attrs:{},dataset:{},setAttribute(k,v){this.attrs[k]=v;},focus(){this.focused=true;}});
+  for(const id of ['#voice-toggle','#voice-status','#view'])elements.set(id,element());
+  class Audio{
+    constructor(src){this.src=src;audios.push(this);}
+    play(){this.played=true;return rejectPlayback?Promise.reject(new Error('Playback denied')):Promise.resolve();}
+    pause(){this.stopped=true;}
+    removeAttribute(){this.src='';}
+    load(){}
+    end(){this.onended?.();}
+  }
+  const storage=new Map([['checkout-dom-voice',stored]]);
+  const c={console,Audio,performance:{now:()=>now},document:{body:{classList:{toggle(k,v){v?classes.add(k):classes.delete(k);}}},querySelector:id=>elements.get(id)},localStorage:{getItem:k=>storage.get(k),setItem:(k,v)=>storage.set(k,v)},setTimeout:(fn)=>{timers.set(++serial,fn);return serial;},clearTimeout:id=>timers.delete(id),DOM_VOICE:{complete,clips:Object.fromEntries(catalog.clips.map(e=>[e.id,{file:'assets/voice/'+e.id+'.wav'}]))}};
+  c.AUDIO={setNarrating:value=>ducking.push(value)};c.window=c;vm.runInNewContext(source,c);
+  if(started)c.ANNOUNCEMENTS.reset();
+  return {api:c.ANNOUNCEMENTS,classes,elements,audios,storage,timers,ducking,advance(ms){now+=ms;}};
+}
+test('independent voice icon toggles captions and plays consented audio at exactly 1.8×',()=>{
+  const s=setup();assert.equal(s.api.active(),false);s.elements.get('#voice-toggle').onclick();
+  assert.equal(s.api.active(),true);assert.ok(s.classes.has('spoken-announcements'));
+  assert.equal(s.audios[0].playbackRate,1.8);assert.equal(s.audios[0].preservesPitch,true);
+  assert.equal(s.ducking.at(-1),true,'game effects duck under speech');
+  assert.equal(s.storage.get('checkout-dom-voice'),'on');assert.equal(s.elements.get('#view').focused,true);
+  s.api.toggle();assert.ok(s.audios[0].stopped);assert.equal(s.classes.size,0);assert.equal(s.elements.get('#voice-toggle').attrs['aria-pressed'],'false');
+  assert.equal(s.ducking.at(-1),false,'effects recover when narration stops');
+});
+test('mute restores text; pause cancels; resume and restart do not replay stale announcements',()=>{
+  const s=setup({stored:'on'});s.api.say('pitch-0');s.api.setPaused(true);assert.ok(s.audios[0].stopped);
+  assert.equal(s.api.say('turned'),false);s.api.setPaused(false);assert.equal(s.audios.length,1);
+  s.api.say('pitch-1');s.api.setMuted(true);assert.equal(s.api.active(),false);assert.equal(s.classes.size,0);
+  s.api.setMuted(false);s.api.reset();s.api.say('pitch-1');assert.equal(s.audios.length,3);
+  s.api.stop();assert.ok(s.audios.at(-1).stopped);
+});
+test('urgent announcements interrupt sales chatter and duplicate alerts are bounded',()=>{
+  const s=setup({stored:'on'});s.api.say('pitch-0',0);s.api.event('MIDNIGHT',true,true);
+  assert.ok(s.audios[0].stopped);assert.match(s.audios[1].src,/midnight/);
+  s.api.event('MIDNIGHT',true,true);assert.equal(s.audios.length,2);
+  s.api.say('saved');s.advance(5000);s.audios[1].end();assert.equal(s.audios.length,2,'expired queued speech is discarded');
+});
+test('failed playback or missing pack restores text instead of silently hiding announcements',()=>{
+  const missing=setup({complete:false,stored:'on'});assert.equal(missing.api.active(),false);assert.equal(missing.elements.get('#voice-toggle').disabled,true);
+  const s=setup({stored:'on'});s.api.say('enabled');s.audios[0].onerror();
+  assert.equal(s.api.active(),false);assert.equal(s.classes.size,0);assert.match(s.elements.get('#voice-status').textContent,/Text announcements restored/);
+  s.api.toggle();assert.equal(s.api.active(),true,'one click retries after failure');
+  [...s.timers.values()][0]();assert.equal(s.api.active(),false,'hung audio fails visibly');
+});
+test('browser playback refusal restores text and normal effects volume',async()=>{
+  const s=setup({stored:'on',rejectPlayback:true});s.api.say('enabled');await Promise.resolve();
+  assert.equal(s.api.active(),false);assert.equal(s.classes.size,0);assert.equal(s.ducking.at(-1),false);
+});
+test('all event families have a voiced clip; dynamic room and door names use clear generic announcements',()=>{
+  const s=setup({stored:'on'});
+  const cases=[['THE BRIDE HAS TURNED','bride'],['A GUEST HAS TURNED','turned'],['SAVED IN THE NICK OF TIME','close'],['GUEST RESCUED','rescued'],['THE CHEF HAS LEFT THE KITCHEN','chef'],['DOUBLE CHECKOUT','double'],['TRIPLE CHECKOUT','triple'],['QUAD CHECKOUT','quad'],['HOUSEKEEPING!','housekeeping'],['GUEST SAVED','saved'],['FOAMED!','foam'],['FIRE EXTINGUISHER','extinguisher'],['TEA AND BISCUITS','tea'],['MIDNIGHT','midnight'],['01:00 · RUNNERS','runners'],['03:00 · THE KITCHEN STIRS','kitchen'],['05:00 · LAST CALL','lastcall'],['BAR SEALED','sealed'],['KITCHEN DOOR GAVE WAY','door']];
+  for(const [title,id] of cases){s.api.reset();assert.equal(s.api.event(title),true,title);assert.equal(s.audios.at(-1).src,'assets/voice/'+id+'.wav',title);}
+  assert.equal(s.api.event('UNKNOWN EVENT'),false);
+});
+test('startup and game over keep speech stopped until reset',()=>{
+  const s=setup({stored:'on',started:false});assert.equal(s.api.say('turned'),false);
+  s.api.reset();assert.equal(s.api.say('enabled'),true);s.api.stop();assert.equal(s.api.say('turned'),false);
+  s.api.reset();assert.equal(s.api.say('welcome'),true);
+});
+test('busy event captions stay visible and interrupted event captions are restored',()=>{
+  const s=setup({stored:'on'});s.api.say('enabled',2);s.api.say('door',2);s.api.say('chef',2);
+  assert.equal(s.api.event('GUEST SAVED'),false,'the game must display text for a rejected event');
+  s.api.reset();let restored=0;s.api.event('GUEST SAVED',false,false,()=>restored++);
+  s.api.event('MIDNIGHT',true,true);assert.equal(restored,1);assert.ok(s.audios.at(-2).stopped);
+});
+test('a suppressed sales pitch may retry as soon as speech is free',()=>{
+  const s=setup({stored:'on'});s.api.say('enabled',2);assert.equal(s.api.say('pitch-0',0),false);
+  s.audios[0].end();assert.equal(s.api.say('pitch-0',0),true);assert.equal(s.audios.length,2);
+});
+test('Monty audio catalog matches the actual game pitches in order',()=>{
+  const game=fs.readFileSync(new URL('assets/game.js',import.meta.url),'utf8');
+  const pitches=JSON.parse(game.match(/const OWNER_PITCHES=(\[[\s\S]*?\]);/)[1]);
+  assert.equal(catalog.clips.filter(c=>c.id.startsWith('pitch-')).length,pitches.length);
+  pitches.forEach((text,i)=>assert.equal(catalog.clips.find(c=>c.id==='pitch-'+i)?.text,text));
+});

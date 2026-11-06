@@ -16,7 +16,7 @@
 
 <div id="hud" hidden>
   <aside class="owner-panel" aria-label="Monty Upsell, fictional hotel owner"><p id="owner-line" aria-live="polite"></p><button id="negotiate" type="button">Haggle [N]</button></aside>
-  <div class="session-controls"><button id="pause-toggle" type="button">Pause</button><button id="mute" type="button" aria-pressed="false">Sound on</button><span id="audio-status" class="sr-only" role="status"></span></div>
+  <div class="session-controls"><button id="pause-toggle" type="button">Pause</button><button id="mute" type="button" aria-pressed="false">Sound on</button><button id="voice-toggle" type="button" aria-pressed="false" aria-label="Enable Dom voice 1.8× announcements" title="Enable synthetic Dom voice · 1.8×"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16 8q5 4 0 8m3-11q8 7 0 14" fill="none" stroke="currentColor" stroke-width="2"/></svg><span>1.8×</span></button><span id="audio-status" class="sr-only" role="status"></span><span id="voice-status" class="sr-only" role="status"></span></div>
   <div class="panel tl">
     <div class="eyebrow">CHECKOUT TIME / GROUND FLOOR</div>
     <div class="clock"><span id="clock">23:00</span><small id="dawn">7h to dawn</small></div>
@@ -81,7 +81,9 @@
 <script src="assets/three.local.js"></script>
 <script src="assets/level.js"></script>
 <script src="assets/audio.js"></script>
+<script src="assets/voice-pack.js"></script>
+<script src="assets/announcements.js"></script>
 <script src="assets/world.js"></script>
-<script src="assets/game.js?v=20261106.3"></script>
+<script src="assets/game.js?v=20261106.4"></script>
 </body>
 </html>
