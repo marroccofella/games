@@ -21,7 +21,7 @@ const scene=new THREE.Scene();
 scene.background=new THREE.Color(0x05080d);
 scene.fog=new THREE.Fog(0x05080d,26,62);
 const camera=new THREE.PerspectiveCamera(42,1,.1,200);
-function resize(){const w=innerWidth,h=innerHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.fov=w<h?58:42;camera.updateProjectionMatrix();}
+function resize(){const w=innerWidth,h=innerHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.fov=w<h?58:42;camera.updateProjectionMatrix();$('#touch').hidden=$('#hud').hidden||!(matchMedia('(pointer:coarse)').matches||w<760);}
 addEventListener('resize',resize);resize();
 
 const hemi=new THREE.HemisphereLight(0x7a8cc0,0x1c241c,2.1);scene.add(hemi);
