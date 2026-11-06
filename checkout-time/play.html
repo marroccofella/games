@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Checkout Time · The Grand Last Resort</title>
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#060908">
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="assets/game.css">
+</head>
+<body>
+<nav class="game-nav" aria-label="Website"><a href="index.html">Instructions</a><a href="https://marroccofella.github.io/games/">42.uk Arcade</a><a href="play.html" aria-current="page">Play</a></nav>
+<canvas id="view" tabindex="0" aria-label="Checkout Time game. Arrow keys move; Space fires or barricades; P pauses; M mutes."></canvas>
+<div id="game-error" class="screen" hidden><div class="card small"><h2>Graphics unavailable</h2><p>This game needs WebGL. Try a browser with hardware acceleration enabled.</p><a href="index.html">Return to the website</a></div></div>
+
+<div id="hud" hidden>
+  <aside class="owner-panel" aria-label="Monty Upsell, fictional hotel owner"><p id="owner-line" aria-live="polite"></p><button id="negotiate" type="button">Haggle [N]</button></aside>
+  <div class="session-controls"><button id="pause-toggle" type="button">Pause</button><button id="mute" type="button" aria-pressed="false">Sound on</button><span id="audio-status" class="sr-only" role="status"></span></div>
+  <div class="panel tl">
+    <div class="eyebrow">CHECKOUT TIME / GROUND FLOOR</div>
+    <div class="clock"><span id="clock">23:00</span><small id="dawn">7h to dawn</small></div>
+    <div class="meter-label"><span>OUTBREAK</span><b id="outbreak-word">CALM</b></div>
+    <div class="meter"><i id="outbreak-bar"></i></div>
+  </div>
+  <div class="panel tr">
+    <div class="stat"><b id="s-saved">0</b><small>SAVED</small></div>
+    <div class="stat"><b id="s-locked">0</b><small>LOCKED IN</small></div>
+    <div class="stat"><b id="s-kills">0</b><small>CHECKED OUT</small></div>
+    <div class="stat"><b id="s-turned">0</b><small>TURNED</small></div>
+    <div class="health"><span>HEALTH</span><div class="meter"><i id="health-bar"></i></div></div>
+    <div id="kit" class="kit"></div>
+  </div>
+  <div id="room-tag" class="room-tag"></div>
+  <div id="prompt" class="prompt"></div>
+  <div id="hold" class="hold"><i></i></div>
+  <canvas id="minimap" width="230" height="176"></canvas>
+  <div id="toasts"></div>
+  <div id="barks"></div>
+  <div id="vignette"></div>
+</div>
+
+<div id="title" class="screen">
+  <div class="card">
+    <div class="eyebrow">42.UK / THE GRAND LAST RESORT / VACANCIES FOREVER</div>
+    <h1>CHECKOUT<br>TIME</h1>
+    <p class="lede">The coach party arrived. So did something else. Keep the guests alive until the 06:00 coach and the dawn.</p>
+    <div class="howto">
+      <div><kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd><span>Move</span></div>
+      <div><kbd class="wide">SPACE</kbd><span>Tap to fire. Hold at a door to barricade it.</span></div>
+    </div>
+    <ul class="rules">
+      <li><b>Guests follow you.</b> Walk past them and lead them to the coach on the promenade.</li>
+      <li><b>Bitten guests turn.</b> Shoot the zombie holding them before the ring runs out.</li>
+      <li><b>Locking zombies in a room</b> reduces their outbreak contribution. Press N to negotiate with Monty Upsell, whose sales strategy has outlived his market.</li>
+    </ul>
+    <button id="start" class="go">PRESS SPACE TO CHECK IN</button>
+    <p class="fine">An invented hotel, map and cast · cartoon zombie comedy · <span id="best"></span></p>
+  </div>
+</div>
+
+<div id="pause" class="screen" hidden><div class="card small"><h2>PAUSED</h2><p>P or Esc to resume · M to mute</p><button id="resume" class="go" type="button">RESUME GAME</button></div></div>
+
+<div id="end" class="screen" hidden>
+  <div class="card">
+    <div class="eyebrow" id="end-kicker">GUEST REVIEW</div>
+    <h2 id="end-title">Checked out.</h2>
+    <div class="stars" id="end-stars"></div>
+    <blockquote id="end-review"></blockquote>
+    <div class="end-stats" id="end-stats"></div>
+    <button id="again" class="go">PRESS SPACE TO CHECK IN AGAIN</button>
+  </div>
+</div>
+
+<div id="touch" hidden>
+  <div class="pad"><button data-k="ArrowUp">▲</button><button data-k="ArrowLeft">◀</button><button data-k="ArrowDown">▼</button><button data-k="ArrowRight">▶</button></div>
+  <button class="fire" data-k=" ">FIRE</button>
+</div>
+
+<noscript>Checkout Time needs JavaScript and WebGL.</noscript>
+<script src="assets/three.local.js"></script>
+<script src="assets/level.js"></script>
+<script src="assets/audio.js"></script>
+<script src="assets/world.js"></script>
+<script src="assets/game.js"></script>
+</body>
+</html>

@@ -15,3 +15,10 @@ Each game folder carries its own README with controls, features, and provenance.
 Run `node --test verify.test.mjs crumble-invaders/game.test.mjs`, then `node verify.mjs`, to pin the verifier's fail-closed consent and input checks, Crumble Invaders' game-loop regressions, local references, and the FREEL\*ADER 42 cabinet's shipped controls, media, and lazy 3D split. The same checks run automatically on pushes and pull requests.
 
 Part of the [42.uk](https://42.uk) universe. RELAX. IT'S ALREADY OVER.
+
+
+## 🛎 Checkout Time
+
+[Instructions and play](https://marroccofella.github.io/games/checkout-time/) · [Source and full controls](checkout-time/README.md)
+
+A fictional zombie hotel comedy at The Grand Last Resort. Rescue the coach party while Monty Upsell tries to sell the hotel and negotiate in biscuits. Invented map and cast, local synthetic audio, keyboard and touch controls. No real property plans, correspondence or private-site links.
