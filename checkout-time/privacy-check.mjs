@@ -7,6 +7,9 @@ const voiceSource=fs.readFileSync(path.join(root,'assets/voice-pack.js'),'utf8')
 const voicePack=JSON.parse(voiceSource.replace(/^window\.DOM_VOICE=/,'').trim().replace(/;$/,''));
 const catalog=JSON.parse(fs.readFileSync(path.join(root,'assets/voice-catalog.json'),'utf8'));
 if(!voicePack.complete||voicePack.synthetic!==true||voicePack.playbackRate!==1.8||Object.keys(voicePack.clips).length!==catalog.clips.length)findings.push('Dom voice pack incomplete or incorrectly labelled');
+const catalogIds=new Set(catalog.clips.map(entry=>entry.id));
+if(catalogIds.size!==catalog.clips.length)findings.push('Dom voice catalog has duplicate ids');
+if(Object.keys(voicePack.clips).some(id=>!catalogIds.has(id)))findings.push('Dom voice manifest has unlisted catalog ids');
 for(const entry of catalog.clips){
  const clip=voicePack.clips[entry.id];if(!clip||clip.file!=='assets/voice/'+entry.id+'.wav'||!/^[a-z0-9-]+$/.test(entry.id))throw Error('Invalid voice manifest entry');allowed.add(clip.file);
  if(clip.textSha256!==createHash('sha256').update(entry.text).digest('hex'))findings.push(clip.file+': narration hash mismatch');
