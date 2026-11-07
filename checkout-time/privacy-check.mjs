@@ -2,7 +2,7 @@ import fs from 'node:fs';import path from 'node:path';import {fileURLToPath} fro
 import {createHash} from 'node:crypto';
 const root=path.dirname(fileURLToPath(import.meta.url)),findings=[];let files=0;
 const allowed=new Set(['index.html','play.html','README.md','LICENSE','.nojekyll','.gitignore','server.mjs','build.mjs','check.mjs','privacy-check.mjs','CHECKS.json','assets/audio.js','assets/game.js','assets/game.css','assets/level.js','assets/world.js','assets/three.local.js','assets/THREE-LICENSE.txt','dist/game.html']);
-for(const name of ['assets/announcements.js','assets/voice-catalog.json','assets/voice-pack.js','announcements.test.mjs'])allowed.add(name);
+for(const name of ['preview-notes.html','audio-check.mjs','assets/people.js','assets/announcements.js','assets/voice-catalog.json','assets/voice-pack.js','announcements.test.mjs'])allowed.add(name);
 const voiceSource=fs.readFileSync(path.join(root,'assets/voice-pack.js'),'utf8');
 const voicePack=JSON.parse(voiceSource.replace(/^window\.DOM_VOICE=/,'').trim().replace(/;$/,''));
 const catalog=JSON.parse(fs.readFileSync(path.join(root,'assets/voice-catalog.json'),'utf8'));
@@ -19,6 +19,7 @@ if(/[A-Z]:[\\/](?:Users|Code Projects)[\\/]|\/(?:home|Users)\/[^/\s"'<>]+/i.test
 if(/(?:password|passwd|api[_-]?key|access[_-]?token)\s*[:=]\s*["'][^"'\s]{8,}["']/i.test(s))findings.push(rel+': credential assignment');
 if(/-----BEGIN [A-Z ]*PRIVATE KEY-----/.test(s))findings.push(rel+': private key');
 if(!voiceAudio&&!['assets/three.local.js','dist/game.html','server.mjs'].includes(rel)&&/\b(?:fetch|XMLHttpRequest|WebSocket)\s*\(/.test(s))findings.push(rel+': unexpected runtime networking');
+if(/welbeck|well\.42\.uk|window\.TRACES|private-knowledge-base|Gill room|Central Promenade|\b(?:IM1|IM2|IM3)\s*\d[A-Z]{2}\b/i.test(s))findings.push(rel+': real property or private-source reference');
 if(/\.html$/.test(rel)&&/<script[^>]+src=["']https?:|<link[^>]+href=["']https?:[^>]+rel=["']stylesheet/i.test(s))findings.push(rel+': external runtime asset');
 }}
 walk(root);console.log(JSON.stringify({passed:findings.length===0,files,findings}));if(findings.length)process.exitCode=1;
