@@ -21,6 +21,7 @@ jobs:
       - name: Verify Checkout Time cinema preview
         working-directory: checkout-time
         run: |
+          node --test announcements.test.mjs
           node check.mjs
           node audio-check.mjs
           node build.mjs

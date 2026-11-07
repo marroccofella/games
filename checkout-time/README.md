@@ -12,7 +12,10 @@ Click **Check in** or press Space. Survive from 23:00 to 06:00: seven fictional 
 
 | Action | Keyboard | Touch |
 |---|---|---|
-| Move | Arrow keys | Direction pad |
+| Move in Top | Arrow keys | Direction pad |
+| Move in Eyes | ↑ ↓ walk, ← → strafe | Direction pad |
+| Look in Eyes | Q/E turn or click scene for mouse look | Drag the scene while using the pad |
+| Move in Shoulder | ↑ ↓ walk, ← → turn | Direction pad |
 | Fire with auto-aim | Tap Space | Tap FIRE |
 | Keep firing | Hold Space away from doors | Hold FIRE |
 | Barricade / reopen a prompted door | Hold Space near it | Hold FIRE near it |
@@ -23,6 +26,10 @@ Click **Check in** or press Space. Survive from 23:00 to 06:00: seven fictional 
 Pick up tea and biscuits for health. Red extinguisher pickups provide crowd-control foam when targets are in front and visible. Red eyes signal an incoming zombie swing. Barricades cut routes and reduce sealed zombies' outbreak contribution; nearby zombies can bash them open. Losing focus automatically pauses and releases held input.
 
 Monty follows the porter and periodically delivers a sales pitch. Haggle produces another counter-offer. Pitches are counted separately from rescues. There is no sale, payment or purchase flow. Monty is a comic bystander, not an extra rescue target.
+
+## Release 2026.11.07.4
+
+First-person (Eyes) left/right movement now strafes relative to your facing without rotating. Q/E, mouse look and touch-drag turn the view. Diagonal movement stays capped at walking speed; Shoulder and Top retain their controls. The release includes the combined cinema improvements and shortened Dom alerts below.
 
 ## Dom voice announcements
 
@@ -94,6 +101,6 @@ Part of the [42.uk universe](https://42.uk).
 
 Other-agent groundwork integrated: jointed people/outfits and turning, corner movement, follower give-way, door/furniture clearance, three views, close aiming, rotating minimap and guide trails. This release combines the consented 1.8× Dom voice pack and separate speaker control with rewritten directional WebAudio, low tension score and threat cues, procedural surface detail and weather, adjustable gore/debris/death poses, comfort settings, resource cleanup and expanded checks. The invented public layout and Monty remain. No real property information is included.
 
-C cycles camera; G toggles the trail. In close views arrows turn/walk, double Down turns around, and clicking the scene enables optional mouse look. Pause offers Gore, Motion, Mix and Sound check. Preferences and score are local only.
+C cycles camera; G toggles the trail. In Eyes, arrows walk/strafe; Q/E or mouse look turns, and touch players drag the scene. In Shoulder, arrows turn/walk. In either close view, double Down turns around and clicking the scene enables optional mouse look. Pause offers Gore, Motion, Mix and Sound check. Preferences and score are local only.
 
-Run `node check.mjs` (22 gameplay checks), `node audio-check.mjs` (10 audio routing/lifecycle checks), `node --test announcements.test.mjs` (10 announcement checks), `node build.mjs` and `node privacy-check.mjs`. Scripts use a stub renderer or simulated WebAudio graph; browser play and device listening remain separate. No claim of photorealism or universal performance.
+Run `node check.mjs` (26 gameplay checks), `node audio-check.mjs` (10 audio routing/lifecycle checks), `node --test announcements.test.mjs` (20 announcement checks), `node build.mjs` and `node privacy-check.mjs`. Scripts use a stub renderer or simulated WebAudio graph; browser play and device listening remain separate. No claim of photorealism or universal performance.
