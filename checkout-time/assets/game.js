@@ -554,7 +554,7 @@ function updatePlayer(dt){
     ix=(K.ArrowRight?1:0)-(K.ArrowLeft?1:0);iz=(K.ArrowDown?1:0)-(K.ArrowUp?1:0);l=Math.hypot(ix,iz);if(l){ix/=l;iz/=l;}
   }else{ // First person strafes; shoulder view keeps its existing arrow-key turning.
     const first=VIEW.mode==='first';
-    const turn=first?((K.q||K.Q)?1:0)-((K.e||K.E)?1:0):(K.ArrowLeft?1:0)-(K.ArrowRight?1:0);if(p.hp>0){p.face+=turn*VIEW.turnRate*dt;}
+    const turn=first?(K.q?1:0)-(K.e?1:0):(K.ArrowLeft?1:0)-(K.ArrowRight?1:0);if(p.hp>0){p.face+=turn*VIEW.turnRate*dt;}
     if(VIEW.spin>0){const s=Math.min(VIEW.spin,dt*Math.PI/.22);p.face+=s;VIEW.spin-=s;}
     const fwd=(K.ArrowUp?1:0)-(K.ArrowDown?.55:0),side=first?((K.ArrowRight?1:0)-(K.ArrowLeft?1:0)):0;
     ix=Math.sin(p.face)*fwd-Math.cos(p.face)*side;iz=Math.cos(p.face)*fwd+Math.sin(p.face)*side;l=Math.hypot(ix,iz);if(l>1){ix/=l;iz/=l;}
@@ -910,6 +910,7 @@ function endGame(won){
 }
 
 // ================================================================ input + loop
+function heldKey(e){return e.code==='KeyQ'?'q':e.code==='KeyE'?'e':e.key.length===1?e.key.toLowerCase():e.key;}
 function clearInput(){G.keys={};VIEW.touchLook=null;Object.assign(G.hold,{down:false,t:0,fired:false,door:null,completed:false});holdBar(-1);}
 function syncSound(){const s=AUDIO.status();$('#mute').textContent=s.available?(s.muted?'Sound off':'Sound on'):'Sound unavailable';$('#mute').setAttribute('aria-pressed',String(s.muted));$('#audio-status').textContent=s.available?'Sound '+(s.muted?'muted':'enabled'):'Audio unavailable; game can be played silently.';}
 function toggleSound(){AUDIO.toggleMute();window.ANNOUNCEMENTS?.setMuted(AUDIO.status().muted);syncSound();}
@@ -926,9 +927,9 @@ addEventListener('keydown',e=>{
   if(e.key==='c'||e.key==='C'||e.key==='v'||e.key==='V'){if(!e.repeat)cycleView();return;}
   if(e.key==='g'||e.key==='G'){if(!e.repeat){GUIDE.on=!GUIDE.on;GUIDE.t=0;if(G.state==='play')hint(GUIDE.on?'GUIDE TRAIL ON':'GUIDE TRAIL OFF',1.5);}return;}
   if(e.key==='ArrowDown'&&!e.repeat&&VIEW.mode!=='top'&&G.state==='play'){const t=performance.now();if(t-VIEW.lastDown<300){VIEW.spin=Math.PI;VIEW.lastDown=0;}else VIEW.lastDown=t;}
-  G.keys[e.key]=true;
+  G.keys[heldKey(e)]=true;
 });
-addEventListener('keyup',e=>{G.keys[e.key]=false;if(e.key===' '&&G.state==='play')onSpaceUp();});
+addEventListener('keyup',e=>{G.keys[heldKey(e)]=false;if(e.key===' '&&G.state==='play')onSpaceUp();});
 addEventListener('blur',()=>{clearInput();if(G.state==='play')setPaused(true);});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&G.state==='play')setPaused(true);});
 $('#negotiate').onclick=()=>{ownerPitch(true);if(G.state==='play')canvas.focus({preventScroll:true});};
@@ -937,8 +938,8 @@ $('#view-toggle').onclick=()=>{cycleView();canvas.focus({preventScroll:true});};
 document.querySelectorAll('.view-pick button').forEach(b=>b.addEventListener('click',()=>setView(b.dataset.view)));
 // Mouse look in close views; first person also supports Q/E and touch-drag looking.
 canvas.addEventListener('click',e=>{if(e?.pointerType==='touch')return;if(VIEW.mode!=='top'&&G.state==='play'&&canvas.requestPointerLock&&document.pointerLockElement!==canvas){try{const r=canvas.requestPointerLock();if(r&&r.catch)r.catch(()=>{});}catch(e){}}});
-canvas.addEventListener('pointerdown',e=>{if(e.pointerType!=='touch'||G.state!=='play'||VIEW.mode!=='first'||VIEW.touchLook)return;VIEW.touchLook={id:e.pointerId,x:e.clientX,y:e.clientY};canvas.setPointerCapture?.(e.pointerId);e.preventDefault();});
-canvas.addEventListener('pointermove',e=>{const drag=VIEW.touchLook;if(!drag||drag.id!==e.pointerId||G.state!=='play'||VIEW.mode!=='first')return;G.player.face-=(e.clientX-drag.x)*.004;VIEW.pitch=clamp(VIEW.pitch-(e.clientY-drag.y)*.003,-.6,.45);drag.x=e.clientX;drag.y=e.clientY;});
+canvas.addEventListener('pointerdown',e=>{if(e.pointerType!=='touch'||G.state!=='play'||G.player.hp<=0||VIEW.mode!=='first'||VIEW.touchLook)return;VIEW.touchLook={id:e.pointerId,x:e.clientX,y:e.clientY};canvas.setPointerCapture?.(e.pointerId);e.preventDefault();});
+canvas.addEventListener('pointermove',e=>{const drag=VIEW.touchLook;if(!drag||drag.id!==e.pointerId||G.state!=='play'||G.player.hp<=0||VIEW.mode!=='first')return;G.player.face-=(e.clientX-drag.x)*.004;VIEW.pitch=clamp(VIEW.pitch-(e.clientY-drag.y)*.003,-.6,.45);drag.x=e.clientX;drag.y=e.clientY;});
 for(const type of ['pointerup','pointercancel','lostpointercapture'])canvas.addEventListener(type,e=>{if(VIEW.touchLook?.id===e.pointerId)VIEW.touchLook=null;});
 addEventListener('mousemove',e=>{if(document.pointerLockElement!==canvas||G.state!=='play'||VIEW.mode==='top'||G.player.hp<=0)return;G.player.face-=e.movementX*.0026;VIEW.pitch=clamp(VIEW.pitch-e.movementY*.0022,-.6,.45);});
 addEventListener('mousedown',e=>{if(document.pointerLockElement===canvas&&e.button===0&&G.state==='play')onSpaceDown();});
