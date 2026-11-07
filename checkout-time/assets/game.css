@@ -100,3 +100,11 @@ blockquote cite{display:block;margin-top:8px;font-size:11px;color:var(--muted);f
 
 .owner-panel{position:fixed;top:66px;left:50%;transform:translateX(-50%);width:min(420px,calc(100% - 32px));padding:9px 12px;background:#151020ed;border:1px solid #c38aff;color:#f1ddff;font-size:12px;z-index:3;display:flex;align-items:center;gap:10px}.owner-panel p{margin:0;line-height:1.4;flex:1}.owner-panel button{background:#c38aff;border:0;padding:8px;color:#10091a;font:inherit;cursor:pointer;flex-shrink:0}.owner-panel[hidden]{display:none}@media(max-width:760px){.owner-panel{top:330px;font-size:11px;padding:8px}.owner-panel button{padding:7px}}@media(max-height:600px){.owner-panel{top:auto;bottom:130px;width:min(420px,calc(100% - 32px))}}
 @media(min-width:761px){.room-tag{top:138px}}
+
+/* Cinema preview: keep controls outside the line of sight. */
+#crosshair{display:none;position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);color:#f2fff9;font:24px monospace;text-shadow:0 1px 3px #000;pointer-events:none}body.immersive #crosshair{display:block}#crosshair.lock{color:#ff6969}
+.objective{position:fixed;bottom:82px;left:50%;transform:translateX(-50%);max-width:80vw;padding:7px 12px;background:#060d0ae8;border:1px solid #395546;font-size:12px;text-align:center;color:#eafff2;pointer-events:none}.objective:empty{display:none}.objective.coach{color:#39ff88}.objective.grab{color:#ffcb5a}
+#threat-readout{position:fixed;left:50%;top:24%;transform:translateX(-50%);font-size:11px;letter-spacing:.15em;color:#ffc5ad;text-shadow:0 2px 5px #000;pointer-events:none}
+.preferences{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:18px 0}.preferences button{border:1px solid #44604e;background:#112019;color:#d9ffe8;padding:12px;font:12px var(--font);cursor:pointer}.preferences button:focus-visible{outline:3px solid #39ff88}.calm-motion .toast,.calm-motion .ind,.calm-motion .go{animation:none!important}.session-controls{flex-wrap:wrap;max-width:460px}.session-controls button{min-height:34px}
+.card a{color:var(--accent)}
+@media(max-width:760px){.objective{top:268px;bottom:auto;left:8px;transform:none;max-width:200px;font-size:10px}.session-controls{max-width:calc(100vw - 180px)}.owner-panel{top:326px;bottom:auto;width:calc(100% - 28px);font-size:10px;padding:6px}.owner-panel button{padding:6px}#threat-readout{top:48%}}

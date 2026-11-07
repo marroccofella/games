@@ -1,0 +1,172 @@
+{
+  "game": "Checkout Time",
+  "testedAt": "2026-11-07T05:59:15.326Z",
+  "sourceSha256": "0d74c807d0098b0f4d34936bfc5d2b87dd45a407684f35b4d335cc585a6c815f",
+  "results": [
+    {
+      "name": "Plan rooms and doors are finite",
+      "passed": true
+    },
+    {
+      "name": "Coach boarding point is walkable",
+      "passed": true
+    },
+    {
+      "name": "Every room has an open route and reachable spawn cells",
+      "passed": true
+    },
+    {
+      "name": "Start, keyboard movement and firing",
+      "passed": true
+    },
+    {
+      "name": "Pause clears held input and freezes gameplay",
+      "passed": true
+    },
+    {
+      "name": "Mute control reports its state",
+      "passed": true
+    },
+    {
+      "name": "Resizing during play updates the touch controls",
+      "passed": true
+    },
+    {
+      "name": "Focus loss pauses and releases input",
+      "passed": true
+    },
+    {
+      "name": "A stationary run ends and can restart",
+      "passed": true
+    },
+    {
+      "name": "Door hold barricades once without firing afterwards",
+      "passed": true
+    },
+    {
+      "name": "A guest boards the coach and increases the rescue count",
+      "passed": true
+    },
+    {
+      "name": "Dawn completes a full six-minute clock scenario",
+      "passed": true
+    },
+    {
+      "name": "Nothing counts as locked in until the porter barricades a door",
+      "passed": true
+    },
+    {
+      "name": "Opening grabs give a new player time to act",
+      "passed": true
+    },
+    {
+      "name": "A rescue is counted once",
+      "passed": true
+    },
+    {
+      "name": "The fictional owner exists and negotiates without affecting rescue totals",
+      "passed": true
+    },
+    {
+      "name": "Three camera modes preserve controls and can return to top view",
+      "passed": true
+    },
+    {
+      "name": "Guide follows walkable cardinal cells and toggles",
+      "passed": true
+    },
+    {
+      "name": "Presentation settings change without changing the simulation state",
+      "passed": true
+    },
+    {
+      "name": "Detailed rigs preserve outfits when a guest turns",
+      "passed": true
+    },
+    {
+      "name": "Every room can be traversed to the coach using actual player movement",
+      "passed": true
+    }
+  ],
+  "roomConnectivity": [
+    {
+      "name": "Restaurant",
+      "reachable": true,
+      "reachableCells": 56,
+      "totalCells": 320
+    },
+    {
+      "name": "Residents lounge",
+      "reachable": true,
+      "reachableCells": 176,
+      "totalCells": 320
+    },
+    {
+      "name": "Kitchen",
+      "reachable": true,
+      "reachableCells": 203,
+      "totalCells": 320
+    },
+    {
+      "name": "Boiler room",
+      "reachable": true,
+      "reachableCells": 243,
+      "totalCells": 320
+    },
+    {
+      "name": "Function room",
+      "reachable": true,
+      "reachableCells": 182,
+      "totalCells": 320
+    },
+    {
+      "name": "Bar",
+      "reachable": true,
+      "reachableCells": 191,
+      "totalCells": 320
+    },
+    {
+      "name": "Second bar",
+      "reachable": true,
+      "reachableCells": 254,
+      "totalCells": 320
+    },
+    {
+      "name": "WC facilities",
+      "reachable": true,
+      "reachableCells": 280,
+      "totalCells": 320
+    },
+    {
+      "name": "Bargain room",
+      "reachable": true,
+      "reachableCells": 95,
+      "totalCells": 320
+    },
+    {
+      "name": "Gym",
+      "reachable": true,
+      "reachableCells": 32,
+      "totalCells": 320
+    },
+    {
+      "name": "Steam room",
+      "reachable": true,
+      "reachableCells": 320,
+      "totalCells": 320
+    },
+    {
+      "name": "Store",
+      "reachable": true,
+      "reachableCells": 265,
+      "totalCells": 320
+    },
+    {
+      "name": "Reception",
+      "reachable": true,
+      "reachableCells": 192,
+      "totalCells": 192
+    }
+  ],
+  "limits": "Actual world and game scripts with real Three.js geometry; renderer, DOM and audio are stubbed. Door and dawn cases use controlled enemy-free scenarios. Browser rendering and real controls require a separate play test."
+}

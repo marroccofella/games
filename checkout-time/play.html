@@ -7,7 +7,7 @@
 <meta name="robots" content="noindex,nofollow">
 <meta name="theme-color" content="#060908">
 <link rel="icon" href="data:,">
-<link rel="stylesheet" href="assets/game.css">
+<link rel="stylesheet" href="assets/game.css?v=20261107.1">
 </head>
 <body>
 <nav class="game-nav" aria-label="Website"><a href="index.html">Instructions</a><a href="https://marroccofella.github.io/games/">42.uk Arcade</a><a href="play.html" aria-current="page">Play</a></nav>
@@ -16,7 +16,7 @@
 
 <div id="hud" hidden>
   <aside class="owner-panel" aria-label="Monty Upsell, fictional hotel owner"><p id="owner-line" aria-live="polite"></p><button id="negotiate" type="button">Haggle [N]</button></aside>
-  <div class="session-controls"><button id="pause-toggle" type="button">Pause</button><button id="mute" type="button" aria-pressed="false">Sound on</button><span id="audio-status" class="sr-only" role="status"></span></div>
+  <div class="session-controls"><button id="pause-toggle" type="button">Pause</button><button id="mute" type="button" aria-pressed="false">Sound on</button><button id="view-toggle" type="button">View: Top</button><span id="audio-status" class="sr-only" role="status"></span></div>
   <div class="panel tl">
     <div class="eyebrow">CHECKOUT TIME / GROUND FLOOR</div>
     <div class="clock"><span id="clock">23:00</span><small id="dawn">7h to dawn</small></div>
@@ -31,13 +31,14 @@
     <div class="health"><span>HEALTH</span><div class="meter"><i id="health-bar"></i></div></div>
     <div id="kit" class="kit"></div>
   </div>
+  <div id="crosshair" aria-hidden="true">+</div><div id="objective" class="objective" role="status"></div>
   <div id="room-tag" class="room-tag"></div>
   <div id="prompt" class="prompt"></div>
   <div id="hold" class="hold"><i></i></div>
   <canvas id="minimap" width="230" height="176"></canvas>
   <div id="toasts"></div>
   <div id="barks"></div>
-  <div id="vignette"></div>
+  <div id="threat-readout" role="status"></div><div id="vignette"></div>
 </div>
 
 <div id="title" class="screen">
@@ -46,7 +47,7 @@
     <h1>CHECKOUT<br>TIME</h1>
     <p class="lede">The coach party arrived. So did something else. Keep the guests alive until the 06:00 coach and the dawn.</p>
     <div class="howto">
-      <div><kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd><span>Move</span></div>
+      <div><kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd><span id="howto-move">Move</span></div>
       <div><kbd class="wide">SPACE</kbd><span>Tap to fire. Hold at a door to barricade it.</span></div>
     </div>
     <ul class="rules">
@@ -55,11 +56,11 @@
       <li><b>Locking zombies in a room</b> reduces their outbreak contribution. Press N to negotiate with Monty Upsell, whose sales strategy has outlived his market.</li>
     </ul>
     <button id="start" class="go">PRESS SPACE TO CHECK IN</button>
-    <p class="fine">An invented hotel, map and cast · cartoon zombie comedy · <span id="best"></span></p>
+    <p class="fine">C switches Top / Shoulder / Eyes · G toggles the rescue trail. In close views: ↑ ↓ walk, ← → turn; click the scene for mouse look.</p><p class="fine">An invented hotel, map and cast · cartoon zombie comedy · <span id="best"></span></p>
   </div>
 </div>
 
-<div id="pause" class="screen" hidden><div class="card small"><h2>PAUSED</h2><p>P or Esc to resume · M to mute</p><button id="resume" class="go" type="button">RESUME GAME</button></div></div>
+<div id="pause" class="screen" hidden><div class="card small"><h2>PAUSED</h2><p>P or Esc to resume · M to mute</p><div class="preferences"><button id="gore-toggle" type="button">Gore: Full</button><button id="motion-toggle" type="button">Motion: Cinema</button><button id="mix-toggle" type="button">Mix: Cinema</button><button id="sound-check" type="button">Sound check</button></div><p id="sound-report" role="status"></p><p><a href="preview-notes.html">Release notes / what changed</a></p><button id="resume" class="go" type="button">RESUME GAME</button></div></div>
 
 <div id="end" class="screen" hidden>
   <div class="card">
@@ -80,8 +81,9 @@
 <noscript>Checkout Time needs JavaScript and WebGL.</noscript>
 <script src="assets/three.local.js"></script>
 <script src="assets/level.js"></script>
-<script src="assets/audio.js"></script>
+<script src="assets/audio.js?v=20261107.1"></script>
 <script src="assets/world.js"></script>
-<script src="assets/game.js?v=20261106.3"></script>
+<script src="assets/people.js?v=20261107.1"></script>
+<script src="assets/game.js?v=20261107.1"></script>
 </body>
 </html>

@@ -17,3 +17,11 @@ jobs:
           node-version: 22
       - run: node --test verify.test.mjs media-policy.test.mjs crumble-invaders/game.test.mjs
       - run: node verify.mjs
+
+      - name: Verify Checkout Time cinema preview
+        working-directory: checkout-time
+        run: |
+          node check.mjs
+          node audio-check.mjs
+          node build.mjs
+          node privacy-check.mjs

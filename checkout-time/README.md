@@ -74,3 +74,14 @@ Original project code and writing: MIT, see [LICENSE](LICENSE). Three.js: MIT, s
 Part of the [42.uk universe](https://42.uk).
 
 **RELAX. IT'S ALREADY OVER.**
+
+
+## Cinema Preview · 2026.11.07.1
+
+[Full preview notes, contributions and limits](https://marroccofella.github.io/games/checkout-time/preview-notes.html).
+
+Other-agent groundwork integrated: jointed people/outfits and turning, corner movement, follower give-way, door/furniture clearance, three views, close aiming, rotating minimap and guide trails. This release adds rewritten directional WebAudio, low tension score and threat cues, procedural surface detail and weather, adjustable gore/debris/death poses, comfort settings, resource cleanup and expanded checks. The invented public layout and Monty remain. No real property information is included.
+
+C cycles camera; G toggles the trail. In close views arrows turn/walk, double Down turns around, and clicking the scene enables optional mouse look. Pause offers Gore, Motion, Mix and Sound check. Preferences and score are local only.
+
+Run `node check.mjs` (21 gameplay checks), `node audio-check.mjs` (10 audio routing/lifecycle checks), `node build.mjs` and `node privacy-check.mjs`. Scripts use a stub renderer or simulated WebAudio graph; browser play and device listening remain separate. No claim of photorealism or universal performance.
