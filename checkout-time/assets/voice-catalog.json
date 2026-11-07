@@ -3,38 +3,185 @@
   "synthetic": true,
   "playbackRate": 1.8,
   "clips": [
-    {"id":"enabled","text":"Dom announcements on. Lead the guests to the coach. Survive until dawn."},
-    {"id":"welcome","text":"The Grand Last Resort! Five stars. Four are still pending."},
-    {"id":"pitch-0","text":"The undead? Repeat customers. Exceptional retention."},
-    {"id":"pitch-1","text":"That is not a horde. It is an extremely motivated viewing party."},
-    {"id":"pitch-2","text":"The sea view is included. A sea rescue costs extra."},
-    {"id":"pitch-3","text":"The asking price is negotiable. The zombies are less flexible."},
-    {"id":"pitch-4","text":"I said open-plan potential. The chef took that personally."},
-    {"id":"pitch-5","text":"That boarded door? Bespoke timber. Very boutique."},
-    {"id":"pitch-6","text":"Breakfast is continental. Survival is supplementary."},
-    {"id":"pitch-7","text":"Free late checkout! Early checkout is now strongly recommended."},
-    {"id":"pitch-8","text":"A little lively in the bar, but the spirits are excellent."},
-    {"id":"pitch-9","text":"No chain! Unless you count whatever is holding the boiler together."},
-    {"id":"pitch-10","text":"Excellent footfall. Regrettable bitefall."},
-    {"id":"pitch-11","text":"Offers over one bag of biscuits. I know what I have."},
-    {"id":"turned","text":"A guest has turned. The outbreak grows."},
-    {"id":"bride","text":"The bride has turned. The outbreak grows."},
-    {"id":"close","text":"Saved in the nick of time!"},
-    {"id":"rescued","text":"The guest has been rescued. Keep moving!"},
-    {"id":"chef","text":"The chef has left the kitchen. Head chef checked out."},
-    {"id":"double","text":"Two zombies checked out!"},
-    {"id":"triple","text":"Three zombies checked out!"},
-    {"id":"quad","text":"Quad checkout!"},
-    {"id":"housekeeping","text":"Housekeeping!"},
-    {"id":"door","text":"A barricade gave way! They are out!"},
-    {"id":"saved","text":"Guest saved. Safely aboard the coach."},
-    {"id":"foam","text":"Foamed! Keep moving!"},
-    {"id":"extinguisher","text":"Fire extinguisher. Foams crowds."},
-    {"id":"tea","text":"Tea and biscuits. Health restored."},
-    {"id":"sealed","text":"Room sealed. Zombies locked in."},
-    {"id":"midnight","text":"Midnight. The bars have emptied."},
-    {"id":"runners","text":"One o'clock. Runners! Some of them can sprint."},
-    {"id":"kitchen","text":"Three o'clock. The kitchen stirs. Something wants service."},
-    {"id":"lastcall","text":"Five o'clock. Last call! One hour to the coach."}
+    {
+      "id": "enabled",
+      "text": "Dom voice on."
+    },
+    {
+      "id": "welcome",
+      "text": "The Grand Last Resort! Five stars. Four are still pending."
+    },
+    {
+      "id": "pitch-0",
+      "text": "The undead? Repeat customers. Exceptional retention."
+    },
+    {
+      "id": "pitch-1",
+      "text": "That is not a horde. It is an extremely motivated viewing party."
+    },
+    {
+      "id": "pitch-2",
+      "text": "The sea view is included. A sea rescue costs extra."
+    },
+    {
+      "id": "pitch-3",
+      "text": "The asking price is negotiable. The zombies are less flexible."
+    },
+    {
+      "id": "pitch-4",
+      "text": "I said open-plan potential. The chef took that personally."
+    },
+    {
+      "id": "pitch-5",
+      "text": "That boarded door? Bespoke timber. Very boutique."
+    },
+    {
+      "id": "pitch-6",
+      "text": "Breakfast is continental. Survival is supplementary."
+    },
+    {
+      "id": "pitch-7",
+      "text": "Free late checkout! Early checkout is now strongly recommended."
+    },
+    {
+      "id": "pitch-8",
+      "text": "A little lively in the bar, but the spirits are excellent."
+    },
+    {
+      "id": "pitch-9",
+      "text": "No chain! Unless you count whatever is holding the boiler together."
+    },
+    {
+      "id": "pitch-10",
+      "text": "Excellent footfall. Regrettable bitefall."
+    },
+    {
+      "id": "pitch-11",
+      "text": "Offers over one bag of biscuits. I know what I have."
+    },
+    {
+      "id": "turned",
+      "text": "A guest has turned!"
+    },
+    {
+      "id": "bride",
+      "text": "The bride has turned!"
+    },
+    {
+      "id": "close",
+      "text": "Saved in the nick of time!"
+    },
+    {
+      "id": "rescued",
+      "text": "The guest has been rescued. Keep moving!"
+    },
+    {
+      "id": "chef",
+      "text": "The chef has left the kitchen. Head chef checked out."
+    },
+    {
+      "id": "double",
+      "text": "Two zombies checked out!"
+    },
+    {
+      "id": "triple",
+      "text": "Three zombies checked out!"
+    },
+    {
+      "id": "quad",
+      "text": "Quad checkout!"
+    },
+    {
+      "id": "housekeeping",
+      "text": "Housekeeping!"
+    },
+    {
+      "id": "door",
+      "text": "A barricade gave way! They are out!"
+    },
+    {
+      "id": "saved",
+      "text": "Guest saved. Safely aboard the coach."
+    },
+    {
+      "id": "foam",
+      "text": "Foamed! Keep moving!"
+    },
+    {
+      "id": "extinguisher",
+      "text": "Fire extinguisher. Foams crowds."
+    },
+    {
+      "id": "tea",
+      "text": "Tea and biscuits. Health restored."
+    },
+    {
+      "id": "sealed",
+      "text": "Room sealed. Zombies locked in."
+    },
+    {
+      "id": "midnight",
+      "text": "Midnight. The bars have emptied."
+    },
+    {
+      "id": "runners",
+      "text": "One o'clock. Runners! Some of them can sprint."
+    },
+    {
+      "id": "kitchen",
+      "text": "Three o'clock. The kitchen stirs. Something wants service."
+    },
+    {
+      "id": "lastcall",
+      "text": "Five o'clock. Last call! One hour to the coach."
+    },
+    {
+      "id": "turned-1",
+      "text": "Another guest has turned!"
+    },
+    {
+      "id": "turned-2",
+      "text": "We've got another turned guest!"
+    },
+    {
+      "id": "hurt-0",
+      "text": "Ah! Get off me, you daft sod!"
+    },
+    {
+      "id": "hurt-1",
+      "text": "Bloody hell! I'm not on the menu!"
+    },
+    {
+      "id": "hurt-2",
+      "text": "Pack it in! That's me good arm, you pillock!"
+    },
+    {
+      "id": "hurt-3",
+      "text": "Get off me backside! Buy me a pint first!"
+    },
+    {
+      "id": "hurt-4",
+      "text": "Oi! Bite the brochure, you rotten barmpot!"
+    },
+    {
+      "id": "hurt-5",
+      "text": "Ah! Personal space, you gormless great lump!"
+    },
+    {
+      "id": "hurt-low-0",
+      "text": "Bloody hell! I'm leaking worse than the boiler!"
+    },
+    {
+      "id": "hurt-low-1",
+      "text": "I'm not done yet, you miserable sod!"
+    },
+    {
+      "id": "defeat-0",
+      "text": "Ah! Tell Monty... I want me wages!"
+    },
+    {
+      "id": "defeat-1",
+      "text": "Oh, bugger! I'm clocking off!"
+    }
   ]
 }

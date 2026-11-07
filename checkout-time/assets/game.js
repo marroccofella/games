@@ -459,6 +459,7 @@ function bash(z,d,dt){d.hp-=(z.boss?9:5)*dt;d.mesh.shake=.25;z.bashT=(z.bashT||0
   refreshDoor(d);if(d.hp<=0){W.setDoor(d,false);d.cool=4;refreshDoor(d);G.stats.doorsBroken++;SFX.splinter(d.x,dist(G.player,d),d.z,!W.los(d.x,d.z,G.player.x,G.player.z));for(let i=0;i<14;i++)emit(d.x,rnd(.4,1.8),d.z,{vx:rnd(-3,3),vy:rnd(1,4),vz:rnd(-3,3),g:9,life:.9,size:.12,color:0x8a5a2b});
     toast(d.name.toUpperCase()+' GAVE WAY','THEY ARE OUT',true);G.shake=.4;}}
 function hurtPlayer(z){const p=G.player;if(G.state!=='play'||p.inv>0||p.hp<=0)return;const dmg=z.boss?28:16;p.hp-=dmg;G.stats.dmg+=dmg;p.inv=.9;G.shake=.5;SFX.hurt();blood(p.x,p.z,8,[0,0]);
+  if(p.hp>0)window.ANNOUNCEMENTS?.hurt({health:p.hp});
   const dx=p.x-z.x,dz=p.z-z.z,d=Math.hypot(dx,dz)||1;p.vx+=dx/d*6;p.vz+=dz/d*6;
   $('#vignette').style.boxShadow='inset 0 0 200px rgba(255,0,30,.75)';setTimeout(()=>$('#vignette').style.boxShadow='',260);
   if(p.hp<=0)endGame(false);}
@@ -877,7 +878,7 @@ function slowmo(t){G.slow=t;}
 
 // ================================================================ end of run: stars + the guest review
 function endGame(won){
-  if(G.state!=='play')return;G.state='end';clearInput();window.ANNOUNCEMENTS?.stop();
+  if(G.state!=='play')return;G.state='end';clearInput();window.ANNOUNCEMENTS?.stop();if(!won)window.ANNOUNCEMENTS?.defeat();
   const s=G.stats,alive=civs().filter(c=>c.kind==='c'&&!c.gone&&c.state!=='grabbed').length;
   const score=Math.max(0,s.saved*100+s.rescued*60+G.lockedCount*50+s.kills*10+(won?500:0)-s.turned*40);
   // stars: surviving earns one; the rest are for guests saved, rooms sealed, and not letting the outbreak spread

@@ -4,7 +4,7 @@ import vm from 'node:vm';
 import {test} from 'node:test';
 const source=fs.readFileSync(new URL('assets/announcements.js',import.meta.url),'utf8');
 const catalog=JSON.parse(fs.readFileSync(new URL('assets/voice-catalog.json',import.meta.url),'utf8'));
-function setup({complete=true,stored='off',rejectPlayback=false,started=true}={}){
+function setup({complete=true,stored='off',rejectPlayback=false,started=true,extraIds=[]}={}){
   const elements=new Map(),classes=new Set(),audios=[],timers=new Map(),ducking=[];let now=0,serial=0;
   const element=()=>({attrs:{},dataset:{},setAttribute(k,v){this.attrs[k]=v;},focus(){this.focused=true;}});
   for(const id of ['#voice-toggle','#voice-status','#view'])elements.set(id,element());
@@ -17,7 +17,7 @@ function setup({complete=true,stored='off',rejectPlayback=false,started=true}={}
     end(){this.onended?.();}
   }
   const storage=new Map([['checkout-dom-voice',stored]]);
-  const c={console,Audio,performance:{now:()=>now},document:{body:{classList:{toggle(k,v){v?classes.add(k):classes.delete(k);}}},querySelector:id=>elements.get(id)},localStorage:{getItem:k=>storage.get(k),setItem:(k,v)=>storage.set(k,v)},setTimeout:(fn)=>{timers.set(++serial,fn);return serial;},clearTimeout:id=>timers.delete(id),DOM_VOICE:{complete,clips:Object.fromEntries(catalog.clips.map(e=>[e.id,{file:'assets/voice/'+e.id+'.wav'}]))}};
+  const c={console,Audio,performance:{now:()=>now},document:{body:{classList:{toggle(k,v){v?classes.add(k):classes.delete(k);}}},querySelector:id=>elements.get(id)},localStorage:{getItem:k=>storage.get(k),setItem:(k,v)=>storage.set(k,v)},setTimeout:(fn)=>{timers.set(++serial,fn);return serial;},clearTimeout:id=>timers.delete(id),DOM_VOICE:{complete,clips:Object.fromEntries([...catalog.clips.map(e=>e.id),...extraIds].map(id=>[id,{file:'assets/voice/'+id+'.wav'}]))}};
   c.AUDIO={setNarrating:value=>ducking.push(value)};c.window=c;vm.runInNewContext(source,c);
   if(started)c.ANNOUNCEMENTS.reset();
   return {api:c.ANNOUNCEMENTS,classes,elements,audios,storage,timers,ducking,advance(ms){now+=ms;}};
@@ -81,4 +81,43 @@ test('Monty audio catalog matches the actual game pitches in order',()=>{
   const pitches=JSON.parse(game.match(/const OWNER_PITCHES=(\[[\s\S]*?\]);/)[1]);
   assert.equal(catalog.clips.filter(c=>c.id.startsWith('pitch-')).length,pitches.length);
   pitches.forEach((text,i)=>assert.equal(catalog.clips.find(c=>c.id==='pitch-'+i)?.text,text));
+});
+
+const expressiveIds=['turned-1','turned-2','hurt-0','hurt-1','hurt-2','hurt-3','hurt-4','hurt-5','hurt-low-0','hurt-low-1','defeat-0','defeat-1'];
+test('each quick guest turn gets a brief rotating callout without the ordinary duplicate cooldown',()=>{
+ const s=setup({stored:'on',extraIds:expressiveIds});
+ assert.equal(s.api.event('A GUEST HAS TURNED',true),true);assert.equal(s.api.event('A GUEST HAS TURNED',true),true);
+ s.audios[0].end();assert.equal(s.audios.length,2);assert.notEqual(s.audios[0].src,s.audios[1].src);
+ s.audios[1].end();assert.equal(s.api.event('A GUEST HAS TURNED',true),true);assert.equal(s.audios.length,3);
+});
+test('turn alerts preempt sales chatter and still restore captions when the short queue overflows',()=>{
+ const s=setup({stored:'on',extraIds:expressiveIds});s.api.say('pitch-0',0);let dropped=0;
+ for(let i=0;i<5;i++)s.api.event('A GUEST HAS TURNED',true,false,()=>dropped++);
+ assert.ok(s.audios[0].stopped);assert.ok(dropped>=2,'overflow retains text fallback rather than an unbounded speech queue');
+});
+test('porter hurt reactions rotate, interrupt a sales pitch, and have a shared cooldown',()=>{
+ const s=setup({stored:'on',extraIds:expressiveIds});s.api.say('pitch-0',0);assert.equal(s.api.hurt({health:84}),true);assert.ok(s.audios[0].stopped);
+ const first=s.audios.at(-1);assert.match(first.src,/hurt-0/);first.end();assert.equal(s.api.hurt({health:68}),false);
+ s.advance(4100);assert.equal(s.api.hurt({health:52}),true);assert.notEqual(s.audios.at(-1).src,first.src);
+ s.audios.at(-1).end();s.advance(4100);assert.equal(s.api.hurt({health:20}),true);assert.match(s.audios.at(-1).src,/hurt-low-/);
+});
+test('essential turn speech outranks porter jokes, and pause or mute prevents reactions',()=>{
+ const s=setup({stored:'on',extraIds:expressiveIds});s.api.event('A GUEST HAS TURNED',true);assert.equal(s.api.hurt({health:80}),false);
+ s.api.setPaused(true);assert.equal(s.api.hurt({health:80}),false);s.api.setPaused(false);s.api.setMuted(true);assert.equal(s.api.hurt({health:80}),false);
+});
+test('defeat allows one final porter line while ordinary end-screen speech stays stopped',()=>{
+ const s=setup({stored:'on',extraIds:expressiveIds});s.api.stop();assert.equal(s.api.defeat(),true);assert.match(s.audios.at(-1).src,/defeat-/);
+ assert.equal(s.api.say('turned'),false);assert.equal(s.api.defeat(),false);const final=s.audios.at(-1);s.api.reset();assert.ok(final.stopped);
+ s.api.setMuted(true);s.api.stop();assert.equal(s.api.defeat(),false);
+});
+test('routine confirmations and unattended sales chatter leave breathing room, while haggle is immediate',()=>{
+ const s=setup({stored:'on',extraIds:expressiveIds});s.api.event('GUEST SAVED');s.audios.at(-1).end();s.advance(2600);assert.equal(s.api.event('GUEST SAVED'),false);
+ assert.equal(s.api.event('A GUEST HAS TURNED',true),true);s.audios.at(-1).end();assert.equal(s.api.say('pitch-0',0),true);s.audios.at(-1).end();
+ s.advance(3000);assert.equal(s.api.say('pitch-1',0),false);assert.equal(s.api.say('pitch-1',1),true);
+});
+
+test('a delayed guest-turn callout expires quickly and restores its caption',()=>{
+ const s=setup({stored:'on',extraIds:expressiveIds});let restored=0;s.api.event('A GUEST HAS TURNED',true);
+ assert.equal(s.api.event('A GUEST HAS TURNED',true,false,()=>restored++),true);s.advance(2600);s.audios[0].end();
+ assert.equal(s.audios.length,1);assert.equal(restored,1);
 });

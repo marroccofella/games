@@ -26,6 +26,10 @@ Monty follows the porter and periodically delivers a sales pitch. Haggle produce
 
 ## Dom voice announcements
 
+Local voice update **2026.11.07.3** keeps guest-turn calls brief, rotates their wording and allows closely spaced turns to be heard without the normal duplicate cooldown. The short queue remains bounded; excess or unavailable speech keeps its caption fallback. Routine confirmations and automatic Monty pitches leave longer gaps; manually pressing Haggle still requests a pitch immediately.
+
+Actual zombie hits trigger rotating Yorkshire porter outbursts, with a shared four-second cooldown and different lines at low health. Urgent guest-turn speech outranks jokes. On defeat, one final porter line may play; normal end-screen announcements remain stopped. Pause, mute, the Dom toggle and a new game cancel current speech. All synthetic speech stays at 1.8× with pitch preservation.
+
 Click the separate speaker **1.8×** icon beside Sound to enable the consented synthetic Dom voice. Monty's pitches and event announcements use locally generated clips at exactly **1.8 times playback speed**, preserving pitch. Spoken announcement banners, Monty's text and character speech bubbles disappear in this mode; rescue arrows, countdowns, health and door prompts remain visible. Essential event text stays visible when speech is busy or unmapped, and reappears if its clip is interrupted or fails. Click again for text announcements. The preference stays in this browser. Sound off also silences Dom and restores text. Pause, loss of focus, restart and game over stop speech; urgent alerts interrupt sales chatter and stale notices are discarded.
 
 Speech clips are generated ahead of time with the installed myvoice Dom Studio preset, then checked for signal health and word accuracy. Gameplay needs no Promptus service, microphone, speech service or browser speech synthesis. The voice pack records human listening status separately from automated checks. Character chatter is hidden rather than narrated; variable room and door alerts use concise generic speech. Generated speech is synthetic.
