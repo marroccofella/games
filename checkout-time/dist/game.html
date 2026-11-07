@@ -5,14 +5,14 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Checkout Time · The Grand Last Resort</title>
 <meta name="robots" content="noindex,nofollow">
-<meta name="application-version" content="2026.11.07.3">
+<meta name="application-version" content="2026.11.07.4">
 <meta name="theme-color" content="#060908">
 <link rel="icon" href="data:,">
 <style>
 :root{--bg:#060908;--panel:rgba(6,12,9,.82);--line:rgba(120,255,160,.22);--text:#cfeedd;--muted:#7fa592;--accent:#39ff88;--warn:#ffcb5a;--danger:#ff4d5e;--font:ui-monospace,"JetBrains Mono","Cascadia Mono",Consolas,monospace}
 *{box-sizing:border-box}
 html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:var(--font);overflow:hidden;user-select:none;-webkit-user-select:none}
-#view{position:fixed;inset:0;width:100%;height:100%;display:block}
+#view{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
 .eyebrow{font-size:11px;letter-spacing:.18em;color:var(--accent);text-transform:uppercase}
 .panel{position:fixed;background:var(--panel);border:1px solid var(--line);padding:10px 12px;backdrop-filter:blur(4px)}
 .tl{top:12px;left:12px;width:250px}
@@ -179,7 +179,7 @@ blockquote cite{display:block;margin-top:8px;font-size:11px;color:var(--muted);f
       <li><b>Locking zombies in a room</b> reduces their outbreak contribution. Press N to negotiate with Monty Upsell, whose sales strategy has outlived his market.</li>
     </ul>
     <button id="start" class="go">PRESS SPACE TO CHECK IN</button>
-    <p class="fine">C switches Top / Shoulder / Eyes · G toggles the rescue trail. In close views: ↑ ↓ walk, ← → turn; click the scene for mouse look.</p><p class="fine">An invented hotel, map and cast · cartoon zombie comedy · <span id="best"></span></p>
+    <p class="fine">C switches Top / Shoulder / Eyes · G toggles the rescue trail. Eyes: ↑ ↓ walk, ← → strafe; Q/E turn, click for mouse look or drag the view on touch. Shoulder: ↑ ↓ walk, ← → turn.</p><p class="fine">An invented hotel, map and cast · cartoon zombie comedy · <span id="best"></span></p>
   </div>
 </div>
 
@@ -54399,10 +54399,12 @@ function updatePlayer(dt){
   let ix,iz,l;
   if(VIEW.mode==='top'){ // screen-relative: arrows are compass directions on screen
     ix=(K.ArrowRight?1:0)-(K.ArrowLeft?1:0);iz=(K.ArrowDown?1:0)-(K.ArrowUp?1:0);l=Math.hypot(ix,iz);if(l){ix/=l;iz/=l;}
-  }else{ // body-relative: up/down walk, left/right turn (the only way to look round with arrow keys alone)
-    const turn=(K.ArrowLeft?1:0)-(K.ArrowRight?1:0);if(p.hp>0){p.face+=turn*VIEW.turnRate*dt;}
+  }else{ // First person strafes; shoulder view keeps its existing arrow-key turning.
+    const first=VIEW.mode==='first';
+    const turn=first?(K.q?1:0)-(K.e?1:0):(K.ArrowLeft?1:0)-(K.ArrowRight?1:0);if(p.hp>0){p.face+=turn*VIEW.turnRate*dt;}
     if(VIEW.spin>0){const s=Math.min(VIEW.spin,dt*Math.PI/.22);p.face+=s;VIEW.spin-=s;}
-    const fwd=(K.ArrowUp?1:0)-(K.ArrowDown?.55:0);ix=Math.sin(p.face)*fwd;iz=Math.cos(p.face)*fwd;l=Math.abs(fwd);
+    const fwd=(K.ArrowUp?1:0)-(K.ArrowDown?.55:0),side=first?((K.ArrowRight?1:0)-(K.ArrowLeft?1:0)):0;
+    ix=Math.sin(p.face)*fwd-Math.cos(p.face)*side;iz=Math.cos(p.face)*fwd+Math.sin(p.face)*side;l=Math.hypot(ix,iz);if(l>1){ix/=l;iz/=l;}
   }
   if(p.hp<=0){ix=iz=0;}
   steerTo(p,ix,iz,p.speed*((G.hold.down&&G.hold.door)?0:1),dt);
@@ -54614,7 +54616,7 @@ function weather(dt,p){rain.visible=PREF.motion&&!!p&&G.state==='play';if(!rain.
 const camPos=new THREE.Vector3(10,30,60),camLook=new THREE.Vector3(12,0,30);
 let upperFade=1,outerH=2.6,innerH=1.15;
 // ---- camera views: 'top' (original diorama), 'third' (over the shoulder), 'first' (the porter's eyes)
-const VIEW={mode:'top',camGap:3,pitch:-.06,bob:0,kick:0,spin:0,turnRate:2.9,lastDown:0,lastInner:-1,fov:-1,
+const VIEW={mode:'top',camGap:3,pitch:-.06,bob:0,kick:0,spin:0,turnRate:2.9,lastDown:0,lastInner:-1,fov:-1,touchLook:null,
   labels:{top:'Top',third:'Shoulder',first:'Eyes'},
   lens(close){const want=VIEW.mode==='first'&&close?74:VIEW.mode==='third'&&close?(62+(PREF.motion?(G.danger||0)*2:0)):(innerWidth<innerHeight?58:42);
     if(want!==VIEW.fov){VIEW.fov=want;camera.fov=want;camera.updateProjectionMatrix();}
@@ -54639,14 +54641,14 @@ scene.add(camera);
   VIEW.tip=new THREE.Object3D();VIEW.tip.position.set(0,.03,-.52);g.add(VIEW.tip);
 })();
 function setView(mode,announce){
-  if(!VIEW.labels[mode])mode='top';VIEW.mode=mode;VIEW.pitch=-.06;VIEW.spin=0;VIEW.fov=-1;
+  if(!VIEW.labels[mode])mode='top';VIEW.mode=mode;VIEW.pitch=-.06;VIEW.spin=0;VIEW.fov=-1;VIEW.touchLook=null;
   const btn=$('#view-toggle');btn.textContent='View: '+VIEW.labels[mode];
   document.querySelectorAll('.view-pick button').forEach(b=>b.setAttribute('aria-checked',String(b.dataset.view===mode)));
   if(document.body){if(mode==='top')document.body.classList.remove('immersive');else document.body.classList.add('immersive');}
-  $('#howto-move').textContent=mode==='top'?'Move':'↑ ↓ walk · ← → turn';
+  $('#howto-move').textContent=mode==='top'?'Move':mode==='first'?'↑ ↓ walk · ← → strafe · Q/E turn':'↑ ↓ walk · ← → turn';
   if(mode==='top'&&document.exitPointerLock&&document.pointerLockElement)document.exitPointerLock();
   try{localStorage.setItem('checkout-view',mode);}catch(e){}
-  if(announce&&G.state==='play')hint(mode==='top'?'TOP-DOWN VIEW':mode==='third'?'OVER THE SHOULDER · ← → TURN · CLICK FOR MOUSE LOOK':'THROUGH THE PORTER’S EYES · ← → TURN · ↓↓ SPIN · CLICK FOR MOUSE LOOK',3);
+  if(announce&&G.state==='play')hint(mode==='top'?'TOP-DOWN VIEW':mode==='third'?'OVER THE SHOULDER · ← → TURN · CLICK FOR MOUSE LOOK':'PORTER’S EYES · ← → STRAFE · Q/E OR MOUSE LOOK · DRAG VIEW ON TOUCH',3);
 }
 function cycleView(){setView({top:'third',third:'first',first:'top'}[VIEW.mode],true);}
 function present(dt,real){
@@ -54755,11 +54757,12 @@ function endGame(won){
 }
 
 // ================================================================ input + loop
-function clearInput(){G.keys={};Object.assign(G.hold,{down:false,t:0,fired:false,door:null,completed:false});holdBar(-1);}
+function heldKey(e){return e.code==='KeyQ'?'q':e.code==='KeyE'?'e':e.key.length===1?e.key.toLowerCase():e.key;}
+function clearInput(){G.keys={};VIEW.touchLook=null;Object.assign(G.hold,{down:false,t:0,fired:false,door:null,completed:false});holdBar(-1);}
 function syncSound(){const s=AUDIO.status();$('#mute').textContent=s.available?(s.muted?'Sound off':'Sound on'):'Sound unavailable';$('#mute').setAttribute('aria-pressed',String(s.muted));$('#audio-status').textContent=s.available?'Sound '+(s.muted?'muted':'enabled'):'Audio unavailable; game can be played silently.';}
 function toggleSound(){AUDIO.toggleMute();window.ANNOUNCEMENTS?.setMuted(AUDIO.status().muted);syncSound();}
 function setPaused(paused){if(G.state!=='play'&&G.state!=='pause')return;clearInput();if(paused&&document.exitPointerLock&&document.pointerLockElement)document.exitPointerLock();G.state=paused?'pause':'play';$('#pause').hidden=!paused;AUDIO.setPaused(paused);window.ANNOUNCEMENTS?.setPaused(paused);if(!paused)canvas.focus({preventScroll:true});}
-function start(){clearInput();AUDIO.start();syncPrefs();syncSound();window.ANNOUNCEMENTS?.reset();window.ANNOUNCEMENTS?.setMuted(AUDIO.status().muted);$('#title').hidden=true;$('#end').hidden=true;$('#pause').hidden=true;$('#hud').hidden=false;newGame();G.state='play';G.seen={};window.ANNOUNCEMENTS?.say('welcome',0);canvas.focus({preventScroll:true});VIEW.pitch=-.06;VIEW.spin=0;hint(VIEW.mode==='top'?'ARROWS MOVE · TAP SPACE FIRES · C CHANGES VIEW':'↑ ↓ WALK · ← → TURN · SPACE FIRES · C CHANGES VIEW',5);SFX.bell();
+function start(){clearInput();AUDIO.start();syncPrefs();syncSound();window.ANNOUNCEMENTS?.reset();window.ANNOUNCEMENTS?.setMuted(AUDIO.status().muted);$('#title').hidden=true;$('#end').hidden=true;$('#pause').hidden=true;$('#hud').hidden=false;newGame();G.state='play';G.seen={};window.ANNOUNCEMENTS?.say('welcome',0);canvas.focus({preventScroll:true});VIEW.pitch=-.06;VIEW.spin=0;hint(VIEW.mode==='top'?'ARROWS MOVE · TAP SPACE FIRES · C CHANGES VIEW':VIEW.mode==='first'?'↑ ↓ WALK · ← → STRAFE · Q/E OR MOUSE LOOK · SPACE FIRES':'↑ ↓ WALK · ← → TURN · SPACE FIRES · C CHANGES VIEW',5);SFX.bell();
   $('#touch').hidden=!(matchMedia('(pointer:coarse)').matches||innerWidth<760);}
 addEventListener('keydown',e=>{
   if(e.key===' '&&document.activeElement?.matches('button,a')&&!['start','again'].includes(document.activeElement.id))return;
@@ -54771,17 +54774,20 @@ addEventListener('keydown',e=>{
   if(e.key==='c'||e.key==='C'||e.key==='v'||e.key==='V'){if(!e.repeat)cycleView();return;}
   if(e.key==='g'||e.key==='G'){if(!e.repeat){GUIDE.on=!GUIDE.on;GUIDE.t=0;if(G.state==='play')hint(GUIDE.on?'GUIDE TRAIL ON':'GUIDE TRAIL OFF',1.5);}return;}
   if(e.key==='ArrowDown'&&!e.repeat&&VIEW.mode!=='top'&&G.state==='play'){const t=performance.now();if(t-VIEW.lastDown<300){VIEW.spin=Math.PI;VIEW.lastDown=0;}else VIEW.lastDown=t;}
-  G.keys[e.key]=true;
+  G.keys[heldKey(e)]=true;
 });
-addEventListener('keyup',e=>{G.keys[e.key]=false;if(e.key===' '&&G.state==='play')onSpaceUp();});
+addEventListener('keyup',e=>{G.keys[heldKey(e)]=false;if(e.key===' '&&G.state==='play')onSpaceUp();});
 addEventListener('blur',()=>{clearInput();if(G.state==='play')setPaused(true);});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&G.state==='play')setPaused(true);});
 $('#negotiate').onclick=()=>{ownerPitch(true);if(G.state==='play')canvas.focus({preventScroll:true});};
 $('#start').onclick=start;$('#again').onclick=start;
 $('#view-toggle').onclick=()=>{cycleView();canvas.focus({preventScroll:true});};
 document.querySelectorAll('.view-pick button').forEach(b=>b.addEventListener('click',()=>setView(b.dataset.view)));
-// optional mouse look in the close views (arrow keys alone still do everything)
-canvas.addEventListener('click',()=>{if(VIEW.mode!=='top'&&G.state==='play'&&canvas.requestPointerLock&&document.pointerLockElement!==canvas){try{const r=canvas.requestPointerLock();if(r&&r.catch)r.catch(()=>{});}catch(e){}}});
+// Mouse look in close views; first person also supports Q/E and touch-drag looking.
+canvas.addEventListener('click',e=>{if(e?.pointerType==='touch')return;if(VIEW.mode!=='top'&&G.state==='play'&&canvas.requestPointerLock&&document.pointerLockElement!==canvas){try{const r=canvas.requestPointerLock();if(r&&r.catch)r.catch(()=>{});}catch(e){}}});
+canvas.addEventListener('pointerdown',e=>{if(e.pointerType!=='touch'||G.state!=='play'||G.player.hp<=0||VIEW.mode!=='first'||VIEW.touchLook)return;VIEW.touchLook={id:e.pointerId,x:e.clientX,y:e.clientY};canvas.setPointerCapture?.(e.pointerId);e.preventDefault();});
+canvas.addEventListener('pointermove',e=>{const drag=VIEW.touchLook;if(!drag||drag.id!==e.pointerId||G.state!=='play'||G.player.hp<=0||VIEW.mode!=='first')return;G.player.face-=(e.clientX-drag.x)*.004;VIEW.pitch=clamp(VIEW.pitch-(e.clientY-drag.y)*.003,-.6,.45);drag.x=e.clientX;drag.y=e.clientY;});
+for(const type of ['pointerup','pointercancel','lostpointercapture'])canvas.addEventListener(type,e=>{if(VIEW.touchLook?.id===e.pointerId)VIEW.touchLook=null;});
 addEventListener('mousemove',e=>{if(document.pointerLockElement!==canvas||G.state!=='play'||VIEW.mode==='top'||G.player.hp<=0)return;G.player.face-=e.movementX*.0026;VIEW.pitch=clamp(VIEW.pitch-e.movementY*.0022,-.6,.45);});
 addEventListener('mousedown',e=>{if(document.pointerLockElement===canvas&&e.button===0&&G.state==='play')onSpaceDown();});
 addEventListener('mouseup',e=>{if(document.pointerLockElement===canvas&&e.button===0&&G.state==='play')onSpaceUp();});

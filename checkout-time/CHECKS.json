@@ -1,7 +1,7 @@
 {
   "game": "Checkout Time",
-  "testedAt": "2026-11-07T11:53:19.743Z",
-  "sourceSha256": "0194e9c50c4020bfd272c0494c2bf11d8b56b523431f4f6951b05941cdf5895e",
+  "testedAt": "2026-11-07T18:46:32.798Z",
+  "sourceSha256": "cc0065c6bdc23c9a70047fac22d757b8f852091f54141d7058e9ae0100726aef",
   "results": [
     {
       "name": "Plan rooms and doors are finite",
@@ -68,7 +68,19 @@
       "passed": true
     },
     {
-      "name": "Three camera modes preserve controls and can return to top view",
+      "name": "Three camera modes preserve shoulder turning and can return to top view",
+      "passed": true
+    },
+    {
+      "name": "First-person left and right strafe relative to every cardinal facing without rotating",
+      "passed": true
+    },
+    {
+      "name": "First-person diagonal movement is normalized and Q/E turn without moving",
+      "passed": true
+    },
+    {
+      "name": "First-person touch look turns while movement is held and cancels on pause or view changes",
       "passed": true
     },
     {
@@ -100,61 +112,61 @@
     {
       "name": "Restaurant",
       "reachable": true,
-      "reachableCells": 64,
+      "reachableCells": 194,
       "totalCells": 320
     },
     {
       "name": "Residents lounge",
       "reachable": true,
-      "reachableCells": 218,
+      "reachableCells": 208,
       "totalCells": 320
     },
     {
       "name": "Kitchen",
       "reachable": true,
-      "reachableCells": 212,
+      "reachableCells": 203,
       "totalCells": 320
     },
     {
       "name": "Boiler room",
       "reachable": true,
-      "reachableCells": 243,
+      "reachableCells": 235,
       "totalCells": 320
     },
     {
       "name": "Function room",
       "reachable": true,
-      "reachableCells": 208,
+      "reachableCells": 222,
       "totalCells": 320
     },
     {
       "name": "Bar",
       "reachable": true,
-      "reachableCells": 149,
+      "reachableCells": 137,
       "totalCells": 320
     },
     {
       "name": "Second bar",
       "reachable": true,
-      "reachableCells": 232,
+      "reachableCells": 152,
       "totalCells": 320
     },
     {
       "name": "WC facilities",
       "reachable": true,
-      "reachableCells": 270,
+      "reachableCells": 275,
       "totalCells": 320
     },
     {
       "name": "Bargain room",
       "reachable": true,
-      "reachableCells": 104,
+      "reachableCells": 117,
       "totalCells": 320
     },
     {
       "name": "Gym",
       "reachable": true,
-      "reachableCells": 177,
+      "reachableCells": 212,
       "totalCells": 320
     },
     {
@@ -166,7 +178,7 @@
     {
       "name": "Store",
       "reachable": true,
-      "reachableCells": 265,
+      "reachableCells": 255,
       "totalCells": 320
     },
     {
