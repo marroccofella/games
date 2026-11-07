@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import {test} from 'node:test';
+import {createHash} from 'node:crypto';
 const source=fs.readFileSync(new URL('assets/announcements.js',import.meta.url),'utf8');
 const catalog=JSON.parse(fs.readFileSync(new URL('assets/voice-catalog.json',import.meta.url),'utf8'));
 function setup({complete=true,stored='off',rejectPlayback=false,started=true,extraIds=[]}={}){
@@ -120,4 +121,17 @@ test('a delayed guest-turn callout expires quickly and restores its caption',()=
  const s=setup({stored:'on',extraIds:expressiveIds});let restored=0;s.api.event('A GUEST HAS TURNED',true);
  assert.equal(s.api.event('A GUEST HAS TURNED',true,false,()=>restored++),true);s.advance(2600);s.audios[0].end();
  assert.equal(s.audios.length,1);assert.equal(restored,1);
+});
+
+test('the real active pack ships every catalog clip with matching narration and audio hashes',()=>{
+ const pack=JSON.parse(fs.readFileSync(new URL('assets/voice-pack.js',import.meta.url),'utf8').replace(/^window\.DOM_VOICE=/,'').trim().replace(/;$/,''));
+ assert.equal(pack.complete,true);assert.equal(pack.playbackRate,1.8);assert.deepEqual(Object.keys(pack.clips).sort(),catalog.clips.map(c=>c.id).sort());
+ for(const c of catalog.clips){const clip=pack.clips[c.id];assert.equal(clip.textSha256,createHash('sha256').update(c.text).digest('hex'));const bytes=fs.readFileSync(new URL(clip.file,import.meta.url));assert.equal(clip.sha256,createHash('sha256').update(bytes).digest('hex'));assert.equal(bytes.toString('ascii',0,4),'RIFF');assert.equal(bytes.toString('ascii',8,12),'WAVE');}
+});
+
+test('bride repeat callouts bypass the ordinary duplicate cooldown',()=>{
+ const s=setup({stored:'on'});assert.equal(s.api.event('THE BRIDE HAS TURNED',true),true);assert.equal(s.api.event('THE BRIDE HAS TURNED',true),true);s.audios[0].end();assert.equal(s.audios.length,2);
+});
+test('combo confirmations share a cooldown across different combo names',()=>{
+ const s=setup({stored:'on'});assert.equal(s.api.event('DOUBLE CHECKOUT'),true);s.audios[0].end();s.advance(2600);assert.equal(s.api.event('TRIPLE CHECKOUT'),false);s.advance(1500);assert.equal(s.api.event('QUAD CHECKOUT'),true);
 });

@@ -1,7 +1,7 @@
 {
   "game": "Checkout Time",
-  "testedAt": "2026-11-07T10:19:21.358Z",
-  "sourceSha256": "ce151e89ddaf9470dc8aad52b353b21bcd314479b30737a72718a7e93aa56968",
+  "testedAt": "2026-11-07T11:53:19.743Z",
+  "sourceSha256": "0194e9c50c4020bfd272c0494c2bf11d8b56b523431f4f6951b05941cdf5895e",
   "results": [
     {
       "name": "Plan rooms and doors are finite",
@@ -89,6 +89,10 @@
     },
     {
       "name": "Game connects Dom announcements to pitches, pause, mute, restart and game over",
+      "passed": true
+    },
+    {
+      "name": "Zombie hits trigger porter reactions and a fatal hit plays one final line after stop",
       "passed": true
     }
   ],
