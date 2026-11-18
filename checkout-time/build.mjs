@@ -12,4 +12,4 @@ if(src==='assets/voice-pack.js'){
 }
 html=html.replace(m[0],()=>'<script>\n'+code.replace(/<\/script/gi,'<\\/script')+'\n</script>');}
 html=html.replaceAll('href="index.html"','href="../index.html"').replaceAll('href="play.html"','href="game.html"').replaceAll('href="preview-notes.html"','href="../preview-notes.html"');
-if(/<script[^>]+src=|<link[^>]+rel="stylesheet"/.test(html))throw Error('Unbundled asset');if(html.includes('assets/voice/'))throw Error('Unbundled voice asset');await fs.mkdir(path.join(root,'dist'),{recursive:true});await fs.writeFile(path.join(root,'dist/game.html'),html);console.log('Built dist/game.html');
+if(/<script[^>]+src=|<link[^>]+rel="stylesheet"/.test(html))throw Error('Unbundled asset');if(html.includes('assets/voice/'))throw Error('Unbundled voice asset');await fs.mkdir(path.join(root,'dist'),{recursive:true});await fs.writeFile(path.join(root,'dist/game.html'),html.replace(/\r\n/g,'\n'));console.log('Built dist/game.html');
