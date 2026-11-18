@@ -27,7 +27,7 @@ Pick up tea and biscuits for health. Red extinguisher pickups provide crowd-cont
 
 Monty follows the porter and periodically delivers a sales pitch. Haggle produces another counter-offer. Pitches are counted separately from rescues. There is no sale, payment or purchase flow. Monty is a comic bystander, not an extra rescue target.
 
-## Release 2026.11.07.4
+## Release 2026.11.18.1
 
 First-person (Eyes) left/right movement now strafes relative to your facing without rotating. Q/E, mouse look and touch-drag turn the view. Diagonal movement stays capped at walking speed; Shoulder and Top retain their controls. The release includes the combined cinema improvements and shortened Dom alerts below.
 
@@ -103,4 +103,6 @@ Other-agent groundwork integrated: jointed people/outfits and turning, corner mo
 
 C cycles camera; G toggles the trail. In Eyes, arrows walk/strafe; Q/E or mouse look turns, and touch players drag the scene. In Shoulder, arrows turn/walk. In either close view, double Down turns around and clicking the scene enables optional mouse look. Pause offers Gore, Motion, Mix and Sound check. Preferences and score are local only.
 
-Run `node check.mjs` (26 gameplay checks), `node audio-check.mjs` (10 audio routing/lifecycle checks), `node --test announcements.test.mjs` (20 announcement checks), `node build.mjs` and `node privacy-check.mjs`. Scripts use a stub renderer or simulated WebAudio graph; browser play and device listening remain separate. No claim of photorealism or universal performance.
+Run `node check.mjs` (27 gameplay checks), `node audio-check.mjs` (10 audio routing/lifecycle checks), `node --test announcements.test.mjs` (20 announcement checks), `node build.mjs` and `node privacy-check.mjs`. Scripts use a stub renderer or simulated WebAudio graph; browser play and device listening remain separate. No claim of photorealism or universal performance.
+
+Touch players can switch the rescue trail on or off from Pause. Keyboard players can also press G during play.

@@ -1,7 +1,7 @@
 {
   "game": "Checkout Time",
-  "testedAt": "2026-11-07T18:46:32.798Z",
-  "sourceSha256": "cc0065c6bdc23c9a70047fac22d757b8f852091f54141d7058e9ae0100726aef",
+  "testedAt": "2026-11-18T09:10:37.187Z",
+  "sourceSha256": "048a5bd87a04e1d153131d3971aacd571f51f86b3d3771e1d954bdd0ec6b958f",
   "results": [
     {
       "name": "Plan rooms and doors are finite",
@@ -106,19 +106,23 @@
     {
       "name": "Zombie hits trigger porter reactions and a fatal hit plays one final line after stop",
       "passed": true
+    },
+    {
+      "name": "Pause and keyboard trail controls agree and clear the old objective",
+      "passed": true
     }
   ],
   "roomConnectivity": [
     {
       "name": "Restaurant",
       "reachable": true,
-      "reachableCells": 194,
+      "reachableCells": 56,
       "totalCells": 320
     },
     {
       "name": "Residents lounge",
       "reachable": true,
-      "reachableCells": 208,
+      "reachableCells": 176,
       "totalCells": 320
     },
     {
@@ -130,43 +134,43 @@
     {
       "name": "Boiler room",
       "reachable": true,
-      "reachableCells": 235,
+      "reachableCells": 243,
       "totalCells": 320
     },
     {
       "name": "Function room",
       "reachable": true,
-      "reachableCells": 222,
+      "reachableCells": 182,
       "totalCells": 320
     },
     {
       "name": "Bar",
       "reachable": true,
-      "reachableCells": 137,
+      "reachableCells": 191,
       "totalCells": 320
     },
     {
       "name": "Second bar",
       "reachable": true,
-      "reachableCells": 152,
+      "reachableCells": 254,
       "totalCells": 320
     },
     {
       "name": "WC facilities",
       "reachable": true,
-      "reachableCells": 275,
+      "reachableCells": 280,
       "totalCells": 320
     },
     {
       "name": "Bargain room",
       "reachable": true,
-      "reachableCells": 117,
+      "reachableCells": 95,
       "totalCells": 320
     },
     {
       "name": "Gym",
       "reachable": true,
-      "reachableCells": 212,
+      "reachableCells": 32,
       "totalCells": 320
     },
     {
@@ -178,7 +182,7 @@
     {
       "name": "Store",
       "reachable": true,
-      "reachableCells": 255,
+      "reachableCells": 265,
       "totalCells": 320
     },
     {

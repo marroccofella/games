@@ -47,6 +47,17 @@ test('Detailed rigs preserve outfits when a guest turns',()=>{const r=c.PEOPLE.m
 test('Every room can be traversed to the coach using actual player movement',()=>{start();G.ents=[G.player];G.spawnT=G.civSpawnT=Infinity;G.beat=Infinity;G.player.inv=Infinity;const f=new Uint16Array(W.N),cx=1505*W.S,cz=1530*W.S;W.flow(W.cellOf(cx,cz),f);for(const room of W.rooms){const [x,z]=W.randomCellIn(room,1);G.player.x=x;G.player.z=z;G.player.vx=G.player.vz=0;let frames=0;for(;frames<2400&&Math.hypot(G.player.x-cx,G.player.z-cz)>1.3;frames++){const dir=W.stepDir(f,G.player.x,G.player.z);assert.ok(dir,room.name+' has descending route');G.keys={ArrowRight:dir[0]>.2,ArrowLeft:dir[0]<-.2,ArrowDown:dir[1]>.2,ArrowUp:dir[1]<-.2};advance(1/60);}assert.ok(frames<2400,room.name+' movement reaches coach');}G.keys={};});
 test('Game connects Dom announcements to pitches, pause, mute, restart and game over',()=>{spoken.length=0;start();assert.ok(spoken.some(x=>x[0]==='reset'));assert.ok(spoken.some(x=>x[0]==='say'&&x[1]==='welcome'));key('keydown','n');assert.ok(spoken.some(x=>x[0]==='say'&&x[1]==='pitch-0'));key('keydown','p');assert.ok(spoken.some(x=>x[0]==='setPaused'&&x[1]===true));elements.get('#resume').onclick();assert.ok(spoken.some(x=>x[0]==='setPaused'&&x[1]===false));elements.get('#mute').onclick();assert.ok(spoken.some(x=>x[0]==='setMuted'&&x[1]===true));elements.get('#mute').onclick();assert.deepEqual(spoken.at(-1),['setMuted',false]);const stops=spoken.filter(x=>x[0]==='stop').length;G.t=360;advance(.1);assert.equal(G.state,'end');assert.equal(spoken.filter(x=>x[0]==='stop').length,stops+1);});
 test('Zombie hits trigger porter reactions and a fatal hit plays one final line after stop',()=>{start();spoken.length=0;G.spawnT=G.civSpawnT=Infinity;G.beat=Infinity;const p=G.player,z=G.ents.find(e=>e.kind==='z'&&!e.boss);G.ents=[p,z];p.inv=0;z.state='hunt';z.dormant=false;z.stun=0;z.x=p.x+.5;z.z=p.z;z.target=p;z.think=99;z.windup=.01;advance(.05);assert.ok(p.hp<100);assert.ok(spoken.some(x=>x[0]==='hurt'&&x[1].health===p.hp));spoken.length=0;p.hp=1;p.inv=0;z.x=p.x+.5;z.z=p.z;z.windup=.01;advance(.05);assert.equal(G.state,'end');assert.ok(spoken.findIndex(x=>x[0]==='stop')<spoken.findIndex(x=>x[0]==='defeat'));assert.equal(spoken.filter(x=>x[0]==='defeat').length,1);});
+test('Pause and keyboard trail controls agree and clear the old objective',()=>{
+  start();
+  key('keydown','p');
+  const toggle=elements.get('#guide-toggle');
+  toggle.onclick();
+  assert.equal(toggle.attrs['aria-pressed'],'false');
+  assert.equal(elements.get('#objective').textContent,'');
+  elements.get('#resume').onclick();
+  key('keydown','g');
+  assert.equal(toggle.attrs['aria-pressed'],'true');
+});
 const report={game:'Checkout Time',testedAt:new Date().toISOString(),sourceSha256:crypto.createHash('sha256').update(read('assets/game.js')).digest('hex'),results,roomConnectivity,limits:'Actual world and game scripts with real Three.js geometry; renderer, DOM and audio are stubbed. Door and dawn cases use controlled enemy-free scenarios. Browser rendering and real controls require a separate play test.'};
 fs.writeFileSync(path.join(root,'CHECKS.json'),JSON.stringify(report,null,2));console.log(JSON.stringify(report));
 

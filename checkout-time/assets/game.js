@@ -914,7 +914,7 @@ function heldKey(e){return e.code==='KeyQ'?'q':e.code==='KeyE'?'e':e.key.length=
 function clearInput(){G.keys={};VIEW.touchLook=null;Object.assign(G.hold,{down:false,t:0,fired:false,door:null,completed:false});holdBar(-1);}
 function syncSound(){const s=AUDIO.status();$('#mute').textContent=s.available?(s.muted?'Sound off':'Sound on'):'Sound unavailable';$('#mute').setAttribute('aria-pressed',String(s.muted));$('#audio-status').textContent=s.available?'Sound '+(s.muted?'muted':'enabled'):'Audio unavailable; game can be played silently.';}
 function toggleSound(){AUDIO.toggleMute();window.ANNOUNCEMENTS?.setMuted(AUDIO.status().muted);syncSound();}
-function setPaused(paused){if(G.state!=='play'&&G.state!=='pause')return;clearInput();if(paused&&document.exitPointerLock&&document.pointerLockElement)document.exitPointerLock();G.state=paused?'pause':'play';$('#pause').hidden=!paused;AUDIO.setPaused(paused);window.ANNOUNCEMENTS?.setPaused(paused);if(!paused)canvas.focus({preventScroll:true});}
+function setPaused(paused){if(G.state!=='play'&&G.state!=='pause')return;clearInput();if(paused&&document.exitPointerLock&&document.pointerLockElement)document.exitPointerLock();G.state=paused?'pause':'play';$('#pause').hidden=!paused;AUDIO.setPaused(paused);window.ANNOUNCEMENTS?.setPaused(paused);(paused?$('#resume'):canvas).focus({preventScroll:true});}
 function start(){clearInput();AUDIO.start();syncPrefs();syncSound();window.ANNOUNCEMENTS?.reset();window.ANNOUNCEMENTS?.setMuted(AUDIO.status().muted);$('#title').hidden=true;$('#end').hidden=true;$('#pause').hidden=true;$('#hud').hidden=false;newGame();G.state='play';G.seen={};window.ANNOUNCEMENTS?.say('welcome',0);canvas.focus({preventScroll:true});VIEW.pitch=-.06;VIEW.spin=0;hint(VIEW.mode==='top'?'ARROWS MOVE · TAP SPACE FIRES · C CHANGES VIEW':VIEW.mode==='first'?'↑ ↓ WALK · ← → STRAFE · Q/E OR MOUSE LOOK · SPACE FIRES':'↑ ↓ WALK · ← → TURN · SPACE FIRES · C CHANGES VIEW',5);SFX.bell();
   $('#touch').hidden=!(matchMedia('(pointer:coarse)').matches||innerWidth<760);}
 addEventListener('keydown',e=>{
@@ -925,7 +925,7 @@ addEventListener('keydown',e=>{
   if(e.key==='n'||e.key==='N'){if(!e.repeat)ownerPitch(true);return;}
   if(e.key==='m'||e.key==='M'){if(!e.repeat)toggleSound();return;}
   if(e.key==='c'||e.key==='C'||e.key==='v'||e.key==='V'){if(!e.repeat)cycleView();return;}
-  if(e.key==='g'||e.key==='G'){if(!e.repeat){GUIDE.on=!GUIDE.on;GUIDE.t=0;if(G.state==='play')hint(GUIDE.on?'GUIDE TRAIL ON':'GUIDE TRAIL OFF',1.5);}return;}
+  if(e.key.toLowerCase()==='g'&&G.state==='play'){if(!e.repeat)toggleGuide();return;}
   if(e.key==='ArrowDown'&&!e.repeat&&VIEW.mode!=='top'&&G.state==='play'){const t=performance.now();if(t-VIEW.lastDown<300){VIEW.spin=Math.PI;VIEW.lastDown=0;}else VIEW.lastDown=t;}
   G.keys[heldKey(e)]=true;
 });
@@ -950,6 +950,19 @@ $('#motion-toggle').onclick=()=>{PREF.motion=!PREF.motion;syncPrefs();};
 $('#mix-toggle').onclick=()=>{PREF.mix=PREF.mix==='quiet'?'cinema':'quiet';syncPrefs();};
 $('#sound-check').onclick=async()=>{try{await AUDIO.soundCheck();syncSound();const s=AUDIO.status();$('#sound-report').textContent=s.available?'Audio '+s.state+' · '+s.errors+' errors':'Audio unavailable';setTimeout(()=>{if(G.state==='pause')AUDIO.setPaused(true);},2000);}catch(e){$('#sound-report').textContent='Audio unavailable: '+e.message;}};
 syncPrefs();
+function toggleGuide(){
+  GUIDE.on=!GUIDE.on;
+  GUIDE.t=0;
+  GUIDE.target=null;
+  GUIDE.cells=[];
+  GUIDE.marks.forEach(mark=>mark.visible=false);
+  const button=$('#guide-toggle');
+  button.textContent=GUIDE.on?'Rescue trail on':'Rescue trail off';
+  button.setAttribute('aria-pressed',String(GUIDE.on));
+  $('#objective').textContent='';
+  if(G.state==='play')hint(GUIDE.on?'GUIDE TRAIL ON':'GUIDE TRAIL OFF',1.5);
+}
+$('#guide-toggle').onclick=toggleGuide;
 $('#pause-toggle').onclick=()=>setPaused(true);$('#resume').onclick=()=>setPaused(false);$('#mute').onclick=toggleSound;
 document.querySelectorAll('#touch [data-k]').forEach(b=>{const k=b.dataset.k;
   b.setAttribute('aria-label',k===' '?'Fire or hold to barricade':({ArrowUp:'Move up',ArrowDown:'Move down',ArrowLeft:'Move left',ArrowRight:'Move right'})[k]);
