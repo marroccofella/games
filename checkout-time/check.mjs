@@ -58,6 +58,22 @@ test('Pause and keyboard trail controls agree and clear the old objective',()=>{
   key('keydown','g');
   assert.equal(toggle.attrs['aria-pressed'],'true');
 });
+test('Night Shift Auto Tour demonstrates real gameplay and reaches dawn',()=>{
+ c.__startClassicTour();
+ const captions=new Set();
+ for(let i=0;i<73&&G.state==='play';i++){
+  advance(1);
+  captions.add(elements.get('#classic-tour-caption').textContent);
+ }
+ assert.equal(G.state,'end');
+ assert.equal(G.night,1);
+ assert.equal(captions.size,8);
+ assert.ok(G.stats.pitches>0);
+ assert.ok(G.stats.shots>0);
+ assert.ok(G.stats.blasts>0);
+ assert.ok(G.stats.saved>0);
+ assert.ok(W.doors.some(d=>d.barricaded)||G.stats.doorsBroken>0);
+});
 const report={game:'Checkout Time',testedAt:new Date().toISOString(),sourceSha256:crypto.createHash('sha256').update(read('assets/game.js')).digest('hex'),results,roomConnectivity,limits:'Actual world and game scripts with real Three.js geometry; renderer, DOM and audio are stubbed. Door and dawn cases use controlled enemy-free scenarios. Browser rendering and real controls require a separate play test.'};
 fs.writeFileSync(path.join(root,'CHECKS.json'),JSON.stringify(report,null,2));console.log(JSON.stringify(report));
 

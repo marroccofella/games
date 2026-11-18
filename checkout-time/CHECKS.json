@@ -1,7 +1,7 @@
 {
   "game": "Checkout Time",
-  "testedAt": "2026-11-18T09:43:46.985Z",
-  "sourceSha256": "c00fdaf6051989a4d092ecd210f62296c294a2bc0ebac55c01fbbc3e0ca77724",
+  "testedAt": "2026-11-18T10:08:07.145Z",
+  "sourceSha256": "d7a135f98fc83a8766a1e93fd0798ba913f7bda42823c078669e9bd2747d6bb7",
   "results": [
     {
       "name": "Plan rooms and doors are finite",
@@ -109,6 +109,10 @@
     },
     {
       "name": "Pause and keyboard trail controls agree and clear the old objective",
+      "passed": true
+    },
+    {
+      "name": "Night Shift Auto Tour demonstrates real gameplay and reaches dawn",
       "passed": true
     }
   ],

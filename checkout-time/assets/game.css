@@ -130,3 +130,9 @@ blockquote cite{display:block;margin-top:8px;font-size:11px;color:var(--muted);f
 .dispatch-controls button,.dispatch button{min-height:34px;border:1px solid #a89c7d;background:#20353a;color:#fff2cf;border-radius:4px;padding:4px 8px}
 #campaign-action{background:#f3d9a4;color:#282322;font-weight:bold}
 @media(max-width:600px){.dispatch{left:8px;top:48px;padding:5px 10px}.dispatch-controls{bottom:7px;width:calc(100% - 16px)}.dispatch-controls button{min-height:44px}}
+
+#auto-tour-start{background:#e9d19b;color:#1e2220}
+#classic-tour{top:auto;bottom:72px;min-width:0;width:min(340px,calc(100vw - 32px));}
+#classic-tour p{margin:.4em 0 0;font:600 14px/1.4 system-ui}
+#classic-tour button{white-space:nowrap}
+@media(max-width:600px){#classic-tour{bottom:140px;width:min(250px,calc(100vw - 25px));}}

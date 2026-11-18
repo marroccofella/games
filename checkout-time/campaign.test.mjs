@@ -37,3 +37,12 @@ test('Complete five floors with the moving party, then board all nine',()=>{
  assert.equal(sounds.filter(s=>s[0]==='saved').length,9);
  assert.equal(sounds.filter(s=>s[0]==='coachDeparture').length,1);element('campaign-action').click();assert(left);
 });
+
+test('Auto Tour delivers all nine and hands off to the night shift without input',()=>{
+ const canvas=element('view');canvas.clientWidth=1000;canvas.clientHeight=700;
+ let next=false;
+ const game=launch({render(){}},canvas,continueTour=>next=continueTour,true);
+ for(let i=0;i<4000&&!next;i++)game.tick(.05);
+ assert.equal(next,true);
+ assert.match(element('campaign-status').textContent,/All 9 guests aboard/);
+});

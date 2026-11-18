@@ -459,7 +459,7 @@ function updateZombie(z,dt){
 function bash(z,d,dt){d.hp-=(z.boss?9:5)*dt;d.mesh.shake=.25;z.bashT=(z.bashT||0)-dt;if(z.bashT<=0){z.bashT=.7;SFX.thud(d.x,dist(G.player,d),d.z,!W.los(d.x,d.z,G.player.x,G.player.z));}
   refreshDoor(d);if(d.hp<=0){W.setDoor(d,false);d.cool=4;refreshDoor(d);G.stats.doorsBroken++;SFX.splinter(d.x,dist(G.player,d),d.z,!W.los(d.x,d.z,G.player.x,G.player.z));for(let i=0;i<14;i++)emit(d.x,rnd(.4,1.8),d.z,{vx:rnd(-3,3),vy:rnd(1,4),vz:rnd(-3,3),g:9,life:.9,size:.12,color:0x8a5a2b});
     toast(d.name.toUpperCase()+' GAVE WAY','THEY ARE OUT',true);G.shake=.4;}}
-function hurtPlayer(z){const p=G.player;if(G.state!=='play'||p.inv>0||p.hp<=0)return;const dmg=z.boss?28:16;p.hp-=dmg;G.stats.dmg+=dmg;p.inv=.9;G.shake=.5;SFX.hurt();blood(p.x,p.z,8,[0,0]);
+function hurtPlayer(z){if(classicTour)return;const p=G.player;if(G.state!=='play'||p.inv>0||p.hp<=0)return;const dmg=z.boss?28:16;p.hp-=dmg;G.stats.dmg+=dmg;p.inv=.9;G.shake=.5;SFX.hurt();blood(p.x,p.z,8,[0,0]);
   if(p.hp>0)window.ANNOUNCEMENTS?.hurt({health:p.hp});
   const dx=p.x-z.x,dz=p.z-z.z,d=Math.hypot(dx,dz)||1;p.vx+=dx/d*6;p.vz+=dz/d*6;
   $('#vignette').style.boxShadow='inset 0 0 200px rgba(255,0,30,.75)';setTimeout(()=>$('#vignette').style.boxShadow='',260);
@@ -731,7 +731,7 @@ function updateOwner(dt){
 // ================================================================ simulation tick
 let hudT=0,lockT=0;
 function simulate(dt){
-  const p=G.player;G.t+=dt;G.night=Math.min(1,G.t/NIGHT_SECONDS);
+  const p=G.player;G.t+=dt;G.night=Math.min(1,G.t/(classicTour?classicTour.duration:NIGHT_SECONDS));
   // flow fields
   G.fT-=dt;const pc=W.cellOf(p.x,p.z);
   if(G.version!==W.version||(G.fT<=0&&pc!==G.pCell)){if(G.version!==W.version)W.flow(W.cellOf(COACH.doorX,COACH.doorZ),G.fCoach);G.version=W.version;G.fT=.2;G.pCell=pc;W.flow(pc,G.fPlayer);}
@@ -794,14 +794,14 @@ scene.add(camera);
   part(.014,.014,.014,over(0x39ff88),0,.075,-.3); // green sight dot
   VIEW.tip=new THREE.Object3D();VIEW.tip.position.set(0,.03,-.52);g.add(VIEW.tip);
 })();
-function setView(mode,announce){
+function setView(mode,announce,remember=true){
   if(!VIEW.labels[mode])mode='top';VIEW.mode=mode;VIEW.pitch=-.06;VIEW.spin=0;VIEW.fov=-1;VIEW.touchLook=null;
   const btn=$('#view-toggle');btn.textContent='View: '+VIEW.labels[mode];
   document.querySelectorAll('.view-pick button').forEach(b=>b.setAttribute('aria-checked',String(b.dataset.view===mode)));
   if(document.body){if(mode==='top')document.body.classList.remove('immersive');else document.body.classList.add('immersive');}
   $('#howto-move').textContent=mode==='top'?'Move':mode==='first'?'↑ ↓ walk · ← → strafe · Q/E turn':'↑ ↓ walk · ← → turn';
   if(mode==='top'&&document.exitPointerLock&&document.pointerLockElement)document.exitPointerLock();
-  try{localStorage.setItem('checkout-view',mode);}catch(e){}
+  try{if(remember)localStorage.setItem('checkout-view',mode);}catch(e){}
   if(announce&&G.state==='play')hint(mode==='top'?'TOP-DOWN VIEW':mode==='third'?'OVER THE SHOULDER · ← → TURN · CLICK FOR MOUSE LOOK':'PORTER’S EYES · ← → STRAFE · Q/E OR MOUSE LOOK · DRAG VIEW ON TOUCH',3);
 }
 function cycleView(){setView({top:'third',third:'first',first:'top'}[VIEW.mode],true);}
@@ -892,6 +892,7 @@ function endGame(won){
   if(G.state!=='play')return;G.state='end';clearInput();window.ANNOUNCEMENTS?.stop();if(!won)window.ANNOUNCEMENTS?.defeat();
   const s=G.stats,alive=civs().filter(c=>c.kind==='c'&&!c.gone&&c.state!=='grabbed').length;
   const score=Math.max(0,s.saved*100+s.rescued*60+G.lockedCount*50+s.kills*10+(won?500:0)-s.turned*40);
+  $('#classic-tour').hidden=true;
   // stars: surviving earns one; the rest are for guests saved, rooms sealed, and not letting the outbreak spread
   const stars=clamp((won?1:0)+(s.saved>=10?1:0)+(s.saved>=22?1:0)+(s.seals>=3||G.lockedCount>=3?1:0)+(won&&s.turned<=6?1:0),0,5);
   if(won)SFX.dawn();else SFX.dead();AUDIO.duck(.15);setTimeout(()=>AUDIO.duck(.42),4000);
@@ -914,7 +915,7 @@ function endGame(won){
   $('#end-review').innerHTML=`“${lines.join(' ')}”<cite>— ${reviewer} · ${stars} star${stars===1?'':'s'}</cite>`;
   $('#end-stats').innerHTML=[['SAVED',s.saved],['RESCUED',s.rescued],['LOCKED IN',G.lockedCount],['CHECKED OUT',s.kills],['TURNED',s.turned],['SCORE',score],['SALES PITCHES',s.pitches]].map(([k,v])=>`<div><b>${v}</b>${k}</div>`).join('')
     +`<ul class="crit">${[[won,'Reach 06:00'],[s.saved>=10,'Save 10 guests'],[s.saved>=22,'Save 22 guests'],[s.seals>=3||G.lockedCount>=3,'Lock 3 zombies in'],[won&&s.turned<=6,'Reach dawn with 6 or fewer turned']].map(([ok,t])=>`<li class="${ok?'ok':''}">${ok?'★':'☆'} ${t}</li>`).join('')}</ul>`;
-  try{const best=+localStorage.getItem('checkout-time-fictional-best')||0;if(score>best)localStorage.setItem('checkout-time-fictional-best',score);}catch(e){}
+  try{const best=+localStorage.getItem('checkout-time-fictional-best')||0;if(!classicTour&&score>best)localStorage.setItem('checkout-time-fictional-best',score);}catch(e){}
   setTimeout(()=>{$('#end').hidden=false;},won?1200:1600);
 }
 
@@ -924,19 +925,20 @@ function clearInput(){G.keys={};VIEW.touchLook=null;Object.assign(G.hold,{down:f
 function syncSound(){const s=AUDIO.status();$('#mute').textContent=s.available?(s.muted?'Sound off':'Sound on'):'Sound unavailable';$('#mute').setAttribute('aria-pressed',String(s.muted));$('#audio-status').textContent=s.available?'Sound '+(s.muted?'muted':'enabled'):'Audio unavailable; game can be played silently.';}
 function toggleSound(){AUDIO.toggleMute();window.ANNOUNCEMENTS?.setMuted(AUDIO.status().muted);syncSound();}
 function setPaused(paused){if(G.state!=='play'&&G.state!=='pause')return;clearInput();if(paused&&document.exitPointerLock&&document.pointerLockElement)document.exitPointerLock();G.state=paused?'pause':'play';$('#pause').hidden=!paused;AUDIO.setPaused(paused);window.ANNOUNCEMENTS?.setPaused(paused);(paused?$('#resume'):canvas).focus({preventScroll:true});}
-function start(){clearInput();AUDIO.start();AUDIO.setPaused(false);syncPrefs();syncSound();window.ANNOUNCEMENTS?.reset();window.ANNOUNCEMENTS?.setMuted(AUDIO.status().muted);$('#title').hidden=true;$('#end').hidden=true;$('#pause').hidden=true;$('#hud').hidden=false;newGame();G.state='play';G.seen={};window.ANNOUNCEMENTS?.say('welcome',0);canvas.focus({preventScroll:true});VIEW.pitch=-.06;VIEW.spin=0;hint(VIEW.mode==='top'?'ARROWS MOVE · TAP SPACE FIRES · C CHANGES VIEW':VIEW.mode==='first'?'↑ ↓ WALK · ← → STRAFE · Q/E OR MOUSE LOOK · SPACE FIRES':'↑ ↓ WALK · ← → TURN · SPACE FIRES · C CHANGES VIEW',5);SFX.bell();
+function start(){stopClassicTour();clearInput();AUDIO.start();AUDIO.setPaused(false);syncPrefs();syncSound();window.ANNOUNCEMENTS?.reset();window.ANNOUNCEMENTS?.setMuted(AUDIO.status().muted);$('#title').hidden=true;$('#end').hidden=true;$('#pause').hidden=true;$('#hud').hidden=false;newGame();G.state='play';G.seen={};window.ANNOUNCEMENTS?.say('welcome',0);canvas.focus({preventScroll:true});VIEW.pitch=-.06;VIEW.spin=0;hint(VIEW.mode==='top'?'ARROWS MOVE · TAP SPACE FIRES · C CHANGES VIEW':VIEW.mode==='first'?'↑ ↓ WALK · ← → STRAFE · Q/E OR MOUSE LOOK · SPACE FIRES':'↑ ↓ WALK · ← → TURN · SPACE FIRES · C CHANGES VIEW',5);SFX.bell();
   $('#touch').hidden=!(matchMedia('(pointer:coarse)').matches||innerWidth<760);}
 addEventListener('keydown',e=>{
   if(G.state==='campaign')return;
   if(e.key===' '&&document.activeElement?.matches('button,a')&&!['start','again'].includes(document.activeElement.id))return;
   if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key))e.preventDefault();
-  if(e.key===' '){if(e.repeat)return;if(G.state==='title'||(G.state==='end'&&!$('#end').hidden)){start();return;}if(G.state==='play')onSpaceDown();return;}
+  if(e.key===' '){if(e.repeat)return;if(G.state==='title'||(G.state==='end'&&!$('#end').hidden)){start();return;}if(G.state==='play'){stopClassicTour();onSpaceDown();}return;}
   if(e.key==='p'||e.key==='P'||e.key==='Escape'){if(!e.repeat)setPaused(G.state==='play');return;}
   if(e.key==='n'||e.key==='N'){if(!e.repeat)ownerPitch(true);return;}
   if(e.key==='m'||e.key==='M'){if(!e.repeat)toggleSound();return;}
   if(e.key==='c'||e.key==='C'||e.key==='v'||e.key==='V'){if(!e.repeat)cycleView();return;}
   if(e.key.toLowerCase()==='g'&&G.state==='play'){if(!e.repeat)toggleGuide();return;}
   if(e.key==='ArrowDown'&&!e.repeat&&VIEW.mode!=='top'&&G.state==='play'){const t=performance.now();if(t-VIEW.lastDown<300){VIEW.spin=Math.PI;VIEW.lastDown=0;}else VIEW.lastDown=t;}
+  if(classicTour&&G.state==='play'&&['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','q','e'].includes(heldKey(e)))stopClassicTour();
   G.keys[heldKey(e)]=true;
 });
 addEventListener('keyup',e=>{G.keys[heldKey(e)]=false;if(e.key===' '&&G.state==='play')onSpaceUp();});
@@ -976,7 +978,7 @@ $('#guide-toggle').onclick=toggleGuide;
 $('#pause-toggle').onclick=()=>setPaused(true);$('#resume').onclick=()=>setPaused(false);$('#mute').onclick=toggleSound;
 document.querySelectorAll('#touch [data-k]').forEach(b=>{const k=b.dataset.k;
   b.setAttribute('aria-label',k===' '?'Fire or hold to barricade':({ArrowUp:'Move up',ArrowDown:'Move down',ArrowLeft:'Move left',ArrowRight:'Move right'})[k]);
-  b.addEventListener('pointerdown',e=>{e.preventDefault();if(G.state!=='play')return;b.setPointerCapture?.(e.pointerId);if(k===' ')onSpaceDown();else G.keys[k]=true;});
+  b.addEventListener('pointerdown',e=>{e.preventDefault();if(G.state!=='play')return;b.setPointerCapture?.(e.pointerId);stopClassicTour();if(k===' ')onSpaceDown();else G.keys[k]=true;});
   b.addEventListener('pointerup',()=>{if(k===' ')onSpaceUp();else G.keys[k]=false;});b.addEventListener('pointercancel',clearInput);});
 try{const best=+localStorage.getItem('checkout-time-fictional-best');if(best)$('#best').textContent='Best score '+best;}catch(e){}
 
@@ -984,12 +986,95 @@ try{const best=+localStorage.getItem('checkout-time-fictional-best');if(best)$('
 try{setView(localStorage.getItem('checkout-view')||'top');}catch(e){setView('top');}
 newGame();G.state='title';
 let campaign=null;
-$('#campaign-start').onclick=()=>{
+function launchCampaign(auto){
+
   clearInput();G.state='campaign';$('#title').hidden=true;$('#touch').hidden=true;
-  campaign=HOTEL_CAMPAIGN.launch(renderer,canvas,()=>{
-    campaign=null;G.state='title';$('#title').hidden=false;$('#campaign-start').focus();
-  });
-};
+  campaign=HOTEL_CAMPAIGN.launch(renderer,canvas,continueTour=>{
+    campaign=null;
+    if(continueTour){startClassicTour();return;}
+    G.state='title';$('#title').hidden=false;$('#campaign-start').focus();
+  },auto);
+}
+$('#campaign-start').onclick=()=>launchCampaign(false);
+$('#auto-tour-start').onclick=()=>launchCampaign(true);
+
+let classicTour=null;
+function stopClassicTour(){
+  if(classicTour&&G.state==='play')G.t=G.night*NIGHT_SECONDS;
+  classicTour=null;
+  $('#classic-tour').hidden=true;
+}
+$('#classic-takeover').onclick=()=>{stopClassicTour();canvas.focus({preventScroll:true});};
+function startClassicTour(){
+  start();setView('top',false,false);classicTour={duration:72,stage:-1,walk:null};
+  $('#classic-tour').hidden=false;
+}
+function tourSpot(x,z,mode){
+  const p=G.player;
+  [p.x,p.z]=W.nearestFree(x,z,p.r);
+  p.vx=p.vz=0;p.face=0;setView(mode,false,false);
+}
+function tourClassic(){
+  const tour=classicTour,p=G.player;
+  const stage=Math.min(7,Math.floor(G.t/9));
+  if(stage!==tour.stage){
+   tour.stage=stage;tour.walk=null;clearInput();
+   const caption=$('#classic-tour-caption');
+   switch(stage){
+   case 0:
+    caption.textContent='01 / Meet Monty Upsell on the promenade.';
+    ownerPitch(true);break;
+   case 1: {
+    caption.textContent='02 / Protect a guest and try the over-the-shoulder camera.';
+    tourSpot(px(655),px(1530),'third');
+    const guest=spawnEnt('c',p.x+.55,p.z+3,'guest',{state:'panic'});
+    const zombie=spawnEnt('z',p.x,p.z+3,'guest',{hp:1,speed:1.35});
+    grab(zombie,guest,6);break;
+   }
+   case 2:
+    caption.textContent='03 / Lead the guests to the coach on the promenade.';
+    tourSpot(COACH.doorX-4,COACH.doorZ,'top');
+    for(let i=0;i<3;i++)spawnEnt('c',p.x-.7,p.z+(i-1)*.7,'guest',{state:'follow'});
+    tour.walk=[COACH.doorX,COACH.doorZ];break;
+   case 3: {
+    const d=W.doors.find(d=>!d.barricaded&&d.kind!=='entrance');
+    caption.textContent='04 / Hold the action button at a doorway to secure it.';
+    if(d){tourSpot(d.x-Math.sin(d.ang)*.66,d.z+Math.cos(d.ang)*.66,'first');toggleDoor(d);}
+    break;
+   }
+   case 4:
+    caption.textContent='05 / Use a fire extinguisher to break up a crowd.';
+    tourSpot(px(615),px(1475),'first');
+    p.ext=1;
+    for(const x of [-.6,.6])spawnEnt('z',p.x+x,p.z+2.6,'guest',{speed:1.4});
+    p.cd=0;fire();break;
+   case 5: {
+    caption.textContent='06 / Face the chef and stop for tea in the hotel.';
+    const kitchen=roomByName('Kitchen');
+    const chef=G.ents.find(e=>e.boss==='chef'&&!e.dead);
+    if(kitchen)tourSpot(kitchen.x,kitchen.z,'third');
+    if(chef)chef.dormant=false;
+    p.hp=70;addPickup('tea',p.x,p.z);break;
+   }
+   case 6:
+    caption.textContent='07 / Return to the seafront as the sky brightens.';
+    tourSpot(COACH.doorX-6,COACH.doorZ,'top');
+    tour.walk=[COACH.doorX,COACH.doorZ];break;
+   case 7:
+    caption.textContent='08 / Watch dawn arrive and get the guest review.';
+    setView('third',false,false);p.face=Math.PI/2;break;
+   }
+  }
+  if(tour.walk){
+   const [x,z]=tour.walk,dx=x-p.x,dz=z-p.z;
+   G.keys=Math.hypot(dx,dz)>.65?{ArrowRight:dx>.35,ArrowLeft:dx<-.35,ArrowDown:dz>.35,ArrowUp:dz<-.35}:{};
+  }
+  if(stage===1||stage===5){
+   const target=zombies().filter(z=>W.los(p.x,p.z,z.x,z.z)&&dist(p,z)<11).sort((a,b)=>(dist(p,a)-(a.grabbing?12:0))-(dist(p,b)-(b.grabbing?12:0)))[0];
+   if(target){p.face=Math.atan2(target.x-p.x,target.z-p.z);fire();}
+  }
+}
+
 let last=performance.now();
 function frame(now){
   requestAnimationFrame(frame);
@@ -998,7 +1083,7 @@ function frame(now){
   let dt=real;
   if(G.hitstop>0){G.hitstop-=real;dt=0;}
   if(G.slow>0){G.slow-=real;dt*=.3;}
-  if(G.state==='play')simulate(dt);
+  if(G.state==='play'){if(classicTour)tourClassic();simulate(dt);}
   else if(G.state==='title'||G.state==='end'){ // world keeps living behind the menus
     G.fT-=real;if(G.fT<=0){G.fT=.4;W.flow(W.cellOf(G.player.x,G.player.z),G.fPlayer);}
     for(const e of G.ents){if(e.gone)continue;if(e.kind==='z')updateZombie(e,dt*(G.state==='end'?.4:1));else if(e.kind==='c')updateCiv(e,dt);}separate();G.ents=G.ents.filter(e=>{if(e.gone&&e.kind!=='p'){PEOPLE.dispose(e.rig);scene.remove(e.rig.g);return false;}return true;});}
@@ -1008,6 +1093,7 @@ function frame(now){
 requestAnimationFrame(frame);
 if(/^(localhost|127\.0\.0\.1)$/.test(location.hostname)){ // test hooks, local only
   window.__inspect=()=>({mode:VIEW.mode,gore:PREF.gore,motion:PREF.motion,mix:PREF.mix,guide:GUIDE.cells.slice(),target:GUIDE.target?.kind,chunks:chunks.filter(p=>p.m.visible).length,decals:decals.filter(d=>d.visible).length});
-  window.__G=G;window.__step=(sec,keys)=>{const n=Math.round(sec*60);for(let i=0;i<n;i++){if(G.state==='play')simulate(1/60);present(1/60,1/60);}renderer.render(scene,camera);return {t:G.t,hp:G.player.hp,locked:G.lockedCount,saved:G.stats.saved,kills:G.stats.kills,turned:G.stats.turned,outbreak:+G.outbreak.toFixed(2),state:G.state};};}
+  window.__startClassicTour=startClassicTour;
+  window.__G=G;window.__step=(sec,keys)=>{const n=Math.round(sec*60);for(let i=0;i<n;i++){if(G.state==='play'){if(classicTour)tourClassic();simulate(1/60);}present(1/60,1/60);}renderer.render(scene,camera);return {t:G.t,hp:G.player.hp,locked:G.lockedCount,saved:G.stats.saved,kills:G.stats.kills,turned:G.stats.turned,outbreak:+G.outbreak.toFixed(2),state:G.state};};}
 })();
 
