@@ -27,6 +27,7 @@ const camera=new THREE.PerspectiveCamera(42,1,.1,200);
 function resize(){const w=innerWidth,h=innerHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.fov=w<h?58:42;camera.updateProjectionMatrix();$('#touch').hidden=$('#hud').hidden||!(matchMedia('(pointer:coarse)').matches||w<760);}
 addEventListener('resize',resize);resize();
 
+const dayTint=new THREE.Color();
 const hemi=new THREE.HemisphereLight(0x7a8cc0,0x1c241c,2.1);scene.add(hemi);
 const moon=new THREE.DirectionalLight(0xa9bcff,1.7);moon.position.set(-14,26,18);moon.castShadow=true;
 moon.shadow.mapSize.set(2048,2048);Object.assign(moon.shadow.camera,{left:-20,right:20,top:20,bottom:-20,near:1,far:70});moon.shadow.bias=-.0008;
@@ -834,6 +835,14 @@ function present(dt,real){
   camera.position.copy(camPos);if(G.shake>0){const k=PREF.motion?(close?.12:.4):0;camera.position.x+=rnd(-1,1)*G.shake*k;camera.position.y+=rnd(-1,1)*G.shake*k;G.shake=Math.max(0,G.shake-real*2.5);}
   camera.lookAt(camLook);
   VIEW.lens(close);weather(real,p);faceFill.position.copy(camera.position);faceFill.intensity=close?4:0;
+  if(window.HOTEL_CAMPAIGN){
+    const light=HOTEL_CAMPAIGN.daylight(23+G.night*7);
+    scene.background.setHex(light.a[2]).lerp(dayTint.setHex(light.b[2]),light.t);
+    scene.fog.color.copy(scene.background);
+    moon.color.setHex(light.a[3]).lerp(dayTint.setHex(light.b[3]),light.t);
+    moon.intensity=light.a[4]+(light.b[4]-light.a[4])*light.t;
+    hemi.intensity=1.4+moon.intensity*.5;
+  }
   moon.position.set(camLook.x-14,26,camLook.z+18);moon.target.position.copy(camLook);
   // torch: on the porter's shoulder in top-down; along the line of sight in the close views
   // a hand torch at eye level needs far less power than the overhead one, or a nearby wall blows out the frame
@@ -915,9 +924,10 @@ function clearInput(){G.keys={};VIEW.touchLook=null;Object.assign(G.hold,{down:f
 function syncSound(){const s=AUDIO.status();$('#mute').textContent=s.available?(s.muted?'Sound off':'Sound on'):'Sound unavailable';$('#mute').setAttribute('aria-pressed',String(s.muted));$('#audio-status').textContent=s.available?'Sound '+(s.muted?'muted':'enabled'):'Audio unavailable; game can be played silently.';}
 function toggleSound(){AUDIO.toggleMute();window.ANNOUNCEMENTS?.setMuted(AUDIO.status().muted);syncSound();}
 function setPaused(paused){if(G.state!=='play'&&G.state!=='pause')return;clearInput();if(paused&&document.exitPointerLock&&document.pointerLockElement)document.exitPointerLock();G.state=paused?'pause':'play';$('#pause').hidden=!paused;AUDIO.setPaused(paused);window.ANNOUNCEMENTS?.setPaused(paused);(paused?$('#resume'):canvas).focus({preventScroll:true});}
-function start(){clearInput();AUDIO.start();syncPrefs();syncSound();window.ANNOUNCEMENTS?.reset();window.ANNOUNCEMENTS?.setMuted(AUDIO.status().muted);$('#title').hidden=true;$('#end').hidden=true;$('#pause').hidden=true;$('#hud').hidden=false;newGame();G.state='play';G.seen={};window.ANNOUNCEMENTS?.say('welcome',0);canvas.focus({preventScroll:true});VIEW.pitch=-.06;VIEW.spin=0;hint(VIEW.mode==='top'?'ARROWS MOVE · TAP SPACE FIRES · C CHANGES VIEW':VIEW.mode==='first'?'↑ ↓ WALK · ← → STRAFE · Q/E OR MOUSE LOOK · SPACE FIRES':'↑ ↓ WALK · ← → TURN · SPACE FIRES · C CHANGES VIEW',5);SFX.bell();
+function start(){clearInput();AUDIO.start();AUDIO.setPaused(false);syncPrefs();syncSound();window.ANNOUNCEMENTS?.reset();window.ANNOUNCEMENTS?.setMuted(AUDIO.status().muted);$('#title').hidden=true;$('#end').hidden=true;$('#pause').hidden=true;$('#hud').hidden=false;newGame();G.state='play';G.seen={};window.ANNOUNCEMENTS?.say('welcome',0);canvas.focus({preventScroll:true});VIEW.pitch=-.06;VIEW.spin=0;hint(VIEW.mode==='top'?'ARROWS MOVE · TAP SPACE FIRES · C CHANGES VIEW':VIEW.mode==='first'?'↑ ↓ WALK · ← → STRAFE · Q/E OR MOUSE LOOK · SPACE FIRES':'↑ ↓ WALK · ← → TURN · SPACE FIRES · C CHANGES VIEW',5);SFX.bell();
   $('#touch').hidden=!(matchMedia('(pointer:coarse)').matches||innerWidth<760);}
 addEventListener('keydown',e=>{
+  if(G.state==='campaign')return;
   if(e.key===' '&&document.activeElement?.matches('button,a')&&!['start','again'].includes(document.activeElement.id))return;
   if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key))e.preventDefault();
   if(e.key===' '){if(e.repeat)return;if(G.state==='title'||(G.state==='end'&&!$('#end').hidden)){start();return;}if(G.state==='play')onSpaceDown();return;}
@@ -973,10 +983,18 @@ try{const best=+localStorage.getItem('checkout-time-fictional-best');if(best)$('
 // attract mode: populate the street for the title screen
 try{setView(localStorage.getItem('checkout-view')||'top');}catch(e){setView('top');}
 newGame();G.state='title';
+let campaign=null;
+$('#campaign-start').onclick=()=>{
+  clearInput();G.state='campaign';$('#title').hidden=true;$('#touch').hidden=true;
+  campaign=HOTEL_CAMPAIGN.launch(renderer,canvas,()=>{
+    campaign=null;G.state='title';$('#title').hidden=false;$('#campaign-start').focus();
+  });
+};
 let last=performance.now();
 function frame(now){
   requestAnimationFrame(frame);
   let real=Math.min(.05,(now-last)/1000);last=now;
+  if(campaign){campaign.tick(real);return;}
   let dt=real;
   if(G.hitstop>0){G.hitstop-=real;dt=0;}
   if(G.slow>0){G.slow-=real;dt*=.3;}

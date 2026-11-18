@@ -2,7 +2,7 @@ import fs from 'node:fs';import path from 'node:path';import {fileURLToPath} fro
 import {createHash} from 'node:crypto';
 const root=path.dirname(fileURLToPath(import.meta.url)),findings=[];let files=0;
 const allowed=new Set(['index.html','play.html','README.md','LICENSE','.nojekyll','.gitignore','server.mjs','build.mjs','check.mjs','privacy-check.mjs','CHECKS.json','assets/audio.js','assets/game.js','assets/game.css','assets/level.js','assets/world.js','assets/three.local.js','assets/THREE-LICENSE.txt','dist/game.html']);
-for(const name of ['preview-notes.html','audio-check.mjs','assets/people.js','assets/announcements.js','assets/voice-catalog.json','assets/voice-pack.js','announcements.test.mjs'])allowed.add(name);
+for(const name of ['assets/campaign.js','campaign.test.mjs','preview-notes.html','audio-check.mjs','assets/people.js','assets/announcements.js','assets/voice-catalog.json','assets/voice-pack.js','announcements.test.mjs'])allowed.add(name);
 const voiceSource=fs.readFileSync(path.join(root,'assets/voice-pack.js'),'utf8');
 const voicePack=JSON.parse(voiceSource.replace(/^window\.DOM_VOICE=/,'').trim().replace(/;$/,''));
 const catalog=JSON.parse(fs.readFileSync(path.join(root,'assets/voice-catalog.json'),'utf8'));

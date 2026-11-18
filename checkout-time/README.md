@@ -27,7 +27,7 @@ Pick up tea and biscuits for health. Red extinguisher pickups provide crowd-cont
 
 Monty follows the porter and periodically delivers a sales pitch. Haggle produces another counter-offer. Pitches are counted separately from rescues. There is no sale, payment or purchase flow. Monty is a comic bystander, not an extra rescue target.
 
-## Release 2026.11.18.1
+## Release 2026.11.18.2
 
 First-person (Eyes) left/right movement now strafes relative to your facing without rotating. Q/E, mouse look and touch-drag turn the view. Diagonal movement stays capped at walking speed; Shoulder and Top retain their controls. The release includes the combined cinema improvements and shortened Dom alerts below.
 
@@ -106,3 +106,6 @@ C cycles camera; G toggles the trail. In Eyes, arrows walk/strafe; Q/E or mouse 
 Run `node check.mjs` (27 gameplay checks), `node audio-check.mjs` (10 audio routing/lifecycle checks), `node --test announcements.test.mjs` (20 announcement checks), `node build.mjs` and `node privacy-check.mjs`. Scripts use a stub renderer or simulated WebAudio graph; browser play and device listening remain separate. No claim of photorealism or universal performance.
 
 Touch players can switch the rescue trail on or off from Pause. Keyboard players can also press G during play.
+
+## The last coach
+Choose **Lead the five-floor evacuation**. Collect every named guest, regroup at the marked stairs, and escort the party to the ground-floor coach. Arrow keys or WASD walk, tap a floor tile to route there, or choose Guide to next stop. P pauses. Reception leaves the campaign. Nine guests across five fictional levels are required for departure. A full lighting cycle takes one minute of active play.

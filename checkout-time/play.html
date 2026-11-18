@@ -5,10 +5,10 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Checkout Time · The Grand Last Resort</title>
 <meta name="robots" content="noindex,nofollow">
-<meta name="application-version" content="2026.11.18.1">
+<meta name="application-version" content="2026.11.18.2">
 <meta name="theme-color" content="#060908">
 <link rel="icon" href="data:,">
-<link rel="stylesheet" href="assets/game.css?v=20261118.1">
+<link rel="stylesheet" href="assets/game.css?v=20261118.2">
 </head>
 <body>
 <nav class="game-nav" aria-label="Website"><a href="index.html">Instructions</a><a href="https://marroccofella.github.io/games/">42.uk Arcade</a><a href="play.html" aria-current="page">Play</a></nav>
@@ -42,7 +42,10 @@
   <div id="threat-readout" role="status"></div><div id="vignette"></div>
 </div>
 
-<div id="title" class="screen">
+<section id="campaign-ui" aria-label="Hotel evacuation" hidden>
+ <div class="dispatch"><div class="dispatch-line"><span>PORTER’S REGISTER</span><span id="campaign-light"></span></div><h2 id="campaign-floor"></h2><div class="dispatch-line"><span id="campaign-count"></span><button id="campaign-leave">Reception</button></div></div>
+ <div class="dispatch-controls"><p id="campaign-status" role="status"></p><div><button id="campaign-action">Guide to next stop</button><button id="campaign-pause">Pause</button><button id="campaign-audio">Sound on</button></div></div>
+ </section><div id="title" class="screen">
   <div class="card">
     <div class="eyebrow">42.UK / THE GRAND LAST RESORT / VACANCIES FOREVER</div>
     <h1>CHECKOUT<br>TIME</h1>
@@ -56,6 +59,7 @@
       <li><b>Bitten guests turn.</b> Shoot the zombie holding them before the ring runs out.</li>
       <li><b>Locking zombies in a room</b> reduces their outbreak contribution. Press N to negotiate with Monty Upsell, whose sales strategy has outlived his market.</li>
     </ul>
+    <button id="campaign-start" class="go">Lead the five-floor evacuation</button><p class="fine">Collect nine guests from the attic to the promenade. Tap a floor tile or use the arrows to lead the group.</p>
     <button id="start" class="go">PRESS SPACE TO CHECK IN</button>
     <p class="fine">C switches Top / Shoulder / Eyes · G toggles the rescue trail. Eyes: ↑ ↓ walk, ← → strafe; Q/E turn, click for mouse look or drag the view on touch. Shoulder: ↑ ↓ walk, ← → turn.</p><p class="fine">An invented hotel, map and cast · cartoon zombie comedy · <span id="best"></span></p>
   </div>
@@ -82,11 +86,12 @@
 <noscript>Checkout Time needs JavaScript and WebGL.</noscript>
 <script src="assets/three.local.js"></script>
 <script src="assets/level.js"></script>
-<script src="assets/audio.js?v=20261107.2"></script>
+<script src="assets/audio.js?v=20261118.2"></script>
 <script src="assets/voice-pack.js?v=20261107.3"></script>
 <script src="assets/announcements.js?v=20261107.3"></script>
 <script src="assets/world.js"></script>
 <script src="assets/people.js?v=20261107.2"></script>
-<script src="assets/game.js?v=20261118.1"></script>
+<script src="assets/campaign.js?v=20261118.2"></script>
+<script src="assets/game.js?v=20261118.2"></script>
 </body>
 </html>

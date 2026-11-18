@@ -1,7 +1,7 @@
 {
   "game": "Checkout Time",
-  "testedAt": "2026-11-18T09:10:37.187Z",
-  "sourceSha256": "048a5bd87a04e1d153131d3971aacd571f51f86b3d3771e1d954bdd0ec6b958f",
+  "testedAt": "2026-11-18T09:43:46.985Z",
+  "sourceSha256": "c00fdaf6051989a4d092ecd210f62296c294a2bc0ebac55c01fbbc3e0ca77724",
   "results": [
     {
       "name": "Plan rooms and doors are finite",

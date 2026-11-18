@@ -54,6 +54,9 @@ const S={
   sealed(){const v=local(.23,.1);if(v){v.noise(.12,.8,900);v.tone('triangle',196,196,.5,.4,.08);}},
   combo(n){const v=local(.14,.1);if(v)v.tone('sine',440*Math.min(n,5),660,.2,.4);},
   bell(){const v=local(.22,.3);if(v)[1318,2637,3951].forEach((f,i)=>v.tone('sine',f,f,1.5,.5/(i+1)));},
+  guestCall(x,z){const v=at(x,z,.16,false);if(v){v.tone('sine',620,790,.17,.5);v.tone('sine',790,680,.25,.45,.20);}},
+  landing(floor){const v=local(.17,.28);if(v){const f=196*Math.pow(2,floor/12);[1,1.5,2].forEach((r,i)=>v.tone('triangle',f*r,f*r,.65,.45,i*.12));}},
+  coachDeparture(){const v=local(.22,.14);if(v){v.tone('triangle',196,196,.42,.65);v.tone('triangle',247,247,.52,.55,.46);v.noise(.75,.3,720,'lowpass',.85);}},
   dawn(){const v=local(.24,.3,'music');if(v)[262,330,392,523].forEach((f,i)=>v.tone('sine',f,f,2.8,.4,i*.18));},
   dead(){const v=local(.3,.2,'music');if(v){v.tone('triangle',100,27,1.8,.7);v.noise(1.2,.3,500);}},
   ui(){const v=local(.09,0);if(v)v.tone('sine',880,660,.09,.3);}
