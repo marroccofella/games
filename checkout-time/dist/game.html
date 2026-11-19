@@ -54107,7 +54107,7 @@ function launch(renderer,canvas,onLeave,autoStart=false){
  function choose(id){if(paused||won)return;inputs.clear();path=route(tiles,hero.next||hero.id,id);}
  function guide(){const g=guests.find(g=>!g.joined);choose(g?g.id:exit);}
  function leave(continueTour=false){controller.abort();for(const a of new Set([hero,...guests,...convoy]))PEOPLE.dispose(a.rig);materials.forEach(m=>m.dispose());textures.forEach(m=>m.dispose());objects.forEach(m=>m.dispose());round.dispose();cube.dispose();ui.hidden=true;AUDIO.setPaused(true);onLeave(continueTour);}
- function pause(value){if(won)return;paused=value;inputs.clear();$('campaign-pause').textContent=value?'Resume':'Pause';AUDIO.setPaused(value);}
+ function pause(value){if(won)return;paused=value;$('campaign-action').disabled=value;inputs.clear();$('campaign-pause').textContent=value?'Resume':'Pause';AUDIO.setPaused(value);}
  function tick(dt){
   if(!paused&&!won){elapsed+=dt;stepTime-=dt;
    tourDelay-=dt;
@@ -54136,8 +54136,8 @@ function launch(renderer,canvas,onLeave,autoStart=false){
   $('campaign-action').textContent=touring?'Take control':'Guide to next stop';
  }
  function takeOver(){touring=false;path=[];syncTour();}
- ui.hidden=false;$('campaign-pause').hidden=false;$('campaign-pause').textContent='Pause';syncTour();
- listen($('campaign-action'),'click',()=>{if(won){leave(touring);return;}if(touring)takeOver();else guide();});
+ ui.hidden=false;$('campaign-action').disabled=false;$('campaign-pause').hidden=false;$('campaign-pause').textContent='Pause';syncTour();
+ listen($('campaign-action'),'click',()=>{if(paused)return;if(won){leave(touring);return;}if(touring)takeOver();else guide();});
  listen($('campaign-pause'),'click',()=>pause(!paused));listen($('campaign-leave'),'click',()=>leave());
  listen($('campaign-audio'),'click',()=>{AUDIO.toggleMute();audioLabel();});
  function audioLabel(){$('campaign-audio').textContent=AUDIO.status().muted?'Sound off':'Sound on';}
@@ -54146,7 +54146,7 @@ function launch(renderer,canvas,onLeave,autoStart=false){
   if(['Escape','p','P'].includes(k)&&!e.repeat){pause(!paused);return;}
   if(k.startsWith('Arrow')&&!paused&&!won){e.preventDefault();if(touring)takeOver();inputs.add(k);}});
  listen(window,'keyup',e=>inputs.delete(({w:'ArrowUp',a:'ArrowLeft',s:'ArrowDown',d:'ArrowRight'})[e.key.toLowerCase()]||e.key));
- listen(canvas,'pointerdown',e=>{if(touring)takeOver();const r=canvas.getBoundingClientRect(),ray=new THREE.Raycaster();ray.setFromCamera(new THREE.Vector2((e.clientX-r.left)/r.width*2-1,1-(e.clientY-r.top)/r.height*2),camera);
+ listen(canvas,'pointerdown',e=>{if(paused||won)return;if(touring)takeOver();const r=canvas.getBoundingClientRect(),ray=new THREE.Raycaster();ray.setFromCamera(new THREE.Vector2((e.clientX-r.left)/r.width*2-1,1-(e.clientY-r.top)/r.height*2),camera);
   const point=new THREE.Vector3();if(ray.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0,1,0),0),point))choose(key(Math.round(point.x/cell+6),Math.round(point.z/cell)));});
  AUDIO.start();AUDIO.setPaused(false);audioLabel();build();return {tick};
 }
